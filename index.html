@@ -193,12 +193,13 @@ function Sidebar({ screen, onNav }) {
               onClick={() => onNav(item.id)}
               style={{
                 display:'flex', alignItems:'center', gap:9,
-                width:'100%', padding:'7px 22px',
-                border:'none', borderLeft:`2px solid ${act ? T.accent : 'transparent'}`,
+                width:'calc(100% - 20px)', margin:'2px 10px', padding:'8px 14px',
+                border:'none', borderRadius:10,
                 background: act ? T.accentSoft : 'transparent',
-                color: act ? T.ink : T.ink3,
-                fontSize:13, fontFamily:T.ui, textAlign:'left',
+                color: act ? T.accent : T.ink2,
+                fontSize:12.5, fontFamily:T.ui, textAlign:'left',
                 fontWeight: act ? 500 : 400,
+                cursor:'pointer',
                 transition:'background 0.12s, color 0.12s',
               }}
               onMouseOver={e => { if (!act) e.currentTarget.style.background = T.bl; }}
@@ -1560,7 +1561,7 @@ function ToolsScreen() {
           </div>
 
           {/* Right: floating side cards */}
-          <div style={{width:216, display:'flex', flexDirection:'column', gap:12, flexShrink:0, paddingTop:48}}>
+          <div style={{width:216, display:'flex', flexDirection:'column', justifyContent:'space-between', flexShrink:0, alignSelf:'stretch'}}>
 
             {/* Quick Launch */}
             <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
