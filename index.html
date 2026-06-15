@@ -568,42 +568,214 @@ function ScheduleScreen() {
 
 /* ── 7. Grades ──────────────────────────────────────────── */
 function GradesScreen() {
-  const COL = '48px 1fr 54px 54px 152px';
+  const [targets, setTargets] = useState(Object.fromEntries(SUBJECTS.map(s => [s.id, s.grade])));
+  const GRADE_OPTS = ['A+','A','A−','B+','B','B−','C+','C','C−','D'];
+
+  const bestPerf  = SUBJECTS.reduce((a,b) => b.pct > a.pct ? b : a, SUBJECTS[0]);
+  const needsAttn = SUBJECTS.reduce((a,b) => b.pct < a.pct ? b : a, SUBJECTS[0]);
+  const totalHW   = HOMEWORK.length;
+  const gpaNum    = parseFloat(GPA);
+
+  // GPA ring
+  const R = 30, circ = 2 * Math.PI * R;
+
+  // Recent scores: last score from each subject
+  const recentScores = SUBJECTS.map(s => ({
+    subj: s,
+    score: (HIST[s.id] || [0])[4],
+  })).sort((a,b) => b.score - a.score);
+
   return (
-    <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'56px 72px'}}>
-      <PageHeader
-        eyebrow="Spring 2025"
-        title="Academic record"
-        right={
-          <>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:'clamp(42px,5.5vw,64px)', color:T.accent, lineHeight:0.88, letterSpacing:'-0.03em'}}>{GPA}</div>
-            <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, letterSpacing:'0.13em', textTransform:'uppercase', marginTop:8}}>Cumulative GPA</div>
-          </>
-        }
-      />
-      <div style={{display:'grid', gridTemplateColumns:COL, gap:14, padding:'9px 0', borderBottom:`1px solid ${T.border}`}}>
-        {['','Subject','%','GPA','Last 5'].map((c,i) => (
-          <div key={c||i} style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', textAlign:i>1?'right':'left'}}>{c}</div>
-        ))}
-      </div>
-      {SUBJECTS.map(s => {
-        const sc = HIST[s.id] || [80,80,80,80,80];
-        const pts = sc.map((v,i) => `${i*36+4},${24-(v-70)/30*20}`).join(' ');
-        return (
-          <div key={s.id} style={{display:'grid', gridTemplateColumns:COL, gap:14, padding:'16px 0', borderBottom:`1px solid ${T.bl}`, alignItems:'center'}}>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:32, color:T.accent, lineHeight:1, letterSpacing:'-0.02em'}}>{s.grade}</div>
-            <div style={{fontFamily:T.serif, fontSize:17, color:T.ink}}>{s.name}</div>
-            <div style={{fontFamily:T.mono, fontSize:10.5, color:T.ink2, textAlign:'right'}}>{Math.round(s.pct*100)}%</div>
-            <div style={{fontFamily:T.mono, fontSize:10.5, color:T.ink3, textAlign:'right'}}>{s.gpa.toFixed(1)}</div>
-            <div style={{display:'flex', justifyContent:'flex-end'}}>
-              <svg width={144} height={24} viewBox="0 0 144 24" style={{overflow:'visible'}}>
-                <polyline points={pts} fill="none" stroke={T.border} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
-                {sc.map((v,i) => <circle key={i} cx={i*36+4} cy={24-(v-70)/30*20} r={2.5} fill={T.accent}/>)}
+    <div className="screen-enter" style={{flex:1, display:'flex', overflow:'hidden'}}>
+
+      {/* ── Main content ── */}
+      <div style={{flex:1, overflowY:'auto', padding:'30px 36px 30px 52px'}}>
+
+        {/* Header */}
+        <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:22}}>
+          <div>
+            <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:7}}>Spring Term</div>
+            <h1 style={{margin:'0 0 5px', lineHeight:1.1}}>
+              <span style={{fontFamily:T.ui, fontWeight:700, fontSize:29, color:T.ink}}>Academic </span>
+              <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:31, color:T.ink}}>performance.</span>
+            </h1>
+            <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>Click any subject to view grade detail.</div>
+          </div>
+          <div style={{display:'flex', gap:8, flexShrink:0}}>
+            {['Import Grades PDF','Export CSV'].map((label,i) => (
+              <button key={label} style={{
+                display:'flex', alignItems:'center', gap:6, padding:'7px 13px',
+                border:`1px solid ${T.border}`, background:T.surface, color:T.ink3,
+                fontFamily:T.mono, fontSize:8, letterSpacing:'0.07em', cursor:'pointer', transition:'border-color 0.12s',
+              }}
+                onMouseOver={e => e.currentTarget.style.borderColor = T.accent}
+                onMouseOut={e => e.currentTarget.style.borderColor = T.border}
+              >
+                {i===0 && <svg width="10" height="11" viewBox="0 0 10 11" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"><rect x="1" y="1.5" width="8" height="9" rx="0.8"/><path d="M3 4.5h4M3 6.5h4M3 8.5h2.5"/></svg>}
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 4 stat cards */}
+        <div style={{display:'grid', gridTemplateColumns:'240px 1fr 1fr 1fr', gap:1, marginBottom:1, background:T.border}}>
+
+          {/* GPA ring */}
+          <div style={{background:T.surface, padding:'16px 20px', display:'flex', alignItems:'center', gap:18}}>
+            <div style={{position:'relative', flexShrink:0, width:72, height:72}}>
+              <svg width={72} height={72} viewBox="-36 -36 72 72" style={{transform:'rotate(-90deg)'}}>
+                <circle r={R} fill="none" stroke={T.border} strokeWidth={3.5}/>
+                <circle r={R} fill="none" stroke={T.accent} strokeWidth={3.5}
+                  strokeDasharray={`${(gpaNum/4)*circ} ${circ}`} strokeLinecap="round"/>
               </svg>
+              <div style={{position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'}}>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink, lineHeight:1}}>{GPA}</div>
+                <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3}}>/ 4.0</div>
+              </div>
+            </div>
+            <div>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:6}}>GPA This Term</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:19, color:T.ink, lineHeight:1.2, marginBottom:4}}>Ready to <em>track.</em></div>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3}}>Unweighted · Spring 2025</div>
             </div>
           </div>
-        );
-      })}
+
+          {/* Best performing */}
+          <div style={{background:T.surface, padding:'16px 20px'}}>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>Best Performing</div>
+            <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:5}}>
+              <div style={{width:7, height:7, borderRadius:2, background:bestPerf.color}}/>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, lineHeight:1}}>{bestPerf.short}</div>
+            </div>
+            <div style={{fontFamily:T.mono, fontSize:9.5, color:T.accent}}>{bestPerf.grade} · {Math.round(bestPerf.pct*100)}%</div>
+          </div>
+
+          {/* Needs attention */}
+          <div style={{background:T.surface, padding:'16px 20px'}}>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>Needs Attention</div>
+            <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:5}}>
+              <div style={{width:7, height:7, borderRadius:2, background:needsAttn.color}}/>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, lineHeight:1}}>{needsAttn.short}</div>
+            </div>
+            <div style={{fontFamily:T.mono, fontSize:9.5, color:'#bf4a30'}}>{needsAttn.grade} · {Math.round(needsAttn.pct*100)}%</div>
+          </div>
+
+          {/* Total assignments */}
+          <div style={{background:T.surface, padding:'16px 20px'}}>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>Total Assignments</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:38, color:T.ink, lineHeight:0.95, marginBottom:5}}>{totalHW}</div>
+            <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3}}>Click a subject to start</div>
+          </div>
+        </div>
+
+        {/* Table header */}
+        <div style={{display:'grid', gridTemplateColumns:'1fr 120px 72px 80px 100px', gap:8, padding:'7px 0 7px 16px', background:T.surface, borderBottom:`1px solid ${T.border}`}}>
+          {['SUBJECT','TASKS','SCORE','GRADE','TARGET'].map((h,i) => (
+            <div key={h} style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', textAlign: i>0 ? 'center' : 'left'}}>{h}</div>
+          ))}
+        </div>
+
+        {/* Subject rows */}
+        <div style={{background:T.border, display:'flex', flexDirection:'column', gap:1}}>
+          {SUBJECTS.map(s => {
+            const sc   = HIST[s.id] || [80,80,80,80,80];
+            const hw   = HOMEWORK.filter(h => h.subj === s.id);
+            const pts  = sc.map((v,i) => `${i*26+4},${16-(v-70)/30*12}`).join(' ');
+            const atTgt = targets[s.id] === s.grade;
+            return (
+              <div key={s.id}
+                style={{display:'grid', gridTemplateColumns:'1fr 120px 72px 80px 100px', gap:8, background:T.surface, alignItems:'center', cursor:'pointer', transition:'background 0.1s', borderLeft:`3px solid ${s.color}`}}
+                onMouseOver={e => e.currentTarget.style.background = T.bl}
+                onMouseOut={e => e.currentTarget.style.background = T.surface}
+              >
+                {/* Subject */}
+                <div style={{padding:'13px 12px'}}>
+                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16.5, color:T.ink, marginBottom:2}}>{s.name}</div>
+                  <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{hw.length} assignments</div>
+                </div>
+                {/* Tasks sparkline */}
+                <div style={{display:'flex', justifyContent:'center'}}>
+                  <svg width={108} height={18} viewBox="0 0 108 18" style={{overflow:'visible'}}>
+                    <polyline points={pts} fill="none" stroke={T.border} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+                    {sc.map((v,i) => <circle key={i} cx={i*26+4} cy={16-(v-70)/30*12} r={2} fill={s.color}/>)}
+                  </svg>
+                </div>
+                {/* Score */}
+                <div style={{fontFamily:T.mono, fontSize:11, color:T.ink2, textAlign:'center'}}>{Math.round(s.pct*100)}%</div>
+                {/* Grade badge */}
+                <div style={{display:'flex', justifyContent:'center'}}>
+                  <div style={{background:`${s.color}18`, border:`1px solid ${s.color}40`, padding:'3px 9px', fontFamily:T.mono, fontSize:10, color:s.color, fontWeight:600}}>{s.grade}</div>
+                </div>
+                {/* Target */}
+                <div style={{display:'flex', justifyContent:'center'}} onClick={e => e.stopPropagation()}>
+                  <select
+                    value={targets[s.id]}
+                    onChange={e => setTargets({...targets, [s.id]: e.target.value})}
+                    style={{background: atTgt ? T.bl : T.accentSoft, border:`1px solid ${atTgt ? T.border : T.accent}`, padding:'4px 8px', fontFamily:T.mono, fontSize:9, color: atTgt ? T.ink3 : T.accent, cursor:'pointer', appearance:'none', textAlign:'center', width:66}}
+                  >
+                    {GRADE_OPTS.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div style={{display:'flex', justifyContent:'space-between', padding:'7px 16px', background:T.surface, borderTop:`1px solid ${T.border}`}}>
+          <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{SUBJECTS.length} subjects · click any row to log a grade</div>
+          <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>0 needed to top</div>
+        </div>
+      </div>
+
+      {/* ── Right sidebar ── */}
+      <div style={{width:220, borderLeft:`1px solid ${T.border}`, display:'flex', flexDirection:'column', overflow:'hidden', flexShrink:0}}>
+
+        {/* Recent Scores */}
+        <div style={{padding:'16px 18px', borderBottom:`1px solid ${T.border}`, flexShrink:0}}>
+          <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:13}}>
+            <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Recent Scores</div>
+          </div>
+          {recentScores.map((item,i) => (
+            <div key={item.subj.id} style={{display:'flex', alignItems:'center', gap:9, padding:'6px 0', borderBottom: i < recentScores.length-1 ? `1px solid ${T.bl}` : 'none'}}>
+              <div style={{width:5, height:5, borderRadius:1, background:item.subj.color, flexShrink:0}}/>
+              <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.subj.short}</div>
+              <div style={{fontFamily:T.mono, fontSize:10, flexShrink:0, color: item.score >= 90 ? '#3a8a52' : item.score >= 80 ? T.ink3 : '#bf4a30'}}>{item.score}%</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Grade Targets */}
+        <div style={{padding:'16px 18px', borderBottom:`1px solid ${T.border}`, flexShrink:0}}>
+          <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
+            <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52'}}/>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Grade Targets</div>
+          </div>
+          {SUBJECTS.map(s => (
+            <div key={s.id} style={{display:'flex', alignItems:'center', gap:8, padding:'4px 0'}}>
+              <div style={{width:5, height:5, borderRadius:1, background:s.color, flexShrink:0}}/>
+              <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1}}>{s.short}</div>
+              <div style={{fontFamily:T.mono, fontSize:9, color: targets[s.id] === s.grade ? T.ink3 : T.accent}}>{targets[s.id]}</div>
+              <span style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, cursor:'pointer'}}>→</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Grade Insights */}
+        <div style={{flex:1, padding:'16px 18px'}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
+            <div style={{display:'flex', alignItems:'center', gap:6}}>
+              <div style={{width:6, height:6, borderRadius:'50%', background:'#4285f4'}}/>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Grade Insights</div>
+            </div>
+            <span style={{fontFamily:T.mono, fontSize:7.5, background:'rgba(66,133,244,0.1)', color:'#4285f4', padding:'2px 6px', letterSpacing:'0.07em'}}>AI</span>
+          </div>
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.7}}>Insights appear once you log your first grade.</div>
+        </div>
+
+      </div>
     </div>
   );
 }
