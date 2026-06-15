@@ -117,6 +117,16 @@ const HIST = {
 };
 
 const GPA_MAP = { 'A+':4.0,'A':4.0,'A−':3.7,'B+':3.3,'B':3.0,'B−':2.7,'C+':2.3,'C':2.0,'C−':1.7,'D':1.0,'F':0 };
+
+const TOOLS_DATA = [
+  { id:'claude',     name:'Claude',     cat:'AI',           color:'#c65030', desc:'Write, code, analyse, and reason — Anthropic\'s frontier AI.',          sessions:1, lastUsed:'8d ago', trend:-100, connected:true  },
+  { id:'notion',     name:'Notion',     cat:'PRODUCTIVITY', color:'#555555', desc:'All-in-one workspace for notes, wikis, and project management.',         sessions:1, lastUsed:'8d ago', trend:-100, connected:true  },
+  { id:'figma',      name:'Figma',      cat:'DESIGN',       color:'#9254de', desc:'Design and prototype interfaces collaboratively in real time.',           sessions:1, lastUsed:'8d ago', trend:-100, connected:true  },
+  { id:'notebooklm', name:'NotebookLM', cat:'AI',           color:'#4285f4', desc:'Upload your notes and lecture slides — ask AI anything about them.',     sessions:0, lastUsed:'Never',  trend:0,    connected:false },
+  { id:'zapier',     name:'Zapier',     cat:'PRODUCTIVITY', color:'#ff4a00', desc:'Automate repetitive tasks by connecting your apps and workflows.',       sessions:0, lastUsed:'Never',  trend:0,    connected:false },
+  { id:'canva',      name:'Canva',      cat:'DESIGN',       color:'#00b4bc', desc:'Create posters, presentations, and graphics with drag-and-drop.',       sessions:0, lastUsed:'Never',  trend:0,    connected:false },
+  { id:'gemini',     name:'Gemini',     cat:'AI',           color:'#4285f4', desc:'Google\'s multimodal AI for research, writing, and complex tasks.',     sessions:0, lastUsed:'Never',  trend:0,    connected:false },
+];
 const GPA = (SUBJECTS.reduce((a,s) => a + s.gpa, 0) / SUBJECTS.length).toFixed(2);
 const subjectBy = (id) => SUBJECTS.find(s => s.id === id) || SUBJECTS[0];
 
@@ -600,102 +610,226 @@ function GradesScreen() {
 
 /* ── 8. Tools ───────────────────────────────────────────── */
 function ToolsScreen() {
-  const GRADE_OPTS = ['A+','A','A−','B+','B','B−','C+','C','C−','D','F'];
-  const [hypo, setHypo] = useState(() => Object.fromEntries(SUBJECTS.map(s => [s.id, s.grade])));
-  const hypoGPA = (() => {
-    const vals = SUBJECTS.map(s => GPA_MAP[hypo[s.id]] ?? s.gpa);
-    return (vals.reduce((a,b) => a+b, 0) / vals.length).toFixed(2);
-  })();
-  const gpaDelta = (parseFloat(hypoGPA) - parseFloat(GPA)).toFixed(2);
+  const [filter, setFilter] = useState('ALL');
+  const cats = ['ALL','AI','DESIGN','PRODUCTIVITY'];
+  const filtered = filter === 'ALL' ? TOOLS_DATA : TOOLS_DATA.filter(t => t.cat === filter);
+  const connected = TOOLS_DATA.filter(t => t.connected);
+  const topTool = TOOLS_DATA.reduce((a,b) => b.sessions > a.sessions ? b : a, TOOLS_DATA[0]);
 
-  const [estSubj, setEstSubj] = useState('ap-bio');
-  const [curPct, setCurPct] = useState(87);
-  const [tgtGrade, setTgtGrade] = useState('A−');
-  const [remWeight, setRemWeight] = useState(20);
+  const SUGGESTIONS = [
+    { tool: TOOLS_DATA.find(t => t.id==='claude'),     priority:'HIGH', msg:"You haven't opened Claude recently.", action:'Open' },
+    { tool: TOOLS_DATA.find(t => t.id==='notebooklm'), priority:'LOW',  msg:"You haven't tried NotebookLM yet.",  action:'Try'  },
+  ];
 
-  const needed = (() => {
-    const tgtPct = tgtGrade === 'A+' || tgtGrade === 'A' ? 0.93 : tgtGrade === 'A−' ? 0.90 : tgtGrade === 'B+' ? 0.87 : tgtGrade === 'B' ? 0.83 : 0.73;
-    const w = remWeight / 100;
-    if (w <= 0) return null;
-    return Math.round(((tgtPct - (curPct/100) * (1-w)) / w) * 100);
-  })();
+  const QUICK_LAUNCH = [
+    { tool: TOOLS_DATA.find(t => t.id==='claude'),     label:'Ask Claude a question', sub:'Start new conversation', key:'⌘1' },
+    { tool: TOOLS_DATA.find(t => t.id==='figma'),      label:'New Figma file',        sub:'Open design canvas',     key:'⌘2' },
+    { tool: TOOLS_DATA.find(t => t.id==='notebooklm'), label:'Open NotebookLM',       sub:'Study from your notes',  key:'⌘3' },
+    { tool: TOOLS_DATA.find(t => t.id==='notion'),     label:'New Notion page',       sub:'Capture & organise',     key:'⌘4' },
+  ];
 
-  const input = { background:T.bl, border:`1px solid ${T.border}`, padding:'7px 10px', fontFamily:T.mono, fontSize:11, color:T.ink, borderRadius:0, outline:'none', width:'100%' };
-  const sel = { ...input, cursor:'pointer', appearance:'none' };
+  const ToolIcon = ({ tool, size=28 }) => (
+    <div style={{width:size, height:size, borderRadius:Math.round(size*0.2), background:`${tool.color}18`, border:`1px solid ${tool.color}38`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+      <span style={{fontFamily:T.mono, fontSize:size*0.38, color:tool.color, fontWeight:600}}>{tool.name[0]}</span>
+    </div>
+  );
+
+  const Spark = ({ tool }) => {
+    const vals = tool.connected ? [0.25,0.6,0.35,0.85,0.5] : [0.12,0.12,0.12,0.12,0.12];
+    return (
+      <div style={{display:'flex', gap:3, alignItems:'center', justifyContent:'center'}}>
+        {vals.map((v,i) => <div key={i} style={{width:5, height:5, borderRadius:'50%', background:tool.color, opacity:v}} />)}
+      </div>
+    );
+  };
 
   return (
-    <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'56px 72px'}}>
-      <PageHeader eyebrow="Academic tools" title="Tools" />
-      <Hr />
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:1, background:T.border}}>
+    <div className="screen-enter" style={{flex:1, display:'flex', overflow:'hidden'}}>
 
-        {/* GPA Calculator */}
-        <div style={{background:T.surface, padding:'30px 34px'}}>
-          <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:16}}>GPA Calculator</div>
-          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:50, color:T.accent, lineHeight:0.92, letterSpacing:'-0.03em', marginBottom:6}}>{hypoGPA}</div>
-          <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, letterSpacing:'0.08em', marginBottom:22}}>
-            {parseFloat(gpaDelta) > 0 ? `↑ +${gpaDelta}` : parseFloat(gpaDelta) < 0 ? `↓ ${gpaDelta}` : `= current`} {parseFloat(gpaDelta) !== 0 ? `from ${GPA}` : ''}
+      {/* ── Main scrollable content ── */}
+      <div style={{flex:1, overflowY:'auto', padding:'36px 40px 36px 56px'}}>
+
+        {/* Header */}
+        <div style={{marginBottom:28}}>
+          <h1 style={{margin:'0 0 5px', lineHeight:1.15, fontSize:26}}>
+            <span style={{fontFamily:T.ui, fontWeight:600, color:T.ink}}>Your </span>
+            <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:28, color:T.ink}}>command center.</span>
+          </h1>
+          <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, letterSpacing:'0.1em'}}>{connected.length} tools used · click any tool to track it</div>
+        </div>
+
+        {/* Stat cards */}
+        <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:1, marginBottom:1, background:T.border}}>
+          {[
+            { label:'THIS WEEK',   val:'0',                             sub:'Open any tool to start'                             },
+            { label:'TOP TOOL',    val:topTool.name,                    sub:`${topTool.sessions} total · 0 this wk`             },
+            { label:'CONNECTED',   val:`${connected.length} / ${TOOLS_DATA.length}`, sub:`${connected.length} tools used`       },
+            { label:'LAST OPENED', val:connected[0].name,               sub:`${connected[0].lastUsed} · ${connected[0].cat.toLowerCase()}` },
+          ].map(c => (
+            <div key={c.label} style={{background:T.surface, padding:'16px 20px'}}>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:8}}>{c.label}</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, lineHeight:1.1, marginBottom:4}}>{c.val}</div>
+              <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3}}>{c.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Middle row */}
+        <div style={{display:'grid', gridTemplateColumns:'1fr 0.58fr 0.42fr', gap:1, marginBottom:1, background:T.border}}>
+
+          {/* Intelligent suggestions */}
+          <div style={{background:T.surface, padding:'16px 20px'}}>
+            <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:14}}>
+              <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52', flexShrink:0}} />
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', flex:1}}>Intelligent Suggestions</div>
+              <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3}}>{SUGGESTIONS.length} active</div>
+            </div>
+            {SUGGESTIONS.map((sg,i) => (
+              <div key={i} style={{display:'flex', alignItems:'center', gap:10, padding:'11px 0', borderBottom: i < SUGGESTIONS.length-1 ? `1px solid ${T.bl}` : 'none'}}>
+                <ToolIcon tool={sg.tool} size={26} />
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:2}}>
+                    <span style={{fontFamily:T.ui, fontSize:12, color:T.ink, fontWeight:500}}>{sg.tool.name}</span>
+                    <span style={{fontFamily:T.mono, fontSize:7, padding:'1px 5px', background: sg.priority==='HIGH' ? 'rgba(191,74,48,0.1)' : T.bl, color: sg.priority==='HIGH' ? '#bf4a30' : T.ink3, letterSpacing:'0.07em'}}>{sg.priority}</span>
+                  </div>
+                  <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink3}}>{sg.msg}</div>
+                  {sg.priority === 'HIGH' && <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, marginTop:3}}>1 total sessions · Last: 8d ago</div>}
+                </div>
+                <button style={{fontFamily:T.mono, fontSize:9, color:T.accent, background:'none', border:'none', padding:0, flexShrink:0, cursor:'pointer'}}>{sg.action} →</button>
+              </div>
+            ))}
           </div>
-          <div style={{display:'flex', flexDirection:'column', gap:7}}>
-            {SUBJECTS.map(s => (
-              <div key={s.id} style={{display:'flex', alignItems:'center', gap:10}}>
-                <div style={{width:6, height:6, borderRadius:1.5, background:s.color, flexShrink:0}} />
-                <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink2, flex:1}}>{s.short}</div>
-                <div style={{width:68}}>
-                  <select value={hypo[s.id]} onChange={e => setHypo({...hypo, [s.id]:e.target.value})} style={sel}>
-                    {GRADE_OPTS.map(g => <option key={g} value={g}>{g}</option>)}
-                  </select>
+
+          {/* Usage breakdown */}
+          <div style={{background:T.surface, padding:'16px 20px'}}>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Breakdown</div>
+              <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3}}>All time</div>
+            </div>
+            {connected.map(tool => (
+              <div key={tool.id} style={{marginBottom:11}}>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5}}>
+                  <div style={{display:'flex', alignItems:'center', gap:7}}>
+                    <div style={{width:6, height:6, borderRadius:'50%', background:tool.color}} />
+                    <span style={{fontFamily:T.ui, fontSize:12, color:T.ink}}>{tool.name}</span>
+                  </div>
+                  <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3}}>{tool.sessions} <span style={{opacity:0.5}}>100%</span></div>
+                </div>
+                <div style={{height:2, background:T.bl, borderRadius:1, overflow:'hidden'}}>
+                  <div style={{width:'100%', height:'100%', background:tool.color, opacity:0.65}} />
                 </div>
               </div>
             ))}
           </div>
-          <button
-            onClick={() => setHypo(Object.fromEntries(SUBJECTS.map(s => [s.id, s.grade])))}
-            style={{marginTop:18, background:'none', border:`1px solid ${T.border}`, padding:'6px 14px', fontFamily:T.mono, fontSize:8.5, color:T.ink3, letterSpacing:'0.1em', textTransform:'uppercase', cursor:'pointer', transition:'border-color 0.12s'}}
-            onMouseOver={e => e.currentTarget.style.borderColor = T.accent}
-            onMouseOut={e => e.currentTarget.style.borderColor = T.border}
-          >Reset</button>
+
+          {/* Usage insight */}
+          <div style={{background:T.surface, padding:'16px 20px', display:'flex', flexDirection:'column'}}>
+            <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
+              <span style={{color:T.accent, fontSize:11, lineHeight:1}}>★</span>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Insight</div>
+            </div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink3, lineHeight:1.65}}>Use your tools to generate insights.</div>
+          </div>
         </div>
 
-        {/* Grade Estimator */}
-        <div style={{background:T.surface, padding:'30px 34px'}}>
-          <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:16}}>Grade Estimator</div>
-          <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink3, lineHeight:1.7, marginBottom:22}}>What score do I need on remaining work to hit my target?</div>
-          <div style={{display:'flex', flexDirection:'column', gap:12}}>
-            <div>
-              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:5}}>Subject</div>
-              <select value={estSubj} onChange={e => setEstSubj(e.target.value)} style={sel}>
-                {SUBJECTS.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
-              <div>
-                <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:5}}>Current %</div>
-                <input type="number" min={0} max={100} value={curPct} onChange={e => setCurPct(Number(e.target.value))} style={input} />
+        {/* Filter tabs */}
+        <div style={{display:'flex', gap:1, background:T.border, marginBottom:1}}>
+          {cats.map(c => {
+            const count = c === 'ALL' ? TOOLS_DATA.length : TOOLS_DATA.filter(t => t.cat===c).length;
+            const act = filter === c;
+            return (
+              <button key={c} onClick={() => setFilter(c)} style={{
+                padding:'8px 16px', border:'none',
+                background: act ? T.surface : T.bl,
+                color: act ? T.accent : T.ink3,
+                fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.09em',
+                borderBottom: act ? `2px solid ${T.accent}` : '2px solid transparent',
+                cursor:'pointer', transition:'all 0.12s', whiteSpace:'nowrap',
+              }}>
+                {c} <span style={{opacity:0.55}}>{count}</span>
+              </button>
+            );
+          })}
+          <div style={{flex:1, background:T.surface, display:'flex', alignItems:'center', justifyContent:'flex-end', padding:'0 14px'}}>
+            <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3}}>{filtered.length} tools</div>
+          </div>
+        </div>
+
+        {/* Table header */}
+        <div style={{display:'grid', gridTemplateColumns:'1fr 100px 80px 80px 70px', gap:10, padding:'7px 14px', background:T.surface, borderBottom:`1px solid ${T.border}`}}>
+          {['TOOL','TO ACTIVITY','SESSIONS','LAST USED','TREND'].map((h,i) => (
+            <div key={h} style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', textAlign: i>0 ? 'center' : 'left'}}>{h}</div>
+          ))}
+        </div>
+
+        {/* Tool rows */}
+        <div style={{background:T.border, display:'flex', flexDirection:'column', gap:1}}>
+          {filtered.map(tool => (
+            <div key={tool.id}
+              style={{display:'grid', gridTemplateColumns:'1fr 100px 80px 80px 70px', gap:10, padding:'11px 14px', background:T.surface, alignItems:'center', cursor:'pointer', transition:'background 0.1s'}}
+              onMouseOver={e => e.currentTarget.style.background = T.bl}
+              onMouseOut={e => e.currentTarget.style.background = T.surface}
+            >
+              <div style={{display:'flex', alignItems:'center', gap:11, minWidth:0}}>
+                <ToolIcon tool={tool} size={26} />
+                <div style={{minWidth:0}}>
+                  <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:2}}>
+                    <span style={{fontFamily:T.ui, fontSize:13, color:T.ink, fontWeight:500}}>{tool.name}</span>
+                    <span style={{fontFamily:T.mono, fontSize:7, padding:'1.5px 5px', background:T.bl, color:T.ink3, letterSpacing:'0.07em'}}>{tool.cat}</span>
+                  </div>
+                  <div style={{fontFamily:T.ui, fontSize:11, color:T.ink3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tool.desc}</div>
+                </div>
               </div>
-              <div>
-                <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:5}}>Target grade</div>
-                <select value={tgtGrade} onChange={e => setTgtGrade(e.target.value)} style={sel}>
-                  {['A+','A','A−','B+','B','B−'].map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
+              <Spark tool={tool} />
+              <div style={{fontFamily:T.mono, fontSize:11, color: tool.sessions > 0 ? T.ink : T.ink3, textAlign:'center'}}>{tool.sessions}</div>
+              <div style={{fontFamily:T.mono, fontSize:11, color:T.ink3, textAlign:'center'}}>{tool.lastUsed}</div>
+              <div style={{fontFamily:T.mono, fontSize:11, color: tool.trend < 0 ? '#bf4a30' : T.ink3, textAlign:'center'}}>
+                {tool.trend === 0 ? '0%' : `${tool.trend}%`}
               </div>
             </div>
-            <div>
-              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:5}}>Remaining work weight (%)</div>
-              <input type="number" min={1} max={100} value={remWeight} onChange={e => setRemWeight(Number(e.target.value))} style={input} />
+          ))}
+        </div>
+      </div>
+
+      {/* ── Right sidebar ── */}
+      <div style={{width:216, borderLeft:`1px solid ${T.border}`, display:'flex', flexDirection:'column', overflow:'hidden', flexShrink:0}}>
+
+        {/* Quick Launch */}
+        <div style={{padding:'16px 18px', borderBottom:`1px solid ${T.border}`, flex:'0 0 auto'}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Quick Launch</div>
+            <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3}}>⌘1-4</div>
+          </div>
+          {QUICK_LAUNCH.map((ql,i) => (
+            <div key={i}
+              style={{display:'flex', alignItems:'center', gap:9, padding:'8px 0', borderBottom: i < QUICK_LAUNCH.length-1 ? `1px solid ${T.bl}` : 'none', cursor:'pointer'}}
+              onMouseOver={e => e.currentTarget.style.background = T.bl}
+              onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <ToolIcon tool={ql.tool} size={22} />
+              <div style={{flex:1, minWidth:0}}>
+                <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink, fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:1}}>{ql.label}</div>
+                <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3}}>{ql.sub}</div>
+              </div>
+              <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, flexShrink:0}}>{ql.key}</div>
+            </div>
+          ))}
+          <div style={{marginTop:10, paddingTop:9, borderTop:`1px solid ${T.bl}`, display:'flex', justifyContent:'space-between'}}>
+            <span style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, cursor:'pointer'}}>Browse all tools</span>
+            <span style={{fontFamily:T.mono, fontSize:8, color:T.ink3, opacity:0.5}}>⌘5</span>
+          </div>
+        </div>
+
+        {/* Activity */}
+        <div style={{flex:1, padding:'16px 18px'}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Activity</div>
+            <div style={{display:'flex', alignItems:'center', gap:5}}>
+              <div style={{width:5, height:5, borderRadius:'50%', background:'#3a8a52'}} />
+              <div style={{fontFamily:T.mono, fontSize:8, color:'#3a8a52'}}>Live</div>
             </div>
           </div>
-          {needed !== null && (
-            <div style={{marginTop:24, borderTop:`1px solid ${T.border}`, paddingTop:22}}>
-              <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:7}}>You need</div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:50, color: needed <= 100 ? T.accent : '#bf4a30', lineHeight:0.92, letterSpacing:'-0.03em', marginBottom:8}}>
-                {needed < 0 ? 'Done ✓' : needed > 110 ? 'Not possible' : `${needed}%`}
-              </div>
-              <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink3, lineHeight:1.6}}>
-                {needed < 0 ? 'You already exceed this target grade.' : needed > 110 ? 'Target is not achievable with this remaining weight.' : needed > 97 ? 'Very high bar — near-perfect score needed.' : needed > 90 ? 'Challenging but achievable with strong effort.' : 'Well within reach with consistent work.'}
-              </div>
-            </div>
-          )}
+          <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, lineHeight:1.7}}>No activity yet. Open a tool to start tracking.</div>
         </div>
 
       </div>
