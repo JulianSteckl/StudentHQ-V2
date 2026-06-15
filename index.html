@@ -687,8 +687,7 @@ function NotesScreen() {
   const subjNotes = SUBJECTS.map(s => ({ subj:s, notes: NOTES_DATA.filter(n => n.subj === s.id) }));
 
   return (
-    <div className="screen-enter" style={{flex:1, display:'flex', overflow:'hidden'}}>
-      <div style={{flex:1, overflowY:'auto', padding:'28px 36px 28px 52px'}}>
+    <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'28px 52px'}}>
         {/* Header */}
         <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:20}}>
           <div>
@@ -771,56 +770,53 @@ function NotesScreen() {
             </div>
           ))}
         </div>
-      </div>
 
-      {/* Knowledge Insights sidebar */}
-      <div style={{width:218, borderLeft:`1px solid ${T.border}`, display:'flex', flexDirection:'column', overflow:'hidden', flexShrink:0}}>
-        <div style={{padding:'16px 18px', borderBottom:`1px solid ${T.border}`, flexShrink:0}}>
-          <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:14}}>
-            <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
-            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Knowledge Insights</div>
-          </div>
-          <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:3}}>Most Active</div>
-          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink, marginBottom:3}}>{mostActiveSubj.name}</div>
-          <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, marginBottom:14}}>{NOTES_DATA.filter(n=>n.subj===mostActiveSubj.id).length} notes</div>
-          {[['Last Edited', mostRecentNote.date],['Longest Note','Trig Identities'],['Total Tags', SUBJECTS.length]].map(([label,val]) => (
-            <div key={label} style={{marginBottom:10}}>
-              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em', marginBottom:2}}>{label}</div>
-              <div style={{fontFamily:T.ui, fontSize:12, color:T.ink2}}>{val}</div>
+        {/* Floating cards — Knowledge Insights + AI Workspace */}
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginTop:12}}>
+          <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
+            <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:14}}>
+              <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Knowledge Insights</div>
             </div>
-          ))}
-        </div>
-
-        {/* AI Workspace */}
-        <div style={{flex:1, padding:'16px 18px', overflowY:'auto'}}>
-          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:13}}>
-            <div style={{display:'flex', alignItems:'center', gap:6}}>
-              <div style={{width:6, height:6, borderRadius:'50%', background:'#6c63ff'}}/>
-              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em'}}>AI Workspace</div>
-            </div>
-            <span style={{fontFamily:T.mono, fontSize:7.5, background:'rgba(108,99,255,0.1)', color:'#6c63ff', padding:'2px 6px'}}>AI</span>
-          </div>
-          {[
-            {ic:'✦', label:'Generate study guide',     sub:'AI summary from all notes'},
-            {ic:'◈', label:'Summarise subject notes',  sub:'Distil key concepts'},
-            {ic:'⊞', label:'Create flashcard deck',    sub:'Turn notes into study cards'},
-            {ic:'◉', label:'Find knowledge gaps',      sub:'Identify missing areas'},
-          ].map(a => (
-            <div key={a.label} style={{display:'flex', gap:9, alignItems:'flex-start', padding:'9px 0', borderBottom:`1px solid ${T.bl}`, cursor:'pointer'}}
-              onMouseOver={e => e.currentTarget.style.opacity='0.65'}
-              onMouseOut={e => e.currentTarget.style.opacity='1'}
-            >
-              <div style={{width:22, height:22, background:T.bl, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:3, flexShrink:0}}>
-                <span style={{fontSize:11, color:'#6c63ff'}}>{a.ic}</span>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:3}}>Most Active</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink, marginBottom:3}}>{mostActiveSubj.name}</div>
+            <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, marginBottom:14}}>{NOTES_DATA.filter(n=>n.subj===mostActiveSubj.id).length} notes</div>
+            {[['Last Edited', mostRecentNote.date],['Longest Note','Trig Identities'],['Total Tags', SUBJECTS.length]].map(([label,val]) => (
+              <div key={label} style={{marginBottom:10}}>
+                <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em', marginBottom:2}}>{label}</div>
+                <div style={{fontFamily:T.ui, fontSize:12, color:T.ink2}}>{val}</div>
               </div>
-              <div>
-                <div style={{fontFamily:T.ui, fontSize:12, color:T.ink, fontWeight:500, marginBottom:2}}>{a.label}</div>
-                <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3}}>{a.sub}</div>
+            ))}
+          </div>
+          <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:13}}>
+              <div style={{display:'flex', alignItems:'center', gap:6}}>
+                <div style={{width:6, height:6, borderRadius:'50%', background:'#6c63ff'}}/>
+                <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em'}}>AI Workspace</div>
               </div>
+              <span style={{fontFamily:T.mono, fontSize:7.5, background:'rgba(108,99,255,0.1)', color:'#6c63ff', padding:'2px 6px'}}>AI</span>
             </div>
-          ))}
+            {[
+              {ic:'✦', label:'Generate study guide',     sub:'AI summary from all notes'},
+              {ic:'◈', label:'Summarise subject notes',  sub:'Distil key concepts'},
+              {ic:'⊞', label:'Create flashcard deck',    sub:'Turn notes into study cards'},
+              {ic:'◉', label:'Find knowledge gaps',      sub:'Identify missing areas'},
+            ].map(a => (
+              <div key={a.label} style={{display:'flex', gap:9, alignItems:'flex-start', padding:'9px 0', borderBottom:`1px solid ${T.bl}`, cursor:'pointer'}}
+                onMouseOver={e => e.currentTarget.style.opacity='0.65'}
+                onMouseOut={e => e.currentTarget.style.opacity='1'}
+              >
+                <div style={{width:22, height:22, background:T.bl, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:3, flexShrink:0}}>
+                  <span style={{fontSize:11, color:'#6c63ff'}}>{a.ic}</span>
+                </div>
+                <div>
+                  <div style={{fontFamily:T.ui, fontSize:12, color:T.ink, fontWeight:500, marginBottom:2}}>{a.label}</div>
+                  <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3}}>{a.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
     </div>
   );
 }
@@ -1181,10 +1177,7 @@ function GradesScreen() {
   })).sort((a,b) => b.score - a.score);
 
   return (
-    <div className="screen-enter" style={{flex:1, display:'flex', overflow:'hidden'}}>
-
-      {/* ── Main content ── */}
-      <div style={{flex:1, overflowY:'auto', padding:'30px 36px 30px 52px'}}>
+    <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'30px 52px'}}>
 
         {/* Header */}
         <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:22}}>
@@ -1322,55 +1315,47 @@ function GradesScreen() {
           <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{SUBJECTS.length} subjects · click any row to log a grade</div>
           <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>0 needed to top</div>
         </div>
-      </div>
 
-      {/* ── Right sidebar ── */}
-      <div style={{width:220, borderLeft:`1px solid ${T.border}`, display:'flex', flexDirection:'column', overflow:'hidden', flexShrink:0}}>
-
-        {/* Recent Scores */}
-        <div style={{padding:'16px 18px', borderBottom:`1px solid ${T.border}`, flexShrink:0}}>
-          <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:13}}>
-            <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
-            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Recent Scores</div>
-          </div>
-          {recentScores.map((item,i) => (
-            <div key={item.subj.id} style={{display:'flex', alignItems:'center', gap:9, padding:'6px 0', borderBottom: i < recentScores.length-1 ? `1px solid ${T.bl}` : 'none'}}>
-              <div style={{width:5, height:5, borderRadius:1, background:item.subj.color, flexShrink:0}}/>
-              <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.subj.short}</div>
-              <div style={{fontFamily:T.mono, fontSize:10, flexShrink:0, color: item.score >= 90 ? '#3a8a52' : item.score >= 80 ? T.ink3 : '#bf4a30'}}>{item.score}%</div>
+        {/* Floating cards — Recent Scores · Grade Targets · Grade Insights */}
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, marginTop:12}}>
+          <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
+            <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:13}}>
+              <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Recent Scores</div>
             </div>
-          ))}
-        </div>
-
-        {/* Grade Targets */}
-        <div style={{padding:'16px 18px', borderBottom:`1px solid ${T.border}`, flexShrink:0}}>
-          <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
-            <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52'}}/>
-            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Grade Targets</div>
+            {recentScores.map((item,i) => (
+              <div key={item.subj.id} style={{display:'flex', alignItems:'center', gap:9, padding:'6px 0', borderBottom: i < recentScores.length-1 ? `1px solid ${T.bl}` : 'none'}}>
+                <div style={{width:5, height:5, borderRadius:1, background:item.subj.color, flexShrink:0}}/>
+                <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.subj.short}</div>
+                <div style={{fontFamily:T.mono, fontSize:10, flexShrink:0, color: item.score >= 90 ? '#3a8a52' : item.score >= 80 ? T.ink3 : '#bf4a30'}}>{item.score}%</div>
+              </div>
+            ))}
           </div>
-          {SUBJECTS.map(s => (
-            <div key={s.id} style={{display:'flex', alignItems:'center', gap:8, padding:'4px 0'}}>
-              <div style={{width:5, height:5, borderRadius:1, background:s.color, flexShrink:0}}/>
-              <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1}}>{s.short}</div>
-              <div style={{fontFamily:T.mono, fontSize:9, color: targets[s.id] === s.grade ? T.ink3 : T.accent}}>{targets[s.id]}</div>
-              <span style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, cursor:'pointer'}}>→</span>
+          <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
+            <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
+              <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52'}}/>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Grade Targets</div>
             </div>
-          ))}
-        </div>
-
-        {/* Grade Insights */}
-        <div style={{flex:1, padding:'16px 18px'}}>
-          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
-            <div style={{display:'flex', alignItems:'center', gap:6}}>
-              <div style={{width:6, height:6, borderRadius:'50%', background:'#4285f4'}}/>
-              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Grade Insights</div>
-            </div>
-            <span style={{fontFamily:T.mono, fontSize:7.5, background:'rgba(66,133,244,0.1)', color:'#4285f4', padding:'2px 6px', letterSpacing:'0.07em'}}>AI</span>
+            {SUBJECTS.map(s => (
+              <div key={s.id} style={{display:'flex', alignItems:'center', gap:8, padding:'4px 0'}}>
+                <div style={{width:5, height:5, borderRadius:1, background:s.color, flexShrink:0}}/>
+                <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1}}>{s.short}</div>
+                <div style={{fontFamily:T.mono, fontSize:9, color: targets[s.id] === s.grade ? T.ink3 : T.accent}}>{targets[s.id]}</div>
+                <span style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, cursor:'pointer'}}>→</span>
+              </div>
+            ))}
           </div>
-          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.7}}>Insights appear once you log your first grade.</div>
+          <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
+              <div style={{display:'flex', alignItems:'center', gap:6}}>
+                <div style={{width:6, height:6, borderRadius:'50%', background:'#4285f4'}}/>
+                <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Grade Insights</div>
+              </div>
+              <span style={{fontFamily:T.mono, fontSize:7.5, background:'rgba(66,133,244,0.1)', color:'#4285f4', padding:'2px 6px', letterSpacing:'0.07em'}}>AI</span>
+            </div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.7}}>Insights appear once you log your first grade.</div>
+          </div>
         </div>
-
-      </div>
     </div>
   );
 }
