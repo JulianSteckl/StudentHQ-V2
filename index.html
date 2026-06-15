@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scholar — Academic Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  #root { height: 100vh; overflow: hidden; }
+  button { cursor: pointer; font-family: inherit; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #e0d8cc; border-radius: 2px; }
+
+  /* Screen fade transition */
+  .screen-enter {
+    animation: screen-in 0.22s ease forwards;
+  }
+  @keyframes screen-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Hover state for nav items */
+  .nav-btn:hover { background: rgba(184,148,58,0.06) !important; }
+
+  /* Deck card hover */
+  .deck-card:hover { background: rgba(184,148,58,0.06) !important; }
+
+  /* Homework row hover */
+  .hw-row:hover .hw-title { color: #b8943a !important; }
+
+  /* Grade row hover */
+  .grade-row:hover .grade-name { color: #18150e !important; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js" crossorigin="anonymous"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+/* ─── Theme ──────────────────────────────────────────────── */
+const T = {
+  bg:         '#f8f6f0',
+  surface:    '#ffffff',
+  ink:        '#18150e',
+  ink2:       '#5a5240',
+  ink3:       '#9a9080',
+  accent:     '#b8943a',
+  accentSoft: 'rgba(184,148,58,0.08)',
+  border:     '#e8e2d8',
+  bl:         '#f0ece4',
+  serif:      '"Cormorant Garamond",Georgia,serif',
+  ui:         '"DM Sans",sans-serif',
+  mono:       '"Geist Mono",monospace',
+};
+
+/* ─── Data ────────────────────────────────────────────────── */
+const SUBJECTS = [
+  { id:'ap-lit',  name:'AP English Lit', short:'AP Lit',  color:'#bf4a30', grade:'A−', gpa:3.7, pct:0.94 },
+  { id:'ap-bio',  name:'AP Biology',     short:'Bio',     color:'#3a8a52', grade:'B+', gpa:3.3, pct:0.87 },
+  { id:'alg2',    name:'Algebra II',     short:'Alg II',  color:'#2a60a0', grade:'A',  gpa:4.0, pct:0.91 },
+  { id:'us-hist', name:'U.S. History',   short:'History', color:'#b07020', grade:'B',  gpa:3.0, pct:0.82 },
+  { id:'spanish', name:'Spanish III',    short:'Spanish', color:'#7a44a0', grade:'A−', gpa:3.7, pct:0.89 },
+  { id:'chem',    name:'Chemistry',      short:'Chem',    color:'#208490', grade:'B+', gpa:3.3, pct:0.78 },
+];
+
+const HOMEWORK = [
+  { subj:'ap-lit',  title:'Read Beloved ch. 9–12',           due:'Tonight',  urgent:true,  done:false, est:'45 min'     },
+  { subj:'alg2',    title:'Problem Set 7.3 — identities',    due:'Tomorrow', urgent:true,  done:false, est:'30 min'     },
+  { subj:'ap-bio',  title:'Lab report: enzyme kinetics',     due:'Wed',      urgent:false, done:false, est:'1 hr 30 min'},
+  { subj:'us-hist', title:'Federalist No. 10 response',      due:'Thu',      urgent:false, done:false, est:'1 hr'       },
+  { subj:'spanish', title:'Vocabulario unidad 6 flashcards', due:'Fri',      urgent:false, done:false, est:'20 min'     },
+  { subj:'chem',    title:'Moles & Avogadro problem set',    due:'Done',     urgent:false, done:true,  est:'45 min'     },
+];
+
+const DECKS = [
+  { name:'Cellular Respiration', subj:'ap-bio',  n:12, m:9,  due:3 },
+  { name:'Limits & Derivatives', subj:'alg2',    n:18, m:11, due:7 },
+  { name:'Federalist Era',       subj:'us-hist', n:10, m:10, due:0 },
+  { name:'Toni Morrison Themes', subj:'ap-lit',  n:14, m:6,  due:8 },
+];
+
+const QUIZ = [
+  { q:'What is the Central Limit Theorem?',  a:'Sample mean distribution approaches normal as n increases, regardless of population shape.', subj:'alg2'  },
+  { q:'Define cellular respiration.',        a:'Glucose + O₂ → ATP + CO₂ + H₂O via glycolysis, Krebs cycle, and electron transport chain.', subj:'ap-bio'},
+  { q:'lim x→0  sin(x) / x',               a:'Equals 1. The fundamental trig limit — foundation for d/dx[sin x] = cos x.',                 subj:'alg2'  },
+];
+
+const HIST = {
+  'ap-lit':  [92,95,89,97,94],
+  'ap-bio':  [82,85,88,84,87],
+  'alg2':    [94,89,91,93,91],
+  'us-hist': [80,83,79,81,82],
+  'spanish': [90,87,91,88,89],
+  'chem':    [76,78,80,77,78],
+};
+
+const GPA = (SUBJECTS.reduce((a,s) => a + s.gpa, 0) / SUBJECTS.length).toFixed(2);
+const subjectBy = (id) => SUBJECTS.find(s => s.id === id) || SUBJECTS[0];
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 5)  return 'Up late.';
+  if (h < 12) return 'Good morning.';
+  if (h < 17) return 'Good afternoon.';
+  if (h < 21) return 'Good evening.';
+  return 'Late night.';
+}
+
+function formatDate() {
+  return new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+}
+
+/* ─── Sidebar ─────────────────────────────────────────────── */
+function Sidebar({ screen, onNav }) {
+  const SCRS = [
+    { id:'dashboard', label:'Today'       },
+    { id:'homework',  label:'Assignments' },
+    { id:'grades',    label:'Grades'      },
+    { id:'study',     label:'Study'       },
+  ];
+
+  return (
+    <aside style={{
+      width:192, flexShrink:0,
+      background:T.surface,
+      borderRight:`1px solid ${T.border}`,
+      display:'flex', flexDirection:'column', overflow:'hidden',
+    }}>
+      {/* Brand */}
+      <div style={{padding:'36px 24px 28px', borderBottom:`1px solid ${T.border}`}}>
+        <div style={{
+          width:40, height:40, border:`1px solid ${T.accent}`,
+          display:'flex', alignItems:'center', justifyContent:'center',
+          marginBottom:14, flexShrink:0,
+        }}>
+          <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:23, color:T.accent, lineHeight:1}}>J</span>
+        </div>
+        <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.16em', textTransform:'uppercase'}}>Scholar</div>
+      </div>
+
+      {/* Navigation */}
+      <div style={{padding:'24px 0', borderBottom:`1px solid ${T.border}`}}>
+        {SCRS.map(s => {
+          const act = screen === s.id;
+          return (
+            <button
+              key={s.id}
+              className="nav-btn"
+              onClick={() => onNav(s.id)}
+              style={{
+                display:'block', width:'100%', padding:'10px 24px',
+                border:'none', borderLeft:`2px solid ${act ? T.accent : 'transparent'}`,
+                background:'transparent',
+                color: act ? T.ink : T.ink3,
+                fontSize:14, fontFamily:T.ui, textAlign:'left',
+                fontWeight: act ? 500 : 400,
+                letterSpacing:'0.01em',
+                transition:'color 0.15s',
+              }}
+            >
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Subjects */}
+      <div style={{padding:'22px 0', flex:1, overflow:'auto'}}>
+        <div style={{
+          fontFamily:T.mono, fontSize:8, color:T.ink3,
+          textTransform:'uppercase', letterSpacing:'0.16em',
+          padding:'0 24px', marginBottom:12,
+        }}>
+          Subjects
+        </div>
+        {SUBJECTS.map(s => (
+          <div key={s.id} style={{display:'flex', alignItems:'center', gap:10, padding:'6px 24px', fontSize:13, color:T.ink2}}>
+            <div style={{width:7, height:7, borderRadius:2, background:s.color, flexShrink:0}} />
+            <span style={{flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.short}</span>
+            <span style={{fontFamily:T.mono, fontSize:9, color:s.color, fontWeight:600, flexShrink:0}}>{s.grade}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* User */}
+      <div style={{padding:'16px 24px', borderTop:`1px solid ${T.border}`}}>
+        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink, marginBottom:4, lineHeight:1.2}}>Julian R.</div>
+        <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.08em'}}>Junior · streak 12</div>
+      </div>
+    </aside>
+  );
+}
+
+/* ─── Dashboard ───────────────────────────────────────────── */
+function Dashboard() {
+  const open = HOMEWORK.filter(h => !h.done);
+
+  return (
+    <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'68px 88px'}}>
+      {/* Header */}
+      <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:44, flexWrap:'wrap', gap:24}}>
+        <div>
+          <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.16em', textTransform:'uppercase', marginBottom:14}}>
+            {formatDate()}
+          </div>
+          <h1 style={{fontFamily:T.serif, fontStyle:'italic', fontSize:'clamp(40px,5vw,60px)', fontWeight:400, color:T.ink, margin:0, letterSpacing:'-0.025em', lineHeight:1.04}}>
+            {greeting()}
+          </h1>
+        </div>
+        <div style={{textAlign:'right'}}>
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:'clamp(60px,7vw,92px)', color:T.accent, lineHeight:0.84, letterSpacing:'-0.04em'}}>{GPA}</div>
+          <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.15em', textTransform:'uppercase', marginTop:10}}>Grade point average</div>
+        </div>
+      </div>
+
+      <div style={{height:1, background:T.border, marginBottom:36}} />
+
+      {/* Open assignments */}
+      <div>
+        {open.map(h => {
+          const s = subjectBy(h.subj);
+          return (
+            <div key={h.title} className="hw-row" style={{display:'flex', alignItems:'baseline', padding:'15px 0', borderBottom:`1px solid ${T.bl}`, gap:16, cursor:'default'}}>
+              <div className="hw-title" style={{flex:1, fontFamily:T.serif, fontSize:20, color:T.ink, lineHeight:1.3, transition:'color 0.15s'}}>{h.title}</div>
+              <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.08em', textTransform:'uppercase', flexShrink:0}}>{s.name}</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:h.urgent ? T.accent : T.ink3, minWidth:80, textAlign:'right', flexShrink:0}}>{h.due}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{height:1, background:T.border, margin:'40px 0'}} />
+
+      {/* Grade strip */}
+      <div style={{display:'flex', flexWrap:'wrap'}}>
+        {SUBJECTS.map((s,i) => (
+          <div key={s.id} style={{
+            flex:1, minWidth:60, textAlign:'center',
+            borderRight: i < SUBJECTS.length-1 ? `1px solid ${T.border}` : 'none',
+            padding:'2px 8px',
+          }}>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:36, color:T.accent, lineHeight:1, letterSpacing:'-0.02em'}}>{s.grade}</div>
+            <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, letterSpacing:'0.14em', textTransform:'uppercase', marginTop:8}}>{s.short}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Homework ────────────────────────────────────────────── */
+function Homework() {
+  const open = HOMEWORK.filter(h => !h.done);
+  const done = HOMEWORK.filter(h => h.done);
+  const totalMin = open.reduce((a,h) => { const m = parseInt(h.est); return a + (isNaN(m) ? 0 : m); }, 0);
+  const COL = '1fr 140px 80px 90px';
+
+  const ColHdr = () => (
+    <div style={{display:'grid', gridTemplateColumns:COL, gap:16, padding:'12px 0', borderBottom:`1px solid ${T.border}`}}>
+      {['Assignment','Subject','Due','Est.'].map((c,i) => (
+        <div key={c} style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', textAlign:i>0?'right':'left'}}>{c}</div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'68px 88px'}}>
+      {/* Header */}
+      <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:44, flexWrap:'wrap', gap:24}}>
+        <div>
+          <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:14}}>
+            {open.length} open · {done.length} complete
+          </div>
+          <h1 style={{fontFamily:T.serif, fontStyle:'italic', fontSize:'clamp(40px,5vw,60px)', fontWeight:400, color:T.ink, margin:0, letterSpacing:'-0.025em', lineHeight:1.04}}>Assignments</h1>
+        </div>
+        <div style={{textAlign:'right'}}>
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:'clamp(32px,4vw,48px)', color:T.accent, lineHeight:1, letterSpacing:'-0.03em'}}>{totalMin}m</div>
+          <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.14em', textTransform:'uppercase', marginTop:6}}>Estimated tonight</div>
+        </div>
+      </div>
+
+      <ColHdr />
+
+      {open.map(h => {
+        const s = subjectBy(h.subj);
+        return (
+          <div key={h.title} style={{display:'grid', gridTemplateColumns:COL, gap:16, padding:'15px 0', borderBottom:`1px solid ${T.bl}`, alignItems:'baseline'}}>
+            <div style={{fontFamily:T.serif, fontSize:18, color:T.ink, lineHeight:1.3}}>{h.title}</div>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textAlign:'right', letterSpacing:'0.04em'}}>{s.name}</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:h.urgent ? T.accent : T.ink3, textAlign:'right'}}>{h.due}</div>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textAlign:'right'}}>{h.est}</div>
+          </div>
+        );
+      })}
+
+      {done.length > 0 && (
+        <div style={{marginTop:40, opacity:0.44}}>
+          <ColHdr />
+          {done.map(h => {
+            const s = subjectBy(h.subj);
+            return (
+              <div key={h.title} style={{display:'grid', gridTemplateColumns:COL, gap:16, padding:'13px 0', borderBottom:`1px solid ${T.bl}`, alignItems:'baseline'}}>
+                <div style={{fontFamily:T.serif, fontSize:18, color:T.ink2, textDecoration:'line-through', lineHeight:1.3}}>{h.title}</div>
+                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textAlign:'right'}}>{s.name}</div>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, textAlign:'right'}}>Done</div>
+                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textAlign:'right'}}>{h.est}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Grades ──────────────────────────────────────────────── */
+function Grades() {
+  const COL = '52px 1fr 56px 56px 160px';
+
+  return (
+    <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'68px 88px'}}>
+      {/* Header */}
+      <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:44, flexWrap:'wrap', gap:24}}>
+        <div>
+          <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:14}}>Spring 2025</div>
+          <h1 style={{fontFamily:T.serif, fontStyle:'italic', fontSize:'clamp(40px,5vw,60px)', fontWeight:400, color:T.ink, margin:0, letterSpacing:'-0.025em', lineHeight:1.04}}>Academic record</h1>
+        </div>
+        <div style={{textAlign:'right'}}>
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:'clamp(48px,6vw,72px)', color:T.accent, lineHeight:0.86, letterSpacing:'-0.03em'}}>{GPA}</div>
+          <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.14em', textTransform:'uppercase', marginTop:10}}>Cumulative GPA</div>
+        </div>
+      </div>
+
+      {/* Column headers */}
+      <div style={{display:'grid', gridTemplateColumns:COL, gap:16, padding:'10px 0', borderBottom:`1px solid ${T.border}`}}>
+        {['','Subject','%','GPA','Last 5'].map((c,i) => (
+          <div key={c||('h'+i)} style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', textAlign:i>1?'right':'left'}}>{c}</div>
+        ))}
+      </div>
+
+      {SUBJECTS.map(s => {
+        const sc = HIST[s.id] || [80,80,80,80,80];
+        const pts = sc.map((v,i) => `${i*36+4},${26-(v-70)/30*22}`).join(' ');
+        return (
+          <div key={s.id} className="grade-row" style={{display:'grid', gridTemplateColumns:COL, gap:16, padding:'18px 0', borderBottom:`1px solid ${T.bl}`, alignItems:'center', transition:'background 0.15s'}}>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:36, color:T.accent, lineHeight:1, letterSpacing:'-0.02em'}}>{s.grade}</div>
+            <div className="grade-name" style={{fontFamily:T.serif, fontSize:19, color:T.ink2, transition:'color 0.15s'}}>{s.name}</div>
+            <div style={{fontFamily:T.mono, fontSize:11, color:T.ink2, textAlign:'right'}}>{Math.round(s.pct*100)}%</div>
+            <div style={{fontFamily:T.mono, fontSize:11, color:T.ink3, textAlign:'right'}}>{s.gpa.toFixed(1)}</div>
+            <div style={{display:'flex', justifyContent:'flex-end'}}>
+              <svg width={148} height={26} viewBox="0 0 148 26" style={{overflow:'visible'}}>
+                <polyline
+                  points={pts}
+                  fill="none"
+                  stroke={T.border}
+                  strokeWidth={1.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                {sc.map((v,i) => (
+                  <circle key={i} cx={i*36+4} cy={26-(v-70)/30*22} r={2.5} fill={T.accent} />
+                ))}
+              </svg>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─── Study ───────────────────────────────────────────────── */
+function Study() {
+  const [qi, setQi] = useState(0);
+  const [fl, setFl] = useState(false);
+  const [activeD, setActiveD] = useState(1);
+  const dueTotal = DECKS.reduce((a,d) => a + d.due, 0);
+  const card = QUIZ[qi % QUIZ.length];
+
+  const next = (e) => {
+    e.stopPropagation();
+    setFl(false);
+    setQi((qi + 1) % QUIZ.length);
+  };
+
+  return (
+    <div className="screen-enter" style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden', padding:'68px 88px 0', gap:0}}>
+      {/* Header */}
+      <div style={{marginBottom:44, flexShrink:0}}>
+        <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:14}}>
+          {dueTotal} cards due today
+        </div>
+        <h1 style={{fontFamily:T.serif, fontStyle:'italic', fontSize:'clamp(40px,5vw,60px)', fontWeight:400, color:T.ink, margin:0, letterSpacing:'-0.025em', lineHeight:1.04}}>Study</h1>
+      </div>
+
+      <div style={{height:1, background:T.border, marginBottom:28, flexShrink:0}} />
+
+      {/* Deck grid */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:1, marginBottom:24, background:T.border, flexShrink:0}}>
+        {DECKS.map((d,i) => {
+          const s = subjectBy(d.subj);
+          const act = i === activeD;
+          return (
+            <div
+              key={d.name}
+              className="deck-card"
+              onClick={() => setActiveD(i)}
+              style={{
+                background: act ? T.accentSoft : T.surface,
+                padding:'16px 20px', cursor:'pointer',
+                transition:'background 0.15s',
+              }}
+            >
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color: act ? T.accent : T.ink, marginBottom:8, lineHeight:1.3}}>{d.name}</div>
+              <div style={{height:1.5, background:T.border, marginBottom:8, position:'relative'}}>
+                <div style={{
+                  position:'absolute', top:0, left:0,
+                  width:`${d.m/d.n*100}%`, height:'100%',
+                  background: act ? T.accent : s.color,
+                  transition:'width 0.3s',
+                }} />
+              </div>
+              <div style={{display:'flex', justifyContent:'space-between'}}>
+                <span style={{fontFamily:T.mono, fontSize:9, color:T.ink3}}>{s.short}</span>
+                <span style={{fontFamily:T.mono, fontSize:9, color: act ? T.accent : T.ink3}}>{d.m}/{d.n}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Flashcard */}
+      <div
+        onClick={() => setFl(!fl)}
+        style={{
+          flex:1,
+          border:`1px solid ${fl ? T.accent : T.border}`,
+          padding:'52px 72px',
+          cursor:'pointer',
+          background: fl ? T.accentSoft : T.surface,
+          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+          textAlign:'center',
+          transition:'border-color 0.2s, background 0.2s',
+        }}
+      >
+        <div style={{fontFamily:T.mono, fontSize:9, color: fl ? T.accent : T.ink3, textTransform:'uppercase', letterSpacing:'0.16em', marginBottom:24, transition:'color 0.2s'}}>
+          {fl ? 'Answer' : `Question ${qi+1} of ${QUIZ.length}`}
+        </div>
+        <div style={{
+          fontFamily:T.serif, fontStyle:'italic',
+          fontSize: fl ? 22 : 28,
+          color:T.ink, lineHeight:1.6, maxWidth:560,
+          transition:'font-size 0.15s',
+        }}>
+          {fl ? card.a : card.q}
+        </div>
+        {!fl && (
+          <div style={{fontFamily:T.mono, fontSize:9, color:`${T.ink3}88`, marginTop:28, letterSpacing:'0.1em'}}>
+            click to reveal
+          </div>
+        )}
+      </div>
+
+      {/* Answer buttons */}
+      {fl && (
+        <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:1, marginTop:1, background:T.border, flexShrink:0}}>
+          {[['Again','#bf3a1a'], ['Good', T.ink3], ['Easy', T.accent]].map(([label, color]) => (
+            <button
+              key={label}
+              onClick={next}
+              style={{
+                padding:'16px', border:'none',
+                background:T.surface,
+                color, fontFamily:T.serif, fontStyle:'italic',
+                fontSize:16, letterSpacing:'0.01em',
+                transition:'background 0.15s',
+              }}
+              onMouseOver={e => e.currentTarget.style.background = T.bl}
+              onMouseOut={e => e.currentTarget.style.background = T.surface}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Bottom padding */}
+      <div style={{height:32, flexShrink:0}} />
+    </div>
+  );
+}
+
+/* ─── App ─────────────────────────────────────────────────── */
+function App() {
+  const [screen, setScreen] = useState('dashboard');
+  const [key, setKey] = useState(0);
+
+  const nav = (s) => {
+    setScreen(s);
+    setKey(k => k + 1);
+  };
+
+  const SCREENS = {
+    dashboard: <Dashboard key={key} />,
+    homework:  <Homework  key={key} />,
+    grades:    <Grades    key={key} />,
+    study:     <Study     key={key} />,
+  };
+
+  return (
+    <div style={{
+      height:'100vh', display:'flex', overflow:'hidden',
+      background:T.bg, fontFamily:T.ui, color:T.ink,
+      fontSize:14,
+    }}>
+      <Sidebar screen={screen} onNav={nav} />
+      <div style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
+        {SCREENS[screen]}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
