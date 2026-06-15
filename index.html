@@ -498,8 +498,7 @@ function HomeworkScreen() {
   };
 
   return (
-    <div className="screen-enter" style={{flex:1, display:'flex', overflow:'hidden'}}>
-      <div style={{flex:1, overflowY:'auto', padding:'28px 36px 28px 52px'}}>
+    <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'28px 52px'}}>
         {/* Header */}
         <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:20}}>
           <div>
@@ -555,50 +554,53 @@ function HomeworkScreen() {
             </div>
           ))}
         </div>
-      </div>
 
-      {/* Right sidebar */}
-      <div style={{width:212, borderLeft:`1px solid ${T.border}`, display:'flex', flexDirection:'column', overflow:'hidden', flexShrink:0}}>
-        {/* By subject */}
-        <div style={{padding:'16px 17px', borderBottom:`1px solid ${T.border}`, flexShrink:0}}>
-          <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:12}}>Homework by Subject</div>
-          {hwBySubject.length === 0
-            ? <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>No assignments</div>
-            : hwBySubject.map(x => (
-                <div key={x.subj.id} style={{display:'flex', alignItems:'center', gap:8, marginBottom:7}}>
-                  <div style={{width:5, height:5, borderRadius:1, background:x.subj.color, flexShrink:0}}/>
-                  <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1}}>{x.subj.short}</div>
-                  <div style={{fontFamily:T.mono, fontSize:10, color:T.accent}}>{x.open}</div>
+        {/* Floating panel cards */}
+        <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginTop:12}}>
+          {/* By Subject */}
+          <div style={{background:T.surface, borderRadius:12, padding:'20px 22px'}}>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:14}}>Homework by Subject</div>
+            {hwBySubject.length === 0
+              ? <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>No assignments</div>
+              : hwBySubject.map(x => (
+                  <div key={x.subj.id} style={{display:'flex', alignItems:'center', gap:10, marginBottom:10}}>
+                    <div style={{width:28, height:28, borderRadius:'50%', background:`${x.subj.color}18`, border:`1.5px solid ${x.subj.color}50`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+                      <div style={{width:7, height:7, borderRadius:'50%', background:x.subj.color}}/>
+                    </div>
+                    <div style={{fontFamily:T.ui, fontSize:12, color:T.ink2, flex:1}}>{x.subj.short}</div>
+                    <div style={{fontFamily:T.mono, fontSize:11, color:T.accent, fontWeight:700}}>{x.open}</div>
+                  </div>
+                ))
+            }
+          </div>
+
+          {/* Quick Actions */}
+          <div style={{background:T.surface, borderRadius:12, padding:'20px 22px'}}>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:14}}>Quick Actions</div>
+            {[['+','Add Homework'],['✦','Generate Study Plan'],['+','Create Flashcards'],['→','Open Due Today'],['+','Start Focus Session']].map(([ic,lb]) => (
+              <div key={lb} style={{display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:`1px solid ${T.bl}`, cursor:'pointer'}}
+                onMouseOver={e => e.currentTarget.style.opacity='0.6'}
+                onMouseOut={e => e.currentTarget.style.opacity='1'}
+              >
+                <div style={{width:28, height:28, borderRadius:'50%', background:T.accentSoft, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+                  <span style={{fontFamily:T.mono, fontSize:11, color:T.accent, fontWeight:700}}>{ic}</span>
                 </div>
-              ))
-          }
-        </div>
+                <span style={{fontFamily:T.ui, fontSize:12, color:T.ink2}}>{lb}</span>
+              </div>
+            ))}
+          </div>
 
-        {/* Quick actions */}
-        <div style={{padding:'16px 17px', borderBottom:`1px solid ${T.border}`, flexShrink:0}}>
-          <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:11}}>Quick Actions</div>
-          {[['+','Add Homework'],['✦','Generate Study Plan'],['+','Create Flashcards'],['→','Open Due Today'],['+','Start Focus Session']].map(([ic,lb]) => (
-            <div key={lb} style={{display:'flex', alignItems:'center', gap:8, padding:'7px 0', borderBottom:`1px solid ${T.bl}`, cursor:'pointer'}}
-              onMouseOver={e => e.currentTarget.style.opacity='0.6'}
-              onMouseOut={e => e.currentTarget.style.opacity='1'}
-            >
-              <span style={{fontFamily:T.mono, fontSize:10, color:T.accent, width:13}}>{ic}</span>
-              <span style={{fontFamily:T.ui, fontSize:12, color:T.ink2}}>{lb}</span>
-            </div>
-          ))}
+          {/* This Week */}
+          <div style={{background:T.surface, borderRadius:12, padding:'20px 22px'}}>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:14}}>This Week</div>
+            {[['COMPLETED', done.length],['OPEN', open.length],['AVG. COMPLETION','1.3d early'],['MOST ACTIVE', open.length>0?subjectBy(open[0].subj).short:'—']].map(([l,v]) => (
+              <div key={l} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'9px 0', borderBottom:`1px solid ${T.bl}`}}>
+                <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{l}</div>
+                <div style={{fontFamily:T.mono, fontSize:11, color: l==='AVG. COMPLETION'?T.accent:T.ink, fontWeight:600}}>{v}</div>
+              </div>
+            ))}
+          </div>
         </div>
-
-        {/* Stats */}
-        <div style={{flex:1, padding:'16px 17px', overflowY:'auto'}}>
-          <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:12}}>This Week</div>
-          {[['COMPLETED', done.length],['OPEN', open.length],['AVG. COMPLETION','1.3d early'],['MOST ACTIVE', open.length>0?subjectBy(open[0].subj).short:'—']].map(([l,v]) => (
-            <div key={l} style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', padding:'5px 0', borderBottom:`1px solid ${T.bl}`}}>
-              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{l}</div>
-              <div style={{fontFamily:T.mono, fontSize:10, color: l==='AVG. COMPLETION'?T.accent:T.ink}}>{v}</div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
