@@ -301,17 +301,20 @@ function TodayScreen() {
       </div>
 
       {/* 4 stat cards */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:1, margin:'18px 52px 1px', background:T.border}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:1, margin:'20px 52px 1px', background:T.border}}>
         {[
-          { label:'OPEN TASKS', val:open.length, sub:'all on track' },
-          { label:'GPA', val:GPA, sub:'add grades →' },
-          { label:'STUDY STREAK', val:'12', sub:'days running' },
-          { label:'QUIZZES AHEAD', val:QUIZZES_DATA.length, sub:QUIZZES_DATA.length>0?`${QUIZZES_DATA[0].date} upcoming`:'none scheduled' },
+          { label:'OPEN TASKS',    val:open.length,       sub:'all on track',                                     accent:T.accent  },
+          { label:'GPA',           val:GPA,               sub:'Unweighted · Spring',                              accent:'#3a8a52' },
+          { label:'STUDY STREAK',  val:'12',              sub:'days running',                                     accent:'#2a60a0' },
+          { label:'QUIZZES AHEAD', val:QUIZZES_DATA.length, sub:QUIZZES_DATA.length>0?`${QUIZZES_DATA[0].date} upcoming`:'none scheduled', accent:'#9254de' },
         ].map(c => (
-          <div key={c.label} style={{background:T.surface, padding:'15px 18px'}}>
-            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:7}}>{c.label}</div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:30, color:T.ink, lineHeight:0.94, marginBottom:5}}>{c.val}</div>
-            <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3}}>{c.sub}</div>
+          <div key={c.label} style={{background:T.surface, padding:'26px 24px', position:'relative', overflow:'hidden', minHeight:130}}>
+            <svg style={{position:'absolute', top:-18, right:-18, opacity:0.12}} width={90} height={90} viewBox="0 0 90 90" fill="none">
+              <circle cx="45" cy="45" r="40" stroke={c.accent} strokeWidth="6"/>
+            </svg>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:10}}>{c.label}</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:38, color:T.ink, lineHeight:0.9, marginBottom:8}}>{c.val}</div>
+            <div style={{fontFamily:T.mono, fontSize:8, color:c.accent}}>{c.sub}</div>
           </div>
         ))}
       </div>
@@ -319,12 +322,10 @@ function TodayScreen() {
       {/* Week mini-calendar */}
       <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:1, margin:'0 52px 1px', background:T.border}}>
         {weekDays.map(d => (
-          <div key={d.n} style={{background:d.today ? T.accentSoft : T.surface, padding:'9px 12px', border: d.today ? `1px solid ${T.accent}` : 'none'}}>
-            <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:5}}>
-              <div style={{fontFamily:T.mono, fontSize:7.5, color:d.today?T.accent:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{d.n}</div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:d.today?T.accent:T.ink3, lineHeight:1}}>{d.date}</div>
-            </div>
-            <div style={{fontFamily:T.mono, fontSize:8, color:d.today?T.accent:T.ink3, opacity:0.4}}>· ·</div>
+          <div key={d.n} style={{background:d.today ? T.accentSoft : T.surface, padding:'16px 14px 14px', position:'relative', overflow:'hidden', minHeight:72}}>
+            {d.today && <div style={{position:'absolute', bottom:-14, right:-14, width:48, height:48, borderRadius:'50%', background:T.accent, opacity:0.12}}/>}
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:d.today?T.accent:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em', marginBottom:8}}>{d.n}</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:26, color:d.today?T.accent:T.ink3, lineHeight:1}}>{d.date}</div>
           </div>
         ))}
       </div>
@@ -520,16 +521,19 @@ function HomeworkScreen() {
         {/* 5 stat cards */}
         <div style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:1, marginBottom:1, background:T.border}}>
           {[
-            { label:'OPEN WORK',   val:open.length,       sub:'assignments'                   },
-            { label:'URGENT',      val:urgent.length,     sub:'need attention'                 },
-            { label:'DUE TODAY',   val:tonight.length,    sub:'assignments'                    },
-            { label:'EST. TIME',   val:estDisplay,        sub:'remaining'                      },
-            { label:'COMPLETION',  val:`${completionPct}%`, sub:`${done.length} of ${HOMEWORK.length} done` },
+            { label:'OPEN WORK',   val:open.length,         sub:'assignments',                              accent:T.accent  },
+            { label:'URGENT',      val:urgent.length,       sub:'need attention',                           accent:'#bf4a30' },
+            { label:'DUE TODAY',   val:tonight.length,      sub:'assignments',                              accent:'#b07020' },
+            { label:'EST. TIME',   val:estDisplay,          sub:'remaining',                                accent:'#2a60a0' },
+            { label:'COMPLETION',  val:`${completionPct}%`, sub:`${done.length} of ${HOMEWORK.length} done`, accent:'#3a8a52' },
           ].map(c => (
-            <div key={c.label} style={{background:T.surface, padding:'13px 16px'}}>
-              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:7}}>{c.label}</div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:26, color:T.ink, lineHeight:0.95, marginBottom:4}}>{c.val}</div>
-              <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3}}>{c.sub}</div>
+            <div key={c.label} style={{background:T.surface, padding:'24px 20px', position:'relative', overflow:'hidden', minHeight:120}}>
+              <svg style={{position:'absolute', top:-16, right:-16, opacity:0.11}} width={80} height={80} viewBox="0 0 80 80" fill="none">
+                <circle cx="40" cy="40" r="35" stroke={c.accent} strokeWidth="5"/>
+              </svg>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:10}}>{c.label}</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:34, color:T.ink, lineHeight:0.9, marginBottom:8}}>{c.val}</div>
+              <div style={{fontFamily:T.mono, fontSize:8, color:c.accent}}>{c.sub}</div>
             </div>
           ))}
         </div>
@@ -700,26 +704,21 @@ function NotesScreen() {
 
         {/* 4 stat cards */}
         <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:1, marginBottom:1, background:T.border}}>
-          <div style={{background:T.surface, padding:'14px 18px'}}>
-            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:8}}>Total Notes</div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:30, color:T.ink, lineHeight:0.95, marginBottom:4}}>{NOTES_DATA.length}</div>
-            <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3}}>{SUBJECTS.length} subjects</div>
-          </div>
-          <div style={{background:T.surface, padding:'14px 18px', borderLeft:`3px solid ${mostActiveSubj.color}`}}>
-            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:8}}>Active Subject</div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:26, color:T.ink, lineHeight:1, marginBottom:4}}>{mostActiveSubj.short}</div>
-            <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3}}>{NOTES_DATA.filter(n=>n.subj===mostActiveSubj.id).length} notes</div>
-          </div>
-          <div style={{background:T.surface, padding:'14px 18px'}}>
-            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:8}}>Last Edited</div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, lineHeight:1, marginBottom:4}}>{mostRecentNote.date}</div>
-            <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis'}}>{mostRecentNote.title.slice(0,22)}…</div>
-          </div>
-          <div style={{background:T.surface, padding:'14px 18px'}}>
-            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:8}}>Knowledge Growth</div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:30, color:T.accent, lineHeight:0.95, marginBottom:4}}>{thisWeekNotes}</div>
-            <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3}}>notes this week</div>
-          </div>
+          {[
+            { label:'TOTAL NOTES',      val:NOTES_DATA.length,      sub:`${SUBJECTS.length} subjects`,                                       accent:T.accent,          borderLeft:false },
+            { label:'ACTIVE SUBJECT',   val:mostActiveSubj.short,   sub:`${NOTES_DATA.filter(n=>n.subj===mostActiveSubj.id).length} notes`,   accent:mostActiveSubj.color, borderLeft:true  },
+            { label:'LAST EDITED',      val:mostRecentNote.date,    sub:mostRecentNote.title.slice(0,20)+'…',                                 accent:'#2a60a0',         borderLeft:false },
+            { label:'KNOWLEDGE GROWTH', val:thisWeekNotes,          sub:'notes this week',                                                    accent:'#3a8a52',         borderLeft:false },
+          ].map(c => (
+            <div key={c.label} style={{background:T.surface, padding:'24px 20px', position:'relative', overflow:'hidden', minHeight:120, borderLeft: c.borderLeft ? `3px solid ${c.accent}` : 'none'}}>
+              <svg style={{position:'absolute', top:-16, right:-16, opacity:0.12}} width={80} height={80} viewBox="0 0 80 80" fill="none">
+                <circle cx="40" cy="40" r="35" stroke={c.accent} strokeWidth="5"/>
+              </svg>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>{c.label}</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:c.label==='LAST EDITED'?24:34, color: c.label==='KNOWLEDGE GROWTH'?c.accent:T.ink, lineHeight:0.9, marginBottom:8}}>{c.val}</div>
+              <div style={{fontFamily:T.mono, fontSize:8, color:c.accent}}>{c.sub}</div>
+            </div>
+          ))}
         </div>
 
         {/* Search */}
@@ -899,35 +898,41 @@ function FlashcardsScreen() {
       </div>
 
       {/* 4 stat cards */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:1, marginBottom:26, background:T.border}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:1, marginBottom:28, background:T.border}}>
         {[
-          {label:'QUIZZES THIS WEEK', val:QUIZZES_DATA.length, sub:'upcoming'},
-          {label:'AVG SCORE',         val:`${avgScore}%`,       sub:'last 4 results'},
-          {label:'BEST SUBJECT',      val:bestSubj.short,       sub:`${bestSubj.grade} · ${Math.round(bestSubj.pct*100)}%`},
-          {label:'READINESS',         val:`${readiness}%`,      sub:'across upcoming'},
+          {label:'QUIZZES THIS WEEK', val:QUIZZES_DATA.length,          sub:'upcoming',                                          accent:T.accent  },
+          {label:'AVG SCORE',         val:`${avgScore}%`,               sub:'last 4 results',                                    accent:'#3a8a52' },
+          {label:'BEST SUBJECT',      val:bestSubj.short,               sub:`${bestSubj.grade} · ${Math.round(bestSubj.pct*100)}%`, accent:bestSubj.color },
+          {label:'READINESS',         val:`${readiness}%`,              sub:'across upcoming',                                   accent:'#9254de' },
         ].map(c => (
-          <div key={c.label} style={{background:T.surface, padding:'15px 18px'}}>
-            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:8}}>{c.label}</div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:26, color:T.ink, lineHeight:0.95, marginBottom:5}}>{c.val}</div>
-            <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3}}>{c.sub}</div>
+          <div key={c.label} style={{background:T.surface, padding:'26px 22px', position:'relative', overflow:'hidden', minHeight:128}}>
+            <svg style={{position:'absolute', top:-16, right:-16, opacity:0.12}} width={82} height={82} viewBox="0 0 82 82" fill="none">
+              <circle cx="41" cy="41" r="36" stroke={c.accent} strokeWidth="5"/>
+            </svg>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>{c.label}</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:36, color:T.ink, lineHeight:0.9, marginBottom:8}}>{c.val}</div>
+            <div style={{fontFamily:T.mono, fontSize:8, color:c.accent}}>{c.sub}</div>
           </div>
         ))}
       </div>
 
       {/* Study Modes */}
-      <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:13}}>Study Modes</div>
+      <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:14}}>Study Modes</div>
       <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:1, background:T.border}}>
         {MODES.map(m => (
-          <div key={m.id} style={{background:T.surface, padding:'22px 24px', cursor:'pointer'}}
+          <div key={m.id} style={{background:T.surface, padding:'28px 26px', cursor:'pointer', minHeight:160, position:'relative', overflow:'hidden'}}
             onMouseOver={e => e.currentTarget.style.background = T.bl}
             onMouseOut={e => e.currentTarget.style.background = T.surface}
           >
-            <div style={{width:32, height:32, background:T.bl, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:13, borderRadius:3}}>
-              <span style={{fontFamily:T.mono, fontSize:12, color:m.icC, fontWeight:600}}>{m.ic}</span>
+            <svg style={{position:'absolute', bottom:-20, right:-20, opacity:0.07}} width={100} height={100} viewBox="0 0 100 100" fill="none">
+              <circle cx="50" cy="50" r="44" stroke={m.icC} strokeWidth="6"/>
+            </svg>
+            <div style={{width:48, height:48, borderRadius:'50%', background:`${m.icC}18`, border:`1.5px solid ${m.icC}40`, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:18}}>
+              <span style={{fontFamily:T.mono, fontSize:13, color:m.icC, fontWeight:700}}>{m.ic}</span>
             </div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:19, color:T.ink, marginBottom:4, lineHeight:1.2}}>{m.title}</div>
-            <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, letterSpacing:'0.03em', marginBottom:15}}>{m.sub}</div>
-            <button onClick={() => setMode(m.id)} style={{fontFamily:T.mono, fontSize:8.5, color:T.accent, background:'none', border:'none', padding:0, cursor:'pointer', letterSpacing:'0.07em'}}>START →</button>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, marginBottom:5, lineHeight:1.2}}>{m.title}</div>
+            <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, letterSpacing:'0.03em', marginBottom:18}}>{m.sub}</div>
+            <button onClick={() => setMode(m.id)} style={{fontFamily:T.mono, fontSize:8.5, color:m.icC, background:'none', border:`1px solid ${m.icC}50`, padding:'5px 14px', cursor:'pointer', letterSpacing:'0.07em'}}>START →</button>
           </div>
         ))}
       </div>
@@ -1060,14 +1065,18 @@ function ScheduleScreen() {
       {/* Stats row */}
       <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr) 1fr', gap:1, marginBottom:1, background:T.border}}>
         {[
-          {label:'TASKS DUE',   val: dayCards.reduce((a,d)=>a+d.dayHW.length,0)},
-          {label:'QUIZZES',     val: QUIZZES_DATA.length},
-          {label:'EST. STUDY',  val: `${Math.ceil(HOMEWORK.filter(h=>!h.done).length*0.75)}h`},
-          {label:'URGENT',      val: HOMEWORK.filter(h=>h.urgent&&!h.done).length},
+          {label:'TASKS DUE',  val: dayCards.reduce((a,d)=>a+d.dayHW.length,0), accent:T.accent  },
+          {label:'QUIZZES',    val: QUIZZES_DATA.length,                          accent:'#9254de' },
+          {label:'EST. STUDY', val: `${Math.ceil(HOMEWORK.filter(h=>!h.done).length*0.75)}h`,      accent:'#2a60a0' },
+          {label:'URGENT',     val: HOMEWORK.filter(h=>h.urgent&&!h.done).length, accent:'#bf4a30' },
         ].map(c => (
-          <div key={c.label} style={{background:T.surface, padding:'11px 16px'}}>
-            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:6}}>{c.label}</div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, lineHeight:0.95}}>{c.val}</div>
+          <div key={c.label} style={{background:T.surface, padding:'22px 18px', position:'relative', overflow:'hidden', minHeight:100}}>
+            <svg style={{position:'absolute', top:-14, right:-14, opacity:0.11}} width={68} height={68} viewBox="0 0 68 68" fill="none">
+              <circle cx="34" cy="34" r="29" stroke={c.accent} strokeWidth="4.5"/>
+            </svg>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:8}}>{c.label}</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:30, color:T.ink, lineHeight:0.9, marginBottom:5}}>{c.val}</div>
+            <div style={{width:24, height:2, background:c.accent, opacity:0.5}}/>
           </div>
         ))}
         {/* Workload Distribution mini bar chart */}
@@ -1090,10 +1099,11 @@ function ScheduleScreen() {
       {/* Weekly grid Mon–Fri */}
       <div style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:1, marginBottom:1, background:T.border}}>
         {dayCards.map(d => (
-          <div key={d.name} style={{background: d.isToday ? T.accentSoft : T.surface, padding:'13px 14px', borderTop: d.isToday ? `2px solid ${T.accent}` : '2px solid transparent', minHeight:110}}>
-            <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:10}}>
+          <div key={d.name} style={{background: d.isToday ? T.accentSoft : T.surface, padding:'18px 16px', borderTop: d.isToday ? `2px solid ${T.accent}` : '2px solid transparent', minHeight:148, position:'relative', overflow:'hidden'}}>
+            {d.isToday && <div style={{position:'absolute', bottom:-22, right:-22, width:72, height:72, borderRadius:'50%', background:T.accent, opacity:0.08}}/>}
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:13}}>
               <div style={{fontFamily:T.mono, fontSize:8.5, color:d.isToday?T.accent:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{d.name}</div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:d.isToday?T.accent:T.ink3}}>{d.date}</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:d.isToday?T.accent:T.ink3}}>{d.date}</div>
             </div>
             {d.dayHW.length === 0
               ? <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, opacity:0.35, textTransform:'uppercase', letterSpacing:'0.08em'}}>Nothing scheduled</div>
