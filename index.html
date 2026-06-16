@@ -48,6 +48,25 @@ const T = {
   mono:       '"Geist Mono",monospace',
 };
 
+/* ── Profile ────────────────────────────────────────────── */
+const PROFILE_KEY = 'shq-v2-profile';
+const loadProfile = () => { try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch { return null; } };
+const saveProfile = (p) => localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+
+const PRESET_COLORS = ['#bf4a30','#3a8a52','#2a60a0','#b07020','#7a44a0','#208490','#b8943a','#9a9080'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const CY = new Date().getFullYear();
+
+function makeSubjId(name) {
+  return 's-' + name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') + '-' + Math.random().toString(36).slice(2,5);
+}
+function makeShort(name) {
+  const w = name.trim().split(/\s+/);
+  if (w.length === 1) return w[0].slice(0,7);
+  if (['AP','Honors','IB','CP'].includes(w[0])) return w[0]+' '+w[1].slice(0,4);
+  return w.map(x=>x[0]).join('').toUpperCase().slice(0,5);
+}
+
 /* ── Data ───────────────────────────────────────────────── */
 const SUBJECTS = [
   { id:'ap-lit',  name:'AP English Lit', short:'AP Lit',  color:'#bf4a30', grade:'A−', gpa:3.7, pct:0.94 },
@@ -167,7 +186,7 @@ const NAV = [
 ];
 
 /* ── Sidebar ────────────────────────────────────────────── */
-function Sidebar({ screen, onNav }) {
+function Sidebar({ screen, onNav, profile, onSignOut }) {
   return (
     <aside style={{
       width:200, flexShrink:0,
@@ -232,8 +251,21 @@ function Sidebar({ screen, onNav }) {
 
       {/* User */}
       <div style={{padding:'13px 22px', borderTop:`1px solid ${T.border}`, flexShrink:0}}>
-        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink, marginBottom:3, lineHeight:1.2}}>Julian R.</div>
-        <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, letterSpacing:'0.07em'}}>Junior · streak 12</div>
+        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink, marginBottom:3, lineHeight:1.2}}>
+          {profile ? profile.name : 'Julian R.'}
+        </div>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+          <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, letterSpacing:'0.07em'}}>
+            {profile ? (profile.grade.charAt(0).toUpperCase()+profile.grade.slice(1)) : 'Junior'} · streak 12
+          </div>
+          {onSignOut && (
+            <button onClick={onSignOut} style={{background:'none', border:'none', padding:0, fontFamily:T.mono, fontSize:8, color:T.ink3, cursor:'pointer', letterSpacing:'0.06em', opacity:0.7, transition:'opacity 0.12s'}}
+              onMouseOver={e => e.currentTarget.style.opacity='1'}
+              onMouseOut={e => e.currentTarget.style.opacity='0.7'}>
+              Sign out
+            </button>
+          )}
+        </div>
       </div>
     </aside>
   );
@@ -1644,6 +1676,485 @@ function SubjectsScreen() {
   );
 }
 
+/* ── Welcome Screen ─────────────────────────────────────── */
+function WelcomeScreen({ onSignIn, onSetup }) {
+  const [mouse, setMouse] = useState({x:-999, y:-999});
+  const [overlay, setOverlay] = useState(false);
+  const [name, setName]     = useState('');
+  const [grade, setGrade]   = useState('');
+
+  const canSignIn = name.trim().length > 1;
+
+  const doSignIn = () => {
+    if (!canSignIn) return;
+    onSignIn({ name: name.trim(), grade: grade || 'junior', school:'', subjects:[], completedAt: Date.now() });
+  };
+
+  const FEATURES = [
+    { ic:'◷', label:'Homework',   desc:'Every assignment tracked — urgency flags, due dates, and kanban board.' },
+    { ic:'◈', label:'Notes',      desc:'A full knowledge base. Search by subject, tag, or keyword instantly.' },
+    { ic:'⊟', label:'Flashcards', desc:'Study decks tied to your notes with spaced repetition built in.' },
+    { ic:'◉', label:'Schedule',   desc:'Daily and weekly view. See what\'s in session and what\'s due next.' },
+    { ic:'☆', label:'Grades',     desc:'Letter grades, GPA ring, and sparkline trends across the term.' },
+    { ic:'✦', label:'AI Tools',   desc:'Study guides, flashcard generation, and knowledge gap analysis.' },
+  ];
+
+  const WORD = 'Scholar.';
+
+  return (
+    <div onMouseMove={e => setMouse({x:e.clientX, y:e.clientY})}
+      style={{position:'fixed', inset:0, zIndex:900, background:T.bg, fontFamily:T.ui, overflowY:'auto', overflowX:'hidden'}}>
+      <style>{`
+        @keyframes shq-letter { from{opacity:0;transform:translateY(10px) skewX(-3deg)} to{opacity:1;transform:none} }
+        @keyframes shq-up     { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+        @keyframes shq-drawh  { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+        @keyframes shq-drawv  { from{transform:scaleY(0)} to{transform:scaleY(1)} }
+        .shq-primary { transition:transform 0.18s ease,box-shadow 0.18s ease; }
+        .shq-primary:hover { transform:translateY(-2px); box-shadow:0 8px 24px -6px rgba(184,148,58,0.38); }
+        .shq-ghost { transition:transform 0.18s ease; }
+        .shq-ghost:hover { transform:translateY(-2px); }
+        .shq-feat { transition:transform 0.2s ease,box-shadow 0.2s ease,border-color 0.2s ease; cursor:default; }
+        .shq-feat:hover { transform:translateY(-3px); box-shadow:0 10px 28px -10px rgba(24,21,14,0.12); border-color:${T.accent} !important; }
+        .shq-input { transition:border-color 0.12s; }
+        .shq-input:focus { outline:none; border-color:${T.accent} !important; }
+      `}</style>
+
+      {/* Cursor spotlight */}
+      <div style={{position:'fixed', inset:0, pointerEvents:'none', zIndex:1,
+        background:`radial-gradient(380px circle at ${mouse.x}px ${mouse.y}px,rgba(184,148,58,0.07) 0%,transparent 70%)`,
+        transition:'background 0.12s ease'}} />
+
+      {/* ── Hero ── */}
+      <div style={{position:'relative', height:'100vh', minHeight:580}}>
+        {/* Double hairline frame */}
+        {[44,52].map((ins,fi) => (
+          <div key={fi} style={{position:'absolute', inset:ins, pointerEvents:'none', overflow:'hidden'}}>
+            <div style={{position:'absolute', top:0, left:0, right:0, height:1, background:T.border, transformOrigin:'left',   animation:`shq-drawh ${0.55+fi*0.08}s ${0.18+fi*0.08}s ease both`}} />
+            <div style={{position:'absolute', bottom:0, left:0, right:0, height:1, background:T.border, transformOrigin:'right',  animation:`shq-drawh ${0.55+fi*0.08}s ${0.34+fi*0.08}s ease both`}} />
+            <div style={{position:'absolute', top:0, bottom:0, left:0, width:1,   background:T.border, transformOrigin:'top',    animation:`shq-drawv ${0.55+fi*0.08}s ${0.26+fi*0.08}s ease both`}} />
+            <div style={{position:'absolute', top:0, bottom:0, right:0, width:1,  background:T.border, transformOrigin:'bottom', animation:`shq-drawv ${0.55+fi*0.08}s ${0.42+fi*0.08}s ease both`}} />
+          </div>
+        ))}
+
+        {/* Vol. corner */}
+        <div style={{position:'absolute', top:72, right:80, fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.22em', textTransform:'uppercase', color:T.ink3, animation:'shq-up 0.5s 0.9s both'}}>
+          Vol. I · MMXXVI
+        </div>
+
+        {/* Eyebrow */}
+        <div style={{position:'absolute', top:96, left:0, right:0, textAlign:'center', fontFamily:T.mono, fontSize:10, letterSpacing:'0.3em', textTransform:'uppercase', color:T.ink3, animation:'shq-up 0.5s 0.28s both'}}>
+          — A Student Dashboard —
+        </div>
+
+        {/* Center */}
+        <div style={{position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'0 32px'}}>
+          {/* Letter-reveal wordmark */}
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:'clamp(82px,14vw,200px)', lineHeight:0.9, color:T.ink, letterSpacing:'-0.02em', display:'flex'}}>
+            {WORD.split('').map((ch,i) => (
+              <span key={i} style={{display:'inline-block', animation:`shq-letter 0.5s ${0.48+i*0.055}s cubic-bezier(0.2,0.8,0.2,1) both`}}>{ch}</span>
+            ))}
+          </div>
+
+          {/* Tagline */}
+          <div style={{marginTop:22, fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:T.ink2, textAlign:'center', animation:'shq-up 0.6s 1.1s both'}}>
+            A second brain for serious students.
+          </div>
+
+          {/* Rules */}
+          <div style={{marginTop:26, display:'flex', alignItems:'center', gap:20, fontFamily:T.mono, fontSize:10, letterSpacing:'0.2em', textTransform:'uppercase', color:T.ink3, animation:'shq-up 0.6s 1.22s both'}}>
+            <span style={{width:52, height:1, background:T.border, display:'block'}} />
+            Anno MMXXVI
+            <span style={{width:52, height:1, background:T.border, display:'block'}} />
+          </div>
+
+          {/* CTAs */}
+          <div style={{marginTop:42, display:'flex', gap:12, flexWrap:'wrap', justifyContent:'center', animation:'shq-up 0.6s 1.38s both'}}>
+            <button className="shq-primary" onClick={() => setOverlay(true)} style={{
+              display:'flex', alignItems:'center', gap:10, padding:'14px 26px',
+              border:`1px solid ${T.accent}`, background:T.accent,
+              fontFamily:T.ui, fontSize:14, color:T.surface, fontWeight:500, cursor:'pointer', borderRadius:2,
+            }}>
+              <GoogleG size={16} /> Sign in with Google
+            </button>
+            <button className="shq-ghost" onClick={onSetup} style={{
+              padding:'14px 26px', border:`1px solid ${T.ink}`, background:'transparent',
+              fontFamily:T.ui, fontSize:14, color:T.ink, cursor:'pointer', borderRadius:2,
+            }}>
+              Open fresh notebook →
+            </button>
+          </div>
+
+          {/* Scroll hint */}
+          <div style={{marginTop:42, fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase', color:T.ink3, display:'flex', flexDirection:'column', alignItems:'center', gap:5, animation:'shq-up 0.6s 1.65s both'}}>
+            <span>What's inside</span>
+            <span style={{fontSize:14}}>↓</span>
+          </div>
+        </div>
+
+        {/* Colophon */}
+        <div style={{position:'absolute', bottom:70, left:0, right:0, textAlign:'center', fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase', color:T.ink3, animation:'shq-up 0.5s 1.5s both'}}>
+          2026 School Year · built for one reader
+        </div>
+      </div>
+
+      {/* ── Feature showcase ── */}
+      <div style={{borderTop:`1px solid ${T.border}`, padding:'68px min(68px,8vw) 84px', background:T.bg}}>
+        <div style={{textAlign:'center', marginBottom:50}}>
+          <div style={{fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.28em', textTransform:'uppercase', color:T.ink3, marginBottom:14}}>Everything you need</div>
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:'clamp(32px,4.8vw,50px)', lineHeight:1.05, color:T.ink, letterSpacing:'-0.02em'}}>
+            One dashboard for every class.
+          </div>
+        </div>
+
+        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(250px,1fr))', gap:14, maxWidth:1060, margin:'0 auto'}}>
+          {FEATURES.map(f => (
+            <div key={f.label} className="shq-feat" style={{padding:'22px 24px 20px', border:`1px solid ${T.border}`, borderRadius:12, background:T.surface}}>
+              <div style={{fontFamily:T.serif, fontSize:20, color:T.accent, marginBottom:9, lineHeight:1}}>{f.ic}</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:T.ink, marginBottom:6}}>{f.label}</div>
+              <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink3, lineHeight:1.65}}>{f.desc}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom CTA */}
+        <div style={{textAlign:'center', marginTop:60}}>
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink2, marginBottom:18}}>Ready to begin?</div>
+          <div style={{display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap'}}>
+            <button className="shq-primary" onClick={() => setOverlay(true)} style={{
+              display:'flex', alignItems:'center', gap:10, padding:'13px 24px',
+              border:`1px solid ${T.accent}`, background:T.accent,
+              fontFamily:T.ui, fontSize:14, color:T.surface, fontWeight:500, cursor:'pointer', borderRadius:2,
+            }}>
+              <GoogleG size={15} /> Sign in with Google
+            </button>
+            <button className="shq-ghost" onClick={onSetup} style={{
+              padding:'13px 24px', border:`1px solid ${T.ink}`, background:'transparent',
+              fontFamily:T.ui, fontSize:14, color:T.ink, cursor:'pointer', borderRadius:2,
+            }}>
+              Open fresh notebook →
+            </button>
+          </div>
+        </div>
+
+        <div style={{marginTop:60, textAlign:'center', fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase', color:T.ink3}}>
+          — Scholar · Vol. I · Anno MMXXVI —
+        </div>
+      </div>
+
+      {/* ── Quick sign-in overlay ── */}
+      {overlay && (
+        <div style={{position:'fixed', inset:0, zIndex:10, background:'rgba(248,246,240,0.88)', backdropFilter:'blur(14px)', display:'flex', alignItems:'center', justifyContent:'center'}}
+          onClick={() => setOverlay(false)}>
+          <div style={{background:T.surface, border:`1px solid ${T.border}`, borderRadius:12, padding:'36px 40px', width:400, boxShadow:'0 24px 64px -18px rgba(24,21,14,0.16)'}}
+            onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:22}}>
+              <div style={{width:34, height:34, border:`1px solid ${T.accent}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+                <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:19, color:T.accent, lineHeight:1}}>J</span>
+              </div>
+              <div>
+                <div style={{fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.16em', textTransform:'uppercase', color:T.ink3, marginBottom:3}}>Scholar</div>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, lineHeight:1}}>Welcome back.</div>
+              </div>
+            </div>
+
+            <div style={{height:1, background:T.border, marginBottom:22}} />
+
+            {/* Name */}
+            <div style={{marginBottom:16}}>
+              <div style={{fontFamily:T.mono, fontSize:8, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink3, marginBottom:8}}>Your name</div>
+              <input autoFocus className="shq-input" value={name} onChange={e => setName(e.target.value)}
+                onKeyDown={e => { if (e.key==='Enter' && canSignIn) doSignIn(); }}
+                placeholder="e.g. Julian"
+                style={{width:'100%', padding:'10px 14px', border:`1px solid ${T.border}`, background:T.bg, fontFamily:T.ui, fontSize:14, color:T.ink, boxSizing:'border-box', borderRadius:6}} />
+            </div>
+
+            {/* Grade */}
+            <div style={{marginBottom:26}}>
+              <div style={{fontFamily:T.mono, fontSize:8, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink3, marginBottom:8}}>Year</div>
+              <div style={{display:'flex', gap:7}}>
+                {[['freshman','Fr.'],['sophomore','So.'],['junior','Jr.'],['senior','Sr.']].map(([k,l]) => (
+                  <button key={k} onClick={() => setGrade(k)} style={{
+                    flex:1, padding:'9px 0', borderRadius:6, cursor:'pointer',
+                    border: grade===k ? `1.5px solid ${T.accent}` : `1px solid ${T.border}`,
+                    background: grade===k ? T.accentSoft : T.bg,
+                    color: grade===k ? T.accent : T.ink3,
+                    fontFamily:T.mono, fontSize:8.5, transition:'all 0.12s',
+                  }}>{l}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button onClick={doSignIn} disabled={!canSignIn} style={{
+              width:'100%', padding:'13px', border:'none', borderRadius:6, cursor: canSignIn ? 'pointer' : 'default',
+              background: canSignIn ? T.accent : T.bl,
+              color: canSignIn ? T.surface : T.ink3,
+              fontFamily:T.ui, fontSize:14, fontWeight:500, transition:'all 0.15s',
+            }}>
+              Open my dashboard →
+            </button>
+
+            <div style={{textAlign:'center', marginTop:16}}>
+              <button onClick={() => { setOverlay(false); onSetup(); }} style={{background:'none', border:'none', fontFamily:T.mono, fontSize:9, color:T.ink3, cursor:'pointer', letterSpacing:'0.08em'}}>
+                New user? Set up a full profile →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GoogleG({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" style={{flexShrink:0}}>
+      <path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" opacity=".9"/>
+      <path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" opacity=".9"/>
+      <path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" opacity=".9"/>
+      <path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" opacity=".9"/>
+    </svg>
+  );
+}
+
+/* ── Setup Flow (3-step onboarding) ─────────────────────── */
+function SetupFlow({ onComplete, onBack }) {
+  const [step, setStep] = useState(1);
+  const [exit, setExit] = useState(false);
+
+  // Step 1
+  const [name, setName]   = useState('');
+  const [grade, setGrade] = useState('');
+  // Step 2
+  const [school, setSchool]     = useState('');
+  const [startM, setStartM]     = useState(8);
+  const [startY, setStartY]     = useState(CY);
+  // Step 3
+  const [subjects, setSubjects] = useState([{tid:1, name:'', color:PRESET_COLORS[0]}]);
+  const [picker, setPicker]     = useState(null);
+
+  const addSubj = () => {
+    if (subjects.length >= 10) return;
+    setSubjects(s => [...s, {tid:Date.now(), name:'', color:PRESET_COLORS[s.length % PRESET_COLORS.length]}]);
+  };
+  const removeSubj = (tid) => setSubjects(s => s.filter(x => x.tid !== tid));
+  const updateSubj = (tid, patch) => setSubjects(s => s.map(x => x.tid===tid ? {...x,...patch} : x));
+
+  const validSubjects = subjects.filter(s => s.name.trim().length > 0);
+
+  const canNext1 = name.trim().length > 1 && grade !== '';
+  const canNext2 = school.trim().length > 0;
+  const canFinish = validSubjects.length > 0;
+
+  const goBack = () => {
+    if (step === 1) { setExit(true); setTimeout(() => { setExit(false); onBack(); }, 350); }
+    else setStep(s => s - 1);
+  };
+
+  const goNext = () => {
+    if (step < 3) setStep(s => s + 1);
+    else {
+      const builtSubjects = validSubjects.map(s => ({
+        id: makeSubjId(s.name), name: s.name.trim(), short: makeShort(s.name),
+        color: s.color, grade:'—', gpa:0, pct:0,
+      }));
+      onComplete({ name: name.trim(), grade, school: school.trim(), subjects: builtSubjects, startMonth: startM, startYear: startY, completedAt: Date.now() });
+    }
+  };
+
+  const canProceed = step===1 ? canNext1 : step===2 ? canNext2 : canFinish;
+  const nextLabel  = step===3 ? 'Open my dashboard →' : 'Next →';
+
+  // Preview card
+  const PreviewCard = () => (
+    <div style={{width:280, background:T.bg, border:`1px solid ${T.border}`, borderRadius:12, padding:'28px 28px 24px', boxShadow:'0 16px 48px -12px rgba(24,21,14,0.12)'}}>
+      <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:18}}>
+        <div style={{width:32, height:32, border:`1px solid ${T.accent}`, display:'flex', alignItems:'center', justifyContent:'center'}}>
+          <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.accent, lineHeight:1}}>
+            {name.trim() ? name.trim()[0].toUpperCase() : 'J'}
+          </span>
+        </div>
+        <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, letterSpacing:'0.17em', textTransform:'uppercase'}}>Scholar</div>
+      </div>
+      <div style={{height:1, background:T.border, marginBottom:18}} />
+      {[
+        ['Reader',   name.trim() || 'Your name'],
+        ['Year',     grade ? grade.charAt(0).toUpperCase()+grade.slice(1) : '—'],
+        ['School',   step > 1 && school.trim() ? school.trim() : (step > 1 ? '—' : 'next step')],
+        ['Classes',  step > 2 ? validSubjects.length+' added' : 'step III'],
+      ].map(([k,v]) => (
+        <div key={k} style={{display:'flex', gap:12, alignItems:'baseline', marginBottom:12}}>
+          <span style={{fontFamily:T.mono, fontSize:8, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink3, width:50, flexShrink:0}}>{k}</span>
+          <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink}}>{v}</span>
+        </div>
+      ))}
+      <div style={{marginTop:18, display:'flex', gap:6}}>
+        {[1,2,3].map(s => (
+          <div key={s} style={{height:3, borderRadius:2, background: s<=step ? T.accent : T.border, flex: s===step ? 2 : 1, transition:'flex 0.3s ease, background 0.3s'}} />
+        ))}
+      </div>
+    </div>
+  );
+
+  const inputStyle = {width:'100%', padding:'10px 14px', border:`1px solid ${T.border}`, background:T.bg, fontFamily:T.ui, fontSize:14, color:T.ink, outline:'none', boxSizing:'border-box', borderRadius:6};
+
+  return (
+    <div style={{
+      position:'fixed', inset:0, zIndex:900, background:T.surface,
+      display:'flex', flexDirection:'column', fontFamily:T.ui,
+      opacity: exit ? 0 : 1, transform: exit ? 'scale(0.97)' : 'scale(1)',
+      transition: exit ? 'opacity 0.35s ease, transform 0.35s ease' : 'none',
+    }}>
+      <style>{`.shq-ob-input::placeholder{color:${T.ink3}} .shq-ob-select option{background:${T.surface}} .shq-yr-btn:hover{border-color:${T.accent}!important}`}</style>
+
+      {/* Progress bar */}
+      <div style={{display:'flex', height:3, flexShrink:0}}>
+        {[1,2,3].map(s => (
+          <div key={s} style={{flex:1, background: s<=step ? T.accent : T.border, marginRight: s<3 ? 2 : 0, transition:'background 0.3s'}} />
+        ))}
+      </div>
+
+      {/* Two-column body */}
+      <div style={{flex:1, minHeight:0, display:'flex', overflow:'hidden'}}>
+
+        {/* Left — form */}
+        <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', justifyContent:'center', overflowY:'auto', padding:'40px 72px 40px 96px'}}>
+          <div style={{maxWidth:480}}>
+            <div style={{fontFamily:T.mono, fontSize:10, letterSpacing:'0.18em', color:T.ink3, marginBottom:16}}>
+              {'0'+step} / 03 · {['ABOUT YOU','YOUR SCHOOL','YOUR CLASSES'][step-1]}
+            </div>
+
+            {/* Step 1 */}
+            {step===1 && (
+              <>
+                <h2 style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:42, lineHeight:1.1, margin:'0 0 28px', color:T.ink}}>
+                  Let's set up your <em style={{color:T.accent}}>dashboard.</em>
+                </h2>
+                <div style={{marginBottom:22}}>
+                  <div style={{fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink3, marginBottom:10}}>What's your name?</div>
+                  <input autoFocus className="shq-ob-input" value={name} onChange={e => setName(e.target.value)}
+                    onKeyDown={e => { if (e.key==='Enter' && canNext1) goNext(); }}
+                    placeholder="e.g. Julian" style={inputStyle}
+                    onFocus={e => e.target.style.borderColor=T.accent}
+                    onBlur={e => e.target.style.borderColor=T.border} />
+                </div>
+                <div>
+                  <div style={{fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink3, marginBottom:10}}>What year are you in?</div>
+                  <div style={{display:'flex', gap:8}}>
+                    {[['freshman','Freshman'],['sophomore','Sophomore'],['junior','Junior'],['senior','Senior']].map(([k,l]) => (
+                      <button key={k} className="shq-yr-btn" onClick={() => setGrade(k)} style={{
+                        flex:1, height:40, borderRadius:6, fontSize:12.5, cursor:'pointer',
+                        border: grade===k ? `1.5px solid ${T.accent}` : `1px solid ${T.border}`,
+                        background: grade===k ? T.accentSoft : T.bg,
+                        color: grade===k ? T.accent : T.ink2,
+                        fontFamily:T.ui, fontWeight: grade===k ? 500 : 400, transition:'all 0.12s',
+                      }}>{l}</button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Step 2 */}
+            {step===2 && (
+              <>
+                <h2 style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:42, lineHeight:1.1, margin:'0 0 28px', color:T.ink}}>
+                  Tell us about your <em style={{color:T.accent}}>school.</em>
+                </h2>
+                <div style={{marginBottom:22}}>
+                  <div style={{fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink3, marginBottom:10}}>School name</div>
+                  <input autoFocus className="shq-ob-input" value={school} onChange={e => setSchool(e.target.value)}
+                    onKeyDown={e => { if (e.key==='Enter' && canNext2) goNext(); }}
+                    placeholder="e.g. Lincoln High School" style={inputStyle}
+                    onFocus={e => e.target.style.borderColor=T.accent}
+                    onBlur={e => e.target.style.borderColor=T.border} />
+                </div>
+                <div>
+                  <div style={{fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink3, marginBottom:10}}>When does your school year start?</div>
+                  <div style={{display:'flex', gap:10}}>
+                    <select className="shq-ob-select" value={startM} onChange={e => setStartM(Number(e.target.value))}
+                      style={{...inputStyle, flex:2, padding:'10px 14px', cursor:'pointer', appearance:'none'}}>
+                      {MONTHS.map((m,i) => <option key={i} value={i}>{m}</option>)}
+                    </select>
+                    <select className="shq-ob-select" value={startY} onChange={e => setStartY(Number(e.target.value))}
+                      style={{...inputStyle, flex:1, padding:'10px 14px', cursor:'pointer', appearance:'none'}}>
+                      {[CY-1,CY,CY+1].map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Step 3 */}
+            {step===3 && (
+              <>
+                <h2 style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:42, lineHeight:1.1, margin:'0 0 10px', color:T.ink}}>
+                  What classes are you <em style={{color:T.accent}}>taking?</em>
+                </h2>
+                <p style={{fontFamily:T.ui, fontSize:13, color:T.ink3, margin:'0 0 22px', lineHeight:1.6}}>Add up to 10. You can always change these later.</p>
+
+                <div style={{display:'flex', flexDirection:'column', gap:8, maxHeight:240, overflowY:'auto', paddingRight:4, marginBottom:16}}>
+                  {subjects.map((s,i) => (
+                    <div key={s.tid} style={{display:'flex', alignItems:'center', gap:8}}>
+                      <div style={{position:'relative', flexShrink:0}}>
+                        <div onClick={() => setPicker(picker===s.tid ? null : s.tid)}
+                          style={{width:28, height:28, borderRadius:5, background:s.color, cursor:'pointer', border:`2px solid rgba(0,0,0,0.12)`}} />
+                        {picker===s.tid && (
+                          <div style={{position:'absolute', top:34, left:0, zIndex:10, background:T.surface, border:`1px solid ${T.border}`, borderRadius:8, padding:8, display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:5, boxShadow:'0 8px 24px rgba(24,21,14,0.14)'}}>
+                            {PRESET_COLORS.map(c => (
+                              <div key={c} onClick={() => { updateSubj(s.tid,{color:c}); setPicker(null); }}
+                                style={{width:22, height:22, borderRadius:4, background:c, cursor:'pointer', outline: s.color===c ? `2px solid ${T.accent}` : 'none', outlineOffset:1}} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <input className="shq-ob-input" value={s.name} onChange={e => updateSubj(s.tid,{name:e.target.value})}
+                        placeholder={`Class ${i+1} (e.g. AP Biology)`}
+                        style={{...inputStyle, flex:1}}
+                        onFocus={e => e.target.style.borderColor=T.accent}
+                        onBlur={e => e.target.style.borderColor=T.border} />
+                      {subjects.length > 1 && (
+                        <button onClick={() => removeSubj(s.tid)}
+                          style={{border:0, background:'transparent', color:T.ink3, cursor:'pointer', fontSize:18, padding:'0 4px', flexShrink:0}}>×</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {subjects.length < 10 && (
+                  <button onClick={addSubj} style={{padding:'7px 14px', borderRadius:6, fontSize:12.5, border:`1px solid ${T.border}`, background:'transparent', color:T.ink3, fontFamily:T.ui, cursor:'pointer', alignSelf:'flex-start'}}>
+                    + Add another class
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Right — preview */}
+        <div style={{width:400, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', borderLeft:`1px solid ${T.border}`, padding:40}}>
+          <PreviewCard />
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{display:'flex', alignItems:'center', padding:'18px 48px', flexShrink:0, borderTop:`1px solid ${T.border}`, position:'relative'}}>
+        <button onClick={goBack} style={{background:'none', border:'none', padding:0, cursor:'pointer', fontSize:13.5, color:T.ink3, fontFamily:T.ui}}>← Back</button>
+        <span style={{position:'absolute', left:'50%', transform:'translateX(-50%)', fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.22em', color:T.ink3, textTransform:'uppercase'}}>ANNO MMXXVI</span>
+        <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:28}}>
+          <span style={{fontFamily:T.mono, fontSize:9, letterSpacing:'0.16em', color:T.ink3, textTransform:'uppercase'}}>Printed for one reader</span>
+          <button onClick={goNext} disabled={!canProceed} style={{
+            height:42, padding:'0 26px', borderRadius:6, border:'none', cursor: canProceed ? 'pointer' : 'default',
+            background: canProceed ? T.accent : T.bl,
+            color: canProceed ? T.surface : T.ink3,
+            fontFamily:T.ui, fontSize:13.5, fontWeight:500, transition:'all 0.15s',
+          }}>{nextLabel}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── App ────────────────────────────────────────────────── */
 const SCREENS = {
   today:      TodayScreen,
@@ -1658,14 +2169,38 @@ const SCREENS = {
 };
 
 function App() {
-  const [screen, setScreen] = useState('today');
-  const [key, setKey] = useState(0);
+  const [profile, setProfile]   = useState(() => loadProfile());
+  const [inSetup, setInSetup]   = useState(false);
+  const [screen, setScreen]     = useState('today');
+  const [key, setKey]           = useState(0);
+
   const nav = (s) => { setScreen(s); setKey(k => k+1); };
   const Screen = SCREENS[screen] || TodayScreen;
 
+  const handleSignIn = (p) => {
+    saveProfile(p);
+    setProfile(p);
+    setInSetup(false);
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem(PROFILE_KEY);
+    setProfile(null);
+    setInSetup(false);
+    setScreen('today');
+  };
+
+  if (!profile && !inSetup) {
+    return <WelcomeScreen onSignIn={handleSignIn} onSetup={() => setInSetup(true)} />;
+  }
+
+  if (!profile && inSetup) {
+    return <SetupFlow onComplete={handleSignIn} onBack={() => setInSetup(false)} />;
+  }
+
   return (
     <div style={{height:'100vh', display:'flex', overflow:'hidden', background:T.bg, fontFamily:T.ui, color:T.ink}}>
-      <Sidebar screen={screen} onNav={nav} />
+      <Sidebar screen={screen} onNav={nav} profile={profile} onSignOut={handleSignOut} />
       <div style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
         <Screen key={key} />
       </div>
