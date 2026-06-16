@@ -55,6 +55,11 @@ const PROFILE_KEY = 'shq-v2-profile';
 const loadProfile = () => { try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch { return null; } };
 const saveProfile = (p) => localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
 
+const USER_DATA_KEY = (email) => 'shq-v2-data-' + (email || 'anon');
+const loadUserData  = (email) => { try { return JSON.parse(localStorage.getItem(USER_DATA_KEY(email)) || 'null'); } catch { return null; } };
+const saveUserData  = (email, data) => localStorage.setItem(USER_DATA_KEY(email), JSON.stringify(data));
+const defaultUserData = () => ({ homework: [], grades: {}, streak: 0, quizzes: [], notes: [], schedule: [] });
+
 const PRESET_COLORS = ['#bf4a30','#3a8a52','#2a60a0','#b07020','#7a44a0','#208490','#b8943a','#9a9080'];
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const CY = new Date().getFullYear();
@@ -150,6 +155,15 @@ const TOOLS_DATA = [
 ];
 const GPA = (SUBJECTS.reduce((a,s) => a + s.gpa, 0) / SUBJECTS.length).toFixed(2);
 const subjectBy = (id) => SUBJECTS.find(s => s.id === id) || SUBJECTS[0];
+
+const calcGPA = (subjects, grades) => {
+  if (!subjects?.length) return '—';
+  const vals = subjects.map(s => grades?.[s.id] != null ? (GPA_MAP[grades[s.id]] ?? null) : null).filter(v => v != null);
+  if (!vals.length) return '—';
+  return (vals.reduce((a,b) => a+b, 0) / vals.length).toFixed(2);
+};
+const makeSubjectBy = (subjects) => (id) =>
+  (subjects || []).find(s => s.id === id) || { id: id||'?', name: id||'Unknown', short: id||'?', color: T.border, grade: '—', gpa: 0, pct: 0 };
 
 function greeting() {
   const h = new Date().getHours();
@@ -290,7 +304,17 @@ function PageHeader({ eyebrow, title, right }) {
 function Hr({ mb=32 }) { return <div style={{height:1, background:T.border, marginBottom:mb}} />; }
 
 /* ── 1. Today ───────────────────────────────────────────── */
-function TodayScreen() {
+function TodayScreen({ profile, userData, onUpdate }) {
+  const ud       = userData || defaultUserData();
+  const subjects = profile?.subjects || [];
+  const subjectBy = makeSubjectBy(subjects);
+  const homework  = ud.homework || [];
+  const quizzes   = ud.quizzes  || [];
+  const schedule  = ud.schedule || [];
+  const gpa       = calcGPA(subjects, ud.grades);
+  const streak    = ud.streak || 0;
+  const firstName = (profile?.name || 'Scholar').split(' ')[0];
+
   const now = new Date();
   const h = now.getHours();
   const timeLabel = h < 5 ? 'Up late' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 21 ? 'Good evening' : 'Late night';
@@ -306,10 +330,10 @@ function TodayScreen() {
     return { n, date: d.getDate(), today: d.toDateString() === now.toDateString() };
   });
 
-  const open   = HOMEWORK.filter(hw => !hw.done);
-  const urgent = HOMEWORK.filter(hw => hw.urgent && !hw.done);
-  const tonight = HOMEWORK.filter(hw => hw.due === 'Tonight' && !hw.done);
-  const curPeriod = SCHEDULE_DATA.find(p => p.current);
+  const open      = homework.filter(hw => !hw.done);
+  const urgent    = homework.filter(hw => hw.urgent && !hw.done);
+  const tonight   = homework.filter(hw => hw.due === 'Tonight' && !hw.done);
+  const curPeriod = schedule.find(p => p.current);
 
   const Btn = ({children, gold}) => (
     <button style={{padding:'7px 14px', border: gold ? 'none' : `1px solid ${T.border}`, background: gold ? T.accent : T.surface, color: gold ? '#fff' : T.ink3, fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.07em', cursor:'pointer', display:'flex', alignItems:'center', gap:6}}>{children}</button>
@@ -325,10 +349,10 @@ function TodayScreen() {
           </div>
           <h1 style={{margin:'0 0 5px', lineHeight:1.1}}>
             <span style={{fontFamily:T.ui, fontWeight:700, fontSize:29, color:T.ink}}>{timeLabel}, </span>
-            <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:31, color:T.ink}}>Julian.</span>
+            <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:31, color:T.ink}}>{firstName}.</span>
           </h1>
           <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.05em'}}>
-            {open.length} things to finish tonight · {QUIZZES_DATA.length} quizzes scheduled
+            {open.length} things to finish tonight · {quizzes.length} quizzes scheduled
           </div>
         </div>
         <div style={{display:'flex', gap:8, flexShrink:0, marginTop:4}}>
@@ -340,10 +364,10 @@ function TodayScreen() {
       {/* 4 stat cards */}
       <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, margin:'20px 52px 12px'}}>
         {[
-          { label:'OPEN TASKS',    val:open.length,       sub:'all on track',                                        accent:T.accent  },
-          { label:'GPA',           val:GPA,               sub:'Unweighted · Spring',                                 accent:'#3a8a52' },
-          { label:'STUDY STREAK',  val:'12',              sub:'days running',                                        accent:'#2a60a0' },
-          { label:'QUIZZES AHEAD', val:QUIZZES_DATA.length, sub:QUIZZES_DATA.length>0?`${QUIZZES_DATA[0].date} upcoming`:'none scheduled', accent:'#9254de' },
+          { label:'OPEN TASKS',    val:open.length,        sub:'all on track',                                              accent:T.accent  },
+          { label:'GPA',           val:gpa,                sub:'Unweighted · Spring',                                        accent:'#3a8a52' },
+          { label:'STUDY STREAK',  val:String(streak),     sub:'days running',                                               accent:'#2a60a0' },
+          { label:'QUIZZES AHEAD', val:quizzes.length,     sub:quizzes.length>0?`${quizzes[0].date} upcoming`:'none scheduled', accent:'#9254de' },
         ].map(c => (
           <div key={c.label} style={{background:T.surface, padding:'22px 24px 20px', borderRadius:12, minHeight:100, borderBottom:`2px solid ${c.accent}30`}}>
             <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:10}}>{c.label}</div>
@@ -434,7 +458,7 @@ function TodayScreen() {
           }) : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13.5, color:T.ink3, lineHeight:1.65}}>All clear today. Nothing due — you're ahead.</div>}
           <div style={{borderTop:`1px solid ${T.bl}`, marginTop:12, paddingTop:11}}>
             <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em', marginBottom:7}}>Quizzes Ahead</div>
-            {QUIZZES_DATA.slice(0,2).map(q => {
+            {quizzes.slice(0,2).map(q => {
               const s = subjectBy(q.subj);
               return (
                 <div key={q.title} style={{display:'flex', gap:7, alignItems:'center', marginBottom:5}}>
@@ -454,7 +478,7 @@ function TodayScreen() {
             <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>Schedule</div>
             <span style={{fontFamily:T.mono, fontSize:8, color:T.accent, cursor:'pointer'}}>Edit → {dayStr.slice(0,3)}</span>
           </div>
-          {SCHEDULE_DATA.filter(p => p.subj).slice(0,5).map(p => {
+          {schedule.filter(p => p.subj).slice(0,5).map(p => {
             const s = subjectBy(p.subj);
             return (
               <div key={p.period} style={{display:'flex', alignItems:'center', gap:7, marginBottom:5}}>
@@ -464,7 +488,8 @@ function TodayScreen() {
               </div>
             );
           })}
-          {SCHEDULE_DATA.filter(p=>!p.subj&&p.room==='Library').map(p => (
+          {schedule.length === 0 && <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, opacity:0.5}}>No schedule set — add classes in Schedule.</div>}
+          {schedule.filter(p=>!p.subj&&p.room==='Library').map(p => (
             <div key="lib" style={{fontFamily:T.mono, fontSize:8, color:T.ink3, marginTop:6}}>2:45 → Study Hall</div>
           ))}
         </div>
@@ -473,12 +498,12 @@ function TodayScreen() {
         <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
           <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:11}}>Progress</div>
           <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em', marginBottom:7}}>Study Streak</div>
-          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:42, color:T.accent, lineHeight:0.9, marginBottom:4}}>12</div>
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:42, color:T.accent, lineHeight:0.9, marginBottom:4}}>{streak}</div>
           <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, marginBottom:14}}>days</div>
-          <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, lineHeight:1.6, marginBottom:16}}>Day 12 — keep it going.</div>
+          <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, lineHeight:1.6, marginBottom:16}}>{streak > 0 ? `Day ${streak} — keep it going.` : 'Start your streak today.'}</div>
           <div style={{display:'flex', gap:3, flexWrap:'wrap'}}>
             {Array.from({length:14}).map((_,i) => (
-              <div key={i} style={{width:11, height:11, borderRadius:2, background: i < 12 ? T.accent : T.bl}}/>
+              <div key={i} style={{width:11, height:11, borderRadius:2, background: i < streak ? T.accent : T.bl}}/>
             ))}
           </div>
         </div>
@@ -488,26 +513,46 @@ function TodayScreen() {
 }
 
 /* ── 2. Homework ────────────────────────────────────────── */
-function HomeworkScreen() {
-  const open     = HOMEWORK.filter(h => !h.done);
-  const done     = HOMEWORK.filter(h => h.done);
-  const urgent   = HOMEWORK.filter(h => h.urgent && !h.done);
-  const tonight  = HOMEWORK.filter(h => h.due === 'Tonight' && !h.done);
-  const thisWeek = HOMEWORK.filter(h => !h.done && !h.urgent && (h.due === 'Tomorrow'));
-  const upcoming = HOMEWORK.filter(h => !h.done && !h.urgent && h.due !== 'Tonight' && h.due !== 'Tomorrow');
+function HomeworkScreen({ profile, userData, onUpdate }) {
+  const subjects  = profile?.subjects || [];
+  const subjectBy = makeSubjectBy(subjects);
+  const homework  = userData?.homework || [];
+
+  const [showAdd, setShowAdd] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newSubj,  setNewSubj]  = useState(subjects[0]?.id || '');
+  const [newDue,   setNewDue]   = useState('Tonight');
+  const [newEst,   setNewEst]   = useState('30 min');
+
+  const addHomework = () => {
+    if (!newTitle.trim()) return;
+    const item = { id: Date.now()+'', subj: newSubj || subjects[0]?.id || '', title: newTitle.trim(), due: newDue, urgent: newDue === 'Tonight', done: false, est: newEst };
+    onUpdate && onUpdate({ homework: [...homework, item] });
+    setNewTitle(''); setShowAdd(false);
+  };
+  const toggleDone = (id) => {
+    onUpdate && onUpdate({ homework: homework.map(h => h.id === id ? { ...h, done: !h.done } : h) });
+  };
+
+  const open     = homework.filter(h => !h.done);
+  const done     = homework.filter(h => h.done);
+  const urgent   = homework.filter(h => h.urgent && !h.done);
+  const tonight  = homework.filter(h => h.due === 'Tonight' && !h.done);
+  const thisWeek = homework.filter(h => !h.done && !h.urgent && (h.due === 'Tomorrow'));
+  const upcoming = homework.filter(h => !h.done && !h.urgent && h.due !== 'Tonight' && h.due !== 'Tomorrow');
 
   const totalMin = open.reduce((acc, h) => {
     let m = 0;
-    const hrs  = h.est.match(/(\d+)\s*hr/);
-    const mins = h.est.match(/(\d+)\s*min/);
+    const hrs  = h.est ? h.est.match(/(\d+)\s*hr/) : null;
+    const mins = h.est ? h.est.match(/(\d+)\s*min/) : null;
     if (hrs)  m += parseInt(hrs[1])  * 60;
     if (mins) m += parseInt(mins[1]);
     return acc + m;
   }, 0);
-  const estDisplay = totalMin >= 60 ? `${Math.floor(totalMin/60)}h ${totalMin%60}m` : `${totalMin}m`;
-  const completionPct = HOMEWORK.length > 0 ? Math.round(done.length / HOMEWORK.length * 100) : 0;
+  const estDisplay = totalMin >= 60 ? `${Math.floor(totalMin/60)}h ${totalMin%60}m` : totalMin > 0 ? `${totalMin}m` : '—';
+  const completionPct = homework.length > 0 ? Math.round(done.length / homework.length * 100) : 0;
 
-  const hwBySubject = SUBJECTS.map(s => ({
+  const hwBySubject = subjects.map(s => ({
     subj: s, open: open.filter(h => h.subj === s.id).length,
   })).filter(x => x.open > 0);
 
@@ -522,8 +567,10 @@ function HomeworkScreen() {
     const s = subjectBy(hw.subj);
     return (
       <div style={{background:T.bl, borderLeft:`2px solid ${s.color}`, padding:'8px 10px', marginBottom:6, cursor:'pointer'}}
+        onClick={() => hw.id && toggleDone(hw.id)}
         onMouseOver={e => e.currentTarget.style.background = T.border}
         onMouseOut={e => e.currentTarget.style.background = T.bl}
+        title="Click to toggle done"
       >
         <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink, lineHeight:1.3, marginBottom:3, textDecoration: hw.done ? 'line-through' : 'none', opacity: hw.done ? 0.5 : 1}}>{hw.title}</div>
         <div style={{display:'flex', justifyContent:'space-between'}}>
@@ -548,17 +595,47 @@ function HomeworkScreen() {
               {open.length === 0 ? 'Nothing due — enjoy the break ✓' : `${open.length} assignments open · ${urgent.length} urgent`}
             </div>
           </div>
-          <button style={{padding:'7px 18px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.07em', cursor:'pointer', flexShrink:0}}>+ Add</button>
+          <button onClick={() => setShowAdd(s => !s)} style={{padding:'7px 18px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.07em', cursor:'pointer', flexShrink:0}}>+ Add</button>
         </div>
+
+        {/* Add homework form */}
+        {showAdd && (
+          <div style={{background:T.surface, border:`1px solid ${T.border}`, padding:'16px 20px', marginBottom:12, display:'flex', flexWrap:'wrap', gap:10, alignItems:'flex-end'}}>
+            <div style={{flex:'1 1 200px'}}>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5}}>Assignment</div>
+              <input value={newTitle} onChange={e=>setNewTitle(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addHomework()} placeholder="e.g. Read chapter 5" style={{width:'100%', padding:'7px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, background:T.bg, outline:'none', boxSizing:'border-box'}} />
+            </div>
+            <div style={{flex:'0 1 140px'}}>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5}}>Subject</div>
+              <select value={newSubj} onChange={e=>setNewSubj(e.target.value)} style={{width:'100%', padding:'7px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, background:T.bg, cursor:'pointer'}}>
+                {subjects.map(s => <option key={s.id} value={s.id}>{s.short || s.name}</option>)}
+              </select>
+            </div>
+            <div style={{flex:'0 1 120px'}}>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5}}>Due</div>
+              <select value={newDue} onChange={e=>setNewDue(e.target.value)} style={{width:'100%', padding:'7px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, background:T.bg, cursor:'pointer'}}>
+                {['Tonight','Tomorrow','Wed','Thu','Fri','Next Week'].map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            <div style={{flex:'0 1 120px'}}>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5}}>Est. Time</div>
+              <select value={newEst} onChange={e=>setNewEst(e.target.value)} style={{width:'100%', padding:'7px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, background:T.bg, cursor:'pointer'}}>
+                {['15 min','30 min','45 min','1 hr','1 hr 30 min','2 hr','3 hr'].map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            <button onClick={addHomework} style={{padding:'8px 20px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.07em', cursor:'pointer', flexShrink:0}}>Save →</button>
+            <button onClick={()=>setShowAdd(false)} style={{padding:'8px 14px', border:`1px solid ${T.border}`, background:'none', color:T.ink3, fontFamily:T.mono, fontSize:8.5, cursor:'pointer', flexShrink:0}}>Cancel</button>
+          </div>
+        )}
 
         {/* 5 stat cards */}
         <div style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:12, marginBottom:12}}>
           {[
-            { label:'OPEN WORK',   val:open.length,         sub:'assignments',                              accent:T.accent  },
-            { label:'URGENT',      val:urgent.length,       sub:'need attention',                           accent:'#bf4a30' },
-            { label:'DUE TODAY',   val:tonight.length,      sub:'assignments',                              accent:'#b07020' },
-            { label:'EST. TIME',   val:estDisplay,          sub:'remaining',                                accent:'#2a60a0' },
-            { label:'COMPLETION',  val:`${completionPct}%`, sub:`${done.length} of ${HOMEWORK.length} done`, accent:'#3a8a52' },
+            { label:'OPEN WORK',   val:open.length,         sub:'assignments',                               accent:T.accent  },
+            { label:'URGENT',      val:urgent.length,       sub:'need attention',                            accent:'#bf4a30' },
+            { label:'DUE TODAY',   val:tonight.length,      sub:'assignments',                               accent:'#b07020' },
+            { label:'EST. TIME',   val:estDisplay,          sub:'remaining',                                 accent:'#2a60a0' },
+            { label:'COMPLETION',  val:`${completionPct}%`, sub:`${done.length} of ${homework.length} done`, accent:'#3a8a52' },
           ].map(c => (
             <div key={c.label} style={{background:T.surface, padding:'24px 20px', borderRadius:12, minHeight:100, borderBottom:`2px solid ${c.accent}28`}}>
               <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:10}}>{c.label}</div>
@@ -643,15 +720,20 @@ function HomeworkScreen() {
 }
 
 /* ── 3. Quizzes ─────────────────────────────────────────── */
-function QuizzesScreen() {
+function QuizzesScreen({ profile, userData }) {
+  const subjectBy = makeSubjectBy(profile?.subjects || []);
+  const quizzes   = userData?.quizzes || [];
   const cc = (c) => c >= 0.75 ? '#3a8a52' : c >= 0.55 ? '#b07020' : '#bf4a30';
   const cl = (c) => c >= 0.75 ? 'strong' : c >= 0.55 ? 'fair' : 'weak';
   return (
     <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'56px 72px'}}>
-      <PageHeader eyebrow={`${QUIZZES_DATA.length} upcoming`} title="Quizzes" />
+      <PageHeader eyebrow={`${quizzes.length} upcoming`} title="Quizzes" />
       <Hr />
+      {quizzes.length === 0 && (
+        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink3, lineHeight:1.8}}>No quizzes scheduled yet. Add quiz dates from your Homework screen or directly here.</div>
+      )}
       <div style={{display:'flex', flexDirection:'column', gap:12}}>
-        {QUIZZES_DATA.map(q => {
+        {quizzes.map(q => {
           const s = subjectBy(q.subj);
           const pct = Math.round(q.confidence * 100);
           return (
@@ -687,12 +769,16 @@ function QuizzesScreen() {
 }
 
 /* ── 4. Notes ───────────────────────────────────────────── */
-function NotesScreen() {
+function NotesScreen({ profile, userData }) {
+  const subjectBy = makeSubjectBy(profile?.subjects || []);
+  const subjects  = profile?.subjects || [];
+  const notes     = userData?.notes   || [];
   const [active, setActive] = useState(null);
   const [search, setSearch] = useState('');
 
   if (active) {
-    const note = NOTES_DATA.find(n => n.id === active);
+    const note = notes.find(n => n.id === active);
+    if (!note) { setActive(null); return null; }
     const s = subjectBy(note.subj);
     return (
       <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'56px 72px'}}>
@@ -714,13 +800,13 @@ function NotesScreen() {
     );
   }
 
-  const mostRecentNote = NOTES_DATA[0];
-  const mostActiveSubj = subjectBy(mostRecentNote.subj);
-  const thisWeekNotes  = NOTES_DATA.filter(n => /Jun 1[0-9]/.test(n.date)).length;
+  const mostRecentNote = notes[0] || null;
+  const mostActiveSubj = mostRecentNote ? subjectBy(mostRecentNote.subj) : null;
+  const thisWeekNotes  = notes.length;
   const filtered = search
-    ? NOTES_DATA.filter(n => n.title.toLowerCase().includes(search.toLowerCase()) || n.preview.toLowerCase().includes(search.toLowerCase()))
-    : NOTES_DATA;
-  const subjNotes = SUBJECTS.map(s => ({ subj:s, notes: NOTES_DATA.filter(n => n.subj === s.id) }));
+    ? notes.filter(n => n.title.toLowerCase().includes(search.toLowerCase()) || (n.preview||'').toLowerCase().includes(search.toLowerCase()))
+    : notes;
+  const subjNotes = subjects.map(s => ({ subj:s, notes: notes.filter(n => n.subj === s.id) }));
 
   return (
     <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'28px 52px'}}>
@@ -737,10 +823,10 @@ function NotesScreen() {
         {/* 4 stat cards */}
         <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:12}}>
           {[
-            { label:'TOTAL NOTES',      val:NOTES_DATA.length,      sub:`${SUBJECTS.length} subjects`,                                       accent:T.accent,          borderLeft:false },
-            { label:'ACTIVE SUBJECT',   val:mostActiveSubj.short,   sub:`${NOTES_DATA.filter(n=>n.subj===mostActiveSubj.id).length} notes`,   accent:mostActiveSubj.color, borderLeft:true  },
-            { label:'LAST EDITED',      val:mostRecentNote.date,    sub:mostRecentNote.title.slice(0,20)+'…',                                 accent:'#2a60a0',         borderLeft:false },
-            { label:'KNOWLEDGE GROWTH', val:thisWeekNotes,          sub:'notes this week',                                                    accent:'#3a8a52',         borderLeft:false },
+            { label:'TOTAL NOTES',      val:notes.length,                                                                                    sub:`${subjects.length} subjects`,                                                                 accent:T.accent,                                   borderLeft:false },
+            { label:'ACTIVE SUBJECT',   val:mostActiveSubj ? mostActiveSubj.short : '—',                                                    sub:mostActiveSubj ? `${notes.filter(n=>n.subj===mostActiveSubj.id).length} notes` : 'no notes yet', accent:mostActiveSubj ? mostActiveSubj.color : T.ink3, borderLeft:true  },
+            { label:'LAST EDITED',      val:mostRecentNote ? mostRecentNote.date : '—',                                                     sub:mostRecentNote ? mostRecentNote.title.slice(0,20)+'…' : 'no notes yet',                          accent:'#2a60a0',                                  borderLeft:false },
+            { label:'KNOWLEDGE GROWTH', val:thisWeekNotes,                                                                                   sub:'notes total',                                                                                     accent:'#3a8a52',                                  borderLeft:false },
           ].map(c => (
             <div key={c.label} style={{background:T.surface, padding:'24px 20px', borderRadius:12, minHeight:100, borderBottom:`2px solid ${c.accent}28`, borderLeft: c.borderLeft ? `3px solid ${c.accent}` : 'none'}}>
               <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>{c.label}</div>
@@ -792,7 +878,7 @@ function NotesScreen() {
         </div>
 
         {/* Subject Library */}
-        <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', padding:'9px 0 8px'}}>Subject Library · {SUBJECTS.length}</div>
+        <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', padding:'9px 0 8px'}}>Subject Library · {subjects.length}</div>
         <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(190px,1fr))', gap:12}}>
           {subjNotes.map(({subj:s, notes:sn}) => (
             <div key={s.id} style={{background:T.surface, padding:'15px 16px', borderRadius:12, borderLeft:`3px solid ${s.color}`}}>
@@ -815,9 +901,9 @@ function NotesScreen() {
               <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Knowledge Insights</div>
             </div>
             <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:3}}>Most Active</div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink, marginBottom:3}}>{mostActiveSubj.name}</div>
-            <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, marginBottom:14}}>{NOTES_DATA.filter(n=>n.subj===mostActiveSubj.id).length} notes</div>
-            {[['Last Edited', mostRecentNote.date],['Longest Note','Trig Identities'],['Total Tags', SUBJECTS.length]].map(([label,val]) => (
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink, marginBottom:3}}>{mostActiveSubj?.name || '—'}</div>
+            <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, marginBottom:14}}>{mostActiveSubj ? notes.filter(n=>n.subj===mostActiveSubj.id).length : 0} notes</div>
+            {[['Last Edited', mostRecentNote?.date||'—'],['Total Notes',notes.length],['Subjects',subjects.length]].map(([label,val]) => (
               <div key={label} style={{marginBottom:10}}>
                 <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em', marginBottom:2}}>{label}</div>
                 <div style={{fontFamily:T.ui, fontSize:12, color:T.ink2}}>{val}</div>
@@ -858,16 +944,20 @@ function NotesScreen() {
 }
 
 /* ── 5. Flashcards ──────────────────────────────────────── */
-function FlashcardsScreen() {
+function FlashcardsScreen({ profile, userData }) {
+  const subjectBy  = makeSubjectBy(profile?.subjects || []);
+  const subjects   = profile?.subjects || [];
+  const quizzes    = userData?.quizzes    || [];
+  const flashCards = userData?.flashcards || [];
   const [mode, setMode] = useState(null);
   const [qi, setQi]     = useState(0);
   const [fl, setFl]     = useState(false);
-  const card = QUIZ[qi % QUIZ.length];
-  const next = (e) => { e.stopPropagation(); setFl(false); setQi((qi+1) % QUIZ.length); };
+  const card = flashCards[qi % Math.max(flashCards.length, 1)] || { q: 'No flashcards yet', a: 'Add cards from the Notes screen.' };
+  const next = (e) => { e.stopPropagation(); setFl(false); setQi((qi+1) % Math.max(flashCards.length, 1)); };
 
-  const avgScore  = Math.round(Object.values(HIST).flatMap(v=>v).reduce((a,b)=>a+b,0) / Object.values(HIST).flatMap(v=>v).length);
-  const bestSubj  = SUBJECTS.reduce((a,b) => b.pct > a.pct ? b : a, SUBJECTS[0]);
-  const readiness = Math.round(QUIZZES_DATA.reduce((a,q)=>a+q.confidence,0)/QUIZZES_DATA.length*100);
+  const avgScore  = '—';
+  const bestSubj  = subjects[0] || { short:'—', grade:'—', pct:0, color:T.border };
+  const readiness = quizzes.length > 0 ? Math.round(quizzes.reduce((a,q)=>a+(q.confidence||0),0)/quizzes.length*100) : 0;
 
   const MODES = [
     {id:'flashcards', ic:'⊟', icC:'#3a8a52', title:'Flashcards',      sub:'Flip — spaced repetition'     },
@@ -886,7 +976,7 @@ function FlashcardsScreen() {
             <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><path d="M8 2L4 6l4 4"/></svg>
             Back to Study Modes
           </button>
-          <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3}}>{qi+1} / {QUIZ.length}</div>
+          <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3}}>{qi+1} / {Math.max(flashCards.length, 1)}</div>
         </div>
         <div onClick={() => setFl(!fl)} style={{flex:1, border:`1px solid ${fl?T.accent:T.border}`, padding:'40px 60px', cursor:'pointer', background: fl?T.accentSoft:T.surface, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center', transition:'all 0.18s'}}>
           <div style={{fontFamily:T.mono, fontSize:8.5, color:fl?T.accent:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:20}}>{fl ? 'Answer' : `Question ${qi+1}`}</div>
@@ -926,7 +1016,7 @@ function FlashcardsScreen() {
       {/* 4 stat cards */}
       <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:28}}>
         {[
-          {label:'QUIZZES THIS WEEK', val:QUIZZES_DATA.length,          sub:'upcoming',                                          accent:T.accent  },
+          {label:'QUIZZES THIS WEEK', val:quizzes.length,               sub:'upcoming',                                          accent:T.accent  },
           {label:'AVG SCORE',         val:`${avgScore}%`,               sub:'last 4 results',                                    accent:'#3a8a52' },
           {label:'BEST SUBJECT',      val:bestSubj.short,               sub:`${bestSubj.grade} · ${Math.round(bestSubj.pct*100)}%`, accent:bestSubj.color },
           {label:'READINESS',         val:`${readiness}%`,              sub:'across upcoming',                                   accent:'#9254de' },
@@ -965,7 +1055,10 @@ function FlashcardsScreen() {
 }
 
 /* ── 6. Schedule ────────────────────────────────────────── */
-function ScheduleScreen() {
+function ScheduleScreen({ profile, userData }) {
+  const subjectBy = makeSubjectBy(profile?.subjects || []);
+  const homework  = userData?.homework || [];
+  const quizzes   = userData?.quizzes  || [];
   const [weekOffset, setWeekOffset] = useState(0);
   const [planOpen,   setPlanOpen]   = useState(true);
   const [secs,       setSecs]       = useState(25 * 60);
@@ -997,7 +1090,7 @@ function ScheduleScreen() {
   const dayCards = DAYS.map((name, i) => {
     const d = new Date(weekStart); d.setDate(weekStart.getDate() + i);
     const isToday = d.toDateString() === now.toDateString();
-    const dayHW = HOMEWORK.filter(hw => {
+    const dayHW = homework.filter(hw => {
       if (hw.done) return false;
       if (name === 'Mon' && hw.due === 'Tonight')    return weekOffset === 0 && dow <= 1;
       if (name === 'Tue' && hw.due === 'Tomorrow')   return weekOffset === 0 && dow === 1;
@@ -1009,12 +1102,12 @@ function ScheduleScreen() {
     return { name, date: d.getDate(), isToday, dayHW };
   });
 
-  const totalTasks = HOMEWORK.filter(h => !h.done).length;
+  const totalTasks = homework.filter(h => !h.done).length;
 
   const PLAN_DAYS = [
-    { day:'Monday',    tasks: HOMEWORK.filter(h=>h.urgent&&!h.done).slice(0,1).map(h=>subjectBy(h.subj).short+': '+h.title.slice(0,35)) },
-    { day:'Tuesday',   tasks: HOMEWORK.filter(h=>h.due==='Tomorrow'&&!h.done).slice(0,1).map(h=>subjectBy(h.subj).short+': '+h.title.slice(0,35)) },
-    { day:'Wednesday', tasks: HOMEWORK.filter(h=>h.due==='Wed'&&!h.done).slice(0,1).map(h=>subjectBy(h.subj).short+': '+h.title.slice(0,35)) },
+    { day:'Monday',    tasks: homework.filter(h=>h.urgent&&!h.done).slice(0,1).map(h=>subjectBy(h.subj).short+': '+h.title.slice(0,35)) },
+    { day:'Tuesday',   tasks: homework.filter(h=>h.due==='Tomorrow'&&!h.done).slice(0,1).map(h=>subjectBy(h.subj).short+': '+h.title.slice(0,35)) },
+    { day:'Wednesday', tasks: homework.filter(h=>h.due==='Wed'&&!h.done).slice(0,1).map(h=>subjectBy(h.subj).short+': '+h.title.slice(0,35)) },
   ].filter(d => d.tasks.length > 0);
 
   const workloadDays = ['M','T','W','T','F'];
@@ -1089,9 +1182,9 @@ function ScheduleScreen() {
       <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr) 1fr', gap:12, marginBottom:12}}>
         {[
           {label:'TASKS DUE',  val: dayCards.reduce((a,d)=>a+d.dayHW.length,0), accent:T.accent  },
-          {label:'QUIZZES',    val: QUIZZES_DATA.length,                          accent:'#9254de' },
-          {label:'EST. STUDY', val: `${Math.ceil(HOMEWORK.filter(h=>!h.done).length*0.75)}h`,      accent:'#2a60a0' },
-          {label:'URGENT',     val: HOMEWORK.filter(h=>h.urgent&&!h.done).length, accent:'#bf4a30' },
+          {label:'QUIZZES',    val: quizzes.length,                                              accent:'#9254de' },
+          {label:'EST. STUDY', val: `${Math.ceil(homework.filter(h=>!h.done).length*0.75)}h`,    accent:'#2a60a0' },
+          {label:'URGENT',     val: homework.filter(h=>h.urgent&&!h.done).length,                accent:'#bf4a30' },
         ].map(c => (
           <div key={c.label} style={{background:T.surface, padding:'22px 18px', borderRadius:12, minHeight:90, borderBottom:`2px solid ${c.accent}28`}}>
             <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:8}}>{c.label}</div>
@@ -1194,23 +1287,33 @@ function ScheduleScreen() {
 }
 
 /* ── 7. Grades ──────────────────────────────────────────── */
-function GradesScreen() {
-  const [targets, setTargets] = useState(Object.fromEntries(SUBJECTS.map(s => [s.id, s.grade])));
-  const GRADE_OPTS = ['A+','A','A−','B+','B','B−','C+','C','C−','D'];
+function GradesScreen({ profile, userData, onUpdate }) {
+  const subjects   = profile?.subjects || [];
+  const homework   = userData?.homework || [];
+  const grades     = userData?.grades   || {};
+  const GRADE_OPTS = ['A+','A','A−','B+','B','B−','C+','C','C−','D','F'];
 
-  const bestPerf  = SUBJECTS.reduce((a,b) => b.pct > a.pct ? b : a, SUBJECTS[0]);
-  const needsAttn = SUBJECTS.reduce((a,b) => b.pct < a.pct ? b : a, SUBJECTS[0]);
-  const totalHW   = HOMEWORK.length;
-  const gpaNum    = parseFloat(GPA);
+  const setGrade = (subjId, g) => {
+    const next = { ...grades, [subjId]: g };
+    onUpdate && onUpdate({ grades: next });
+  };
+
+  const gpaStr  = calcGPA(subjects, grades);
+  const gpaNum  = parseFloat(gpaStr) || 0;
+
+  const graded  = subjects.filter(s => grades[s.id] != null);
+  const bestPerf  = graded.length ? graded.reduce((a,b) => (GPA_MAP[grades[b.id]]||0) > (GPA_MAP[grades[a.id]]||0) ? b : a) : null;
+  const needsAttn = graded.length ? graded.reduce((a,b) => (GPA_MAP[grades[b.id]]||0) < (GPA_MAP[grades[a.id]]||0) ? b : a) : null;
+  const totalHW   = homework.length;
 
   // GPA ring
   const R = 30, circ = 2 * Math.PI * R;
 
-  // Recent scores: last score from each subject
-  const recentScores = SUBJECTS.map(s => ({
+  // Recent grades per subject
+  const recentScores = subjects.map(s => ({
     subj: s,
-    score: (HIST[s.id] || [0])[4],
-  })).sort((a,b) => b.score - a.score);
+    grade: grades[s.id] || null,
+  })).filter(x => x.grade).sort((a,b) => (GPA_MAP[b.grade]||0) - (GPA_MAP[a.grade]||0));
 
   return (
     <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'30px 52px'}}>
@@ -1254,7 +1357,7 @@ function GradesScreen() {
                   strokeDasharray={`${(gpaNum/4)*circ} ${circ}`} strokeLinecap="round"/>
               </svg>
               <div style={{position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'}}>
-                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink, lineHeight:1}}>{GPA}</div>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink, lineHeight:1}}>{gpaStr}</div>
                 <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3}}>/ 4.0</div>
               </div>
             </div>
@@ -1268,21 +1371,25 @@ function GradesScreen() {
           {/* Best performing */}
           <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
             <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>Best Performing</div>
-            <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:5}}>
-              <div style={{width:7, height:7, borderRadius:2, background:bestPerf.color}}/>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, lineHeight:1}}>{bestPerf.short}</div>
-            </div>
-            <div style={{fontFamily:T.mono, fontSize:9.5, color:T.accent}}>{bestPerf.grade} · {Math.round(bestPerf.pct*100)}%</div>
+            {bestPerf ? (<>
+              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:5}}>
+                <div style={{width:7, height:7, borderRadius:2, background:bestPerf.color}}/>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, lineHeight:1}}>{bestPerf.short}</div>
+              </div>
+              <div style={{fontFamily:T.mono, fontSize:9.5, color:T.accent}}>{grades[bestPerf.id]}</div>
+            </>) : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3}}>Log a grade to see.</div>}
           </div>
 
           {/* Needs attention */}
           <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
             <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>Needs Attention</div>
-            <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:5}}>
-              <div style={{width:7, height:7, borderRadius:2, background:needsAttn.color}}/>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, lineHeight:1}}>{needsAttn.short}</div>
-            </div>
-            <div style={{fontFamily:T.mono, fontSize:9.5, color:'#bf4a30'}}>{needsAttn.grade} · {Math.round(needsAttn.pct*100)}%</div>
+            {needsAttn ? (<>
+              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:5}}>
+                <div style={{width:7, height:7, borderRadius:2, background:needsAttn.color}}/>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, lineHeight:1}}>{needsAttn.short}</div>
+              </div>
+              <div style={{fontFamily:T.mono, fontSize:9.5, color:'#bf4a30'}}>{grades[needsAttn.id]}</div>
+            </>) : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3}}>Log grades to compare.</div>}
           </div>
 
           {/* Total assignments */}
@@ -1302,11 +1409,13 @@ function GradesScreen() {
 
         {/* Subject rows */}
         <div style={{display:'flex', flexDirection:'column', gap:12}}>
-          {SUBJECTS.map(s => {
-            const sc   = HIST[s.id] || [80,80,80,80,80];
-            const hw   = HOMEWORK.filter(h => h.subj === s.id);
-            const pts  = sc.map((v,i) => `${i*26+4},${16-(v-70)/30*12}`).join(' ');
-            const atTgt = targets[s.id] === s.grade;
+          {subjects.length === 0 && (
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink3, padding:'20px 0'}}>No subjects yet — complete setup to add your classes.</div>
+          )}
+          {subjects.map(s => {
+            const hw      = homework.filter(h => h.subj === s.id);
+            const myGrade = grades[s.id] || '';
+            const hasGrade = !!myGrade;
             return (
               <div key={s.id}
                 style={{display:'grid', gridTemplateColumns:'1fr 120px 72px 80px 100px', gap:8, background:T.surface, alignItems:'center', cursor:'pointer', transition:'background 0.1s', borderRadius:8, borderLeft:`3px solid ${s.color}`}}
@@ -1318,26 +1427,27 @@ function GradesScreen() {
                   <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16.5, color:T.ink, marginBottom:2}}>{s.name}</div>
                   <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{hw.length} assignments</div>
                 </div>
-                {/* Tasks sparkline */}
+                {/* Sparkline placeholder */}
                 <div style={{display:'flex', justifyContent:'center'}}>
                   <svg width={108} height={18} viewBox="0 0 108 18" style={{overflow:'visible'}}>
-                    <polyline points={pts} fill="none" stroke={T.border} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
-                    {sc.map((v,i) => <circle key={i} cx={i*26+4} cy={16-(v-70)/30*12} r={2} fill={s.color}/>)}
+                    <line x1={4} y1={9} x2={108} y2={9} stroke={T.border} strokeWidth={1.5} strokeLinecap="round" strokeDasharray="3 3"/>
+                    <circle cx={108} cy={9} r={2} fill={hasGrade ? s.color : T.border}/>
                   </svg>
                 </div>
-                {/* Score */}
-                <div style={{fontFamily:T.mono, fontSize:11, color:T.ink2, textAlign:'center'}}>{Math.round(s.pct*100)}%</div>
+                {/* GPA points */}
+                <div style={{fontFamily:T.mono, fontSize:11, color:T.ink2, textAlign:'center'}}>{hasGrade ? (GPA_MAP[myGrade] ?? '—') : '—'}</div>
                 {/* Grade badge */}
                 <div style={{display:'flex', justifyContent:'center'}}>
-                  <div style={{background:`${s.color}18`, border:`1px solid ${s.color}40`, padding:'3px 9px', fontFamily:T.mono, fontSize:10, color:s.color, fontWeight:600}}>{s.grade}</div>
+                  <div style={{background: hasGrade ? `${s.color}18` : T.bl, border:`1px solid ${hasGrade ? s.color+'40' : T.border}`, padding:'3px 9px', fontFamily:T.mono, fontSize:10, color: hasGrade ? s.color : T.ink3, fontWeight:600}}>{myGrade || '—'}</div>
                 </div>
-                {/* Target */}
+                {/* Grade setter */}
                 <div style={{display:'flex', justifyContent:'center'}} onClick={e => e.stopPropagation()}>
                   <select
-                    value={targets[s.id]}
-                    onChange={e => setTargets({...targets, [s.id]: e.target.value})}
-                    style={{background: atTgt ? T.bl : T.accentSoft, border:`1px solid ${atTgt ? T.border : T.accent}`, padding:'4px 8px', fontFamily:T.mono, fontSize:9, color: atTgt ? T.ink3 : T.accent, cursor:'pointer', appearance:'none', textAlign:'center', width:66}}
+                    value={myGrade}
+                    onChange={e => setGrade(s.id, e.target.value)}
+                    style={{background: hasGrade ? T.bl : T.accentSoft, border:`1px solid ${hasGrade ? T.border : T.accent}`, padding:'4px 8px', fontFamily:T.mono, fontSize:9, color: hasGrade ? T.ink3 : T.accent, cursor:'pointer', appearance:'none', textAlign:'center', width:66}}
                   >
+                    <option value="">Set</option>
                     {GRADE_OPTS.map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
                 </div>
@@ -1348,8 +1458,8 @@ function GradesScreen() {
 
         {/* Footer */}
         <div style={{display:'flex', justifyContent:'space-between', padding:'7px 16px', background:T.surface, borderTop:`1px solid ${T.border}`}}>
-          <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{SUBJECTS.length} subjects · click any row to log a grade</div>
-          <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>0 needed to top</div>
+          <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{subjects.length} subjects · select a grade in the SET column</div>
+          <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{graded.length} of {subjects.length} graded</div>
         </div>
 
         {/* Floating cards — Recent Scores · Grade Targets · Grade Insights */}
@@ -1359,24 +1469,27 @@ function GradesScreen() {
               <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
               <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Recent Scores</div>
             </div>
-            {recentScores.map((item,i) => (
-              <div key={item.subj.id} style={{display:'flex', alignItems:'center', gap:9, padding:'6px 0', borderBottom: i < recentScores.length-1 ? `1px solid ${T.bl}` : 'none'}}>
-                <div style={{width:5, height:5, borderRadius:1, background:item.subj.color, flexShrink:0}}/>
-                <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.subj.short}</div>
-                <div style={{fontFamily:T.mono, fontSize:10, flexShrink:0, color: item.score >= 90 ? '#3a8a52' : item.score >= 80 ? T.ink3 : '#bf4a30'}}>{item.score}%</div>
-              </div>
-            ))}
+            {recentScores.length === 0
+              ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3}}>Set grades above to see top performers.</div>
+              : recentScores.map((item,i) => (
+                <div key={item.subj.id} style={{display:'flex', alignItems:'center', gap:9, padding:'6px 0', borderBottom: i < recentScores.length-1 ? `1px solid ${T.bl}` : 'none'}}>
+                  <div style={{width:5, height:5, borderRadius:1, background:item.subj.color, flexShrink:0}}/>
+                  <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.subj.short}</div>
+                  <div style={{fontFamily:T.mono, fontSize:10, flexShrink:0, color: (GPA_MAP[item.grade]||0) >= 3.7 ? '#3a8a52' : (GPA_MAP[item.grade]||0) >= 3.0 ? T.ink3 : '#bf4a30'}}>{item.grade}</div>
+                </div>
+              ))}
           </div>
           <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
             <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
               <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52'}}/>
               <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Grade Targets</div>
             </div>
-            {SUBJECTS.map(s => (
+            {subjects.length === 0 && <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3}}>No subjects yet.</div>}
+            {subjects.map(s => (
               <div key={s.id} style={{display:'flex', alignItems:'center', gap:8, padding:'4px 0'}}>
                 <div style={{width:5, height:5, borderRadius:1, background:s.color, flexShrink:0}}/>
                 <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1}}>{s.short}</div>
-                <div style={{fontFamily:T.mono, fontSize:9, color: targets[s.id] === s.grade ? T.ink3 : T.accent}}>{targets[s.id]}</div>
+                <div style={{fontFamily:T.mono, fontSize:9, color: grades[s.id] ? T.ink3 : T.accent}}>{grades[s.id] || '—'}</div>
                 <span style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, cursor:'pointer'}}>→</span>
               </div>
             ))}
@@ -1629,17 +1742,22 @@ function ToolsScreen() {
 }
 
 /* ── 9. Subjects ────────────────────────────────────────── */
-function SubjectsScreen() {
+function SubjectsScreen({ profile, userData }) {
+  const subjects = profile?.subjects || [];
+  const homework = userData?.homework || [];
+  const quizzes  = userData?.quizzes  || [];
+  const grades   = userData?.grades   || {};
   return (
     <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'56px 72px'}}>
-      <PageHeader eyebrow={`${SUBJECTS.length} subjects · Spring 2025`} title="Subjects" />
+      <PageHeader eyebrow={`${subjects.length} subjects · Spring 2025`} title="Subjects" />
       <Hr />
       <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:12}}>
-        {SUBJECTS.map(s => {
-          const sc = HIST[s.id] || [80,80,80,80,80];
-          const pts = sc.map((v,i) => `${i*34+4},${26-(v-70)/30*22}`).join(' ');
-          const hw = HOMEWORK.filter(h => h.subj === s.id && !h.done);
-          const qz = QUIZZES_DATA.filter(q => q.subj === s.id);
+        {subjects.map(s => {
+          const sc = [];
+          const pts = '';
+          const hw = homework.filter(h => h.subj === s.id && !h.done);
+          const qz = quizzes.filter(q => q.subj === s.id);
+          const myGrade = grades[s.id] || s.grade || '—';
           return (
             <div key={s.id} style={{background:T.surface, padding:'26px 28px'}}>
               <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:18}}>
@@ -1651,12 +1769,12 @@ function SubjectsScreen() {
                   <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, lineHeight:1.2}}>{s.name}</div>
                 </div>
                 <div style={{textAlign:'right'}}>
-                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:36, color:T.accent, lineHeight:0.92, letterSpacing:'-0.02em'}}>{s.grade}</div>
-                  <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, marginTop:4}}>{Math.round(s.pct*100)}%</div>
+                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:36, color:T.accent, lineHeight:0.92, letterSpacing:'-0.02em'}}>{myGrade}</div>
+                  <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, marginTop:4}}>{GPA_MAP[myGrade] != null ? GPA_MAP[myGrade].toFixed(1) + ' GPA' : '—'}</div>
                 </div>
               </div>
               <div style={{height:2, background:T.border, marginBottom:14, borderRadius:1, overflow:'hidden'}}>
-                <div style={{width:`${s.pct*100}%`, height:'100%', background:s.color, borderRadius:1}} />
+                <div style={{width:`${Math.min(((GPA_MAP[myGrade]||0)/4)*100, 100)}%`, height:'100%', background:s.color, borderRadius:1}} />
               </div>
               <div style={{marginBottom:16}}>
                 <svg width="100%" height={28} viewBox="0 0 140 28" preserveAspectRatio="none" style={{display:'block'}}>
@@ -1665,7 +1783,7 @@ function SubjectsScreen() {
                 </svg>
               </div>
               <div style={{display:'flex', gap:14, borderTop:`1px solid ${T.bl}`, paddingTop:14}}>
-                {[['GPA', s.gpa.toFixed(1), false], ['HW open', hw.length, hw.length > 0], ['Quizzes', qz.length, false]].map(([label, val, warn]) => (
+                {[['GPA', GPA_MAP[myGrade] != null ? GPA_MAP[myGrade].toFixed(1) : '—', false], ['HW open', hw.length, hw.length > 0], ['Quizzes', qz.length, false]].map(([label, val, warn]) => (
                   <div key={label}>
                     <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:3}}>{label}</div>
                     <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color: warn ? T.accent : T.ink}}>{val}</div>
@@ -2227,13 +2345,27 @@ function App() {
   const [inSetup, setInSetup]   = useState(false);
   const [screen, setScreen]     = useState('today');
   const [key, setKey]           = useState(0);
+  const [userData, setUserData] = useState(() => {
+    const p = loadProfile();
+    return p ? (loadUserData(p.email) || defaultUserData()) : defaultUserData();
+  });
 
   const nav = (s) => { setScreen(s); setKey(k => k+1); };
   const Screen = SCREENS[screen] || TodayScreen;
 
+  const updateUserData = (update) => {
+    setUserData(prev => {
+      const next = { ...prev, ...update };
+      if (profile?.email) saveUserData(profile.email, next);
+      return next;
+    });
+  };
+
   const handleSignIn = (p) => {
     saveProfile(p);
     setProfile(p);
+    const ud = loadUserData(p.email) || defaultUserData();
+    setUserData(ud);
     setInSetup(false);
     fetch('/api/profile', {
       method: 'POST',
@@ -2245,6 +2377,7 @@ function App() {
   const handleSignOut = () => {
     localStorage.removeItem(PROFILE_KEY);
     setProfile(null);
+    setUserData(defaultUserData());
     setInSetup(false);
     setScreen('today');
   };
@@ -2263,7 +2396,7 @@ function App() {
     <div style={{height:'100vh', display:'flex', overflow:'hidden', background:T.bg, fontFamily:T.ui, color:T.ink}}>
       <Sidebar screen={screen} onNav={nav} profile={profile} onSignOut={handleSignOut} />
       <div style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
-        <Screen key={key} />
+        <Screen key={key} profile={profile} userData={userData} onUpdate={updateUserData} />
       </div>
     </div>
   );
