@@ -236,17 +236,19 @@ function Sidebar({ screen, onNav, profile, onSignOut }) {
       {/* Subjects quick list */}
       <div style={{flex:1, overflow:'auto', padding:'16px 0'}}>
         <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.16em', padding:'0 22px', marginBottom:8}}>Subjects</div>
-        {SUBJECTS.map(s => (
+        {(profile?.subjects || []).length === 0 && (
+          <div style={{padding:'4px 22px', fontFamily:T.mono, fontSize:9, color:T.ink3, opacity:0.6}}>No subjects yet</div>
+        )}
+        {(profile?.subjects || []).map(s => (
           <div
             key={s.id}
-            onClick={() => onNav('subjects')}
-            style={{display:'flex', alignItems:'center', gap:9, padding:'5px 22px', fontSize:12.5, color:T.ink2, cursor:'pointer'}}
+            style={{display:'flex', alignItems:'center', gap:9, padding:'5px 22px', fontSize:12.5, color:T.ink2, cursor:'default'}}
             onMouseOver={e => e.currentTarget.style.background = T.bl}
             onMouseOut={e => e.currentTarget.style.background = 'transparent'}
           >
             <div style={{width:6, height:6, borderRadius:1.5, background:s.color, flexShrink:0}} />
-            <span style={{flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.short}</span>
-            <span style={{fontFamily:T.mono, fontSize:8, color:s.color, fontWeight:600, flexShrink:0}}>{s.grade}</span>
+            <span style={{flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.short || s.name}</span>
+            {s.grade && s.grade !== '—' && <span style={{fontFamily:T.mono, fontSize:8, color:s.color, fontWeight:600, flexShrink:0}}>{s.grade}</span>}
           </div>
         ))}
       </div>
@@ -1943,12 +1945,12 @@ function WelcomeScreen({ onSignIn, onSetup }) {
                   </div>
                 </div>
 
-                <button onClick={doSignIn} style={{
+                <button onClick={() => { setOverlay(false); onSetup({ name: googleUser.name, email: googleUser.email, picture: googleUser.picture, grade: grade || 'junior' }); }} style={{
                   width:'100%', padding:'13px', border:'none', borderRadius:6, cursor:'pointer',
                   background:T.accent, color:T.surface,
                   fontFamily:T.ui, fontSize:14, fontWeight:500, transition:'all 0.15s',
                 }}>
-                  Open my dashboard →
+                  Set up my classes →
                 </button>
               </>
             )}
@@ -1971,13 +1973,13 @@ function GoogleG({ size = 16, colored = false }) {
 }
 
 /* ── Setup Flow (3-step onboarding) ─────────────────────── */
-function SetupFlow({ onComplete, onBack }) {
+function SetupFlow({ onComplete, onBack, initialData }) {
   const [step, setStep] = useState(1);
   const [exit, setExit] = useState(false);
 
-  // Step 1
-  const [name, setName]   = useState('');
-  const [grade, setGrade] = useState('');
+  // Step 1 — pre-fill from Google if available
+  const [name, setName]   = useState(initialData?.name || '');
+  const [grade, setGrade] = useState(initialData?.grade || '');
   // Step 2
   const [school, setSchool]     = useState('');
   const [startM, setStartM]     = useState(8);
@@ -2011,7 +2013,7 @@ function SetupFlow({ onComplete, onBack }) {
         id: makeSubjId(s.name), name: s.name.trim(), short: makeShort(s.name),
         color: s.color, grade:'—', gpa:0, pct:0,
       }));
-      onComplete({ name: name.trim(), grade, school: school.trim(), subjects: builtSubjects, startMonth: startM, startYear: startY, completedAt: Date.now() });
+      onComplete({ name: name.trim(), grade, school: school.trim(), subjects: builtSubjects, startMonth: startM, startYear: startY, completedAt: Date.now(), email: initialData?.email || '', picture: initialData?.picture || '' });
     }
   };
 
@@ -2247,12 +2249,14 @@ function App() {
     setScreen('today');
   };
 
+  const [setupPrefill, setSetupPrefill] = useState(null);
+
   if (!profile && !inSetup) {
-    return <WelcomeScreen onSignIn={handleSignIn} onSetup={() => setInSetup(true)} />;
+    return <WelcomeScreen onSignIn={handleSignIn} onSetup={(data) => { setSetupPrefill(data || null); setInSetup(true); }} />;
   }
 
   if (!profile && inSetup) {
-    return <SetupFlow onComplete={handleSignIn} onBack={() => setInSetup(false)} />;
+    return <SetupFlow onComplete={handleSignIn} onBack={() => { setSetupPrefill(null); setInSetup(false); }} initialData={setupPrefill} />;
   }
 
   return (
