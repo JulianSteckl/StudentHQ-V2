@@ -1698,6 +1698,11 @@ function WelcomeScreen({ onSignIn, onSetup }) {
           const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
             { headers: { Authorization: 'Bearer ' + resp.access_token } });
           const u = await r.json();
+          // Check MongoDB for existing profile — restores data across devices
+          try {
+            const existing = await fetch(`/api/profile?email=${encodeURIComponent(u.email)}`).then(r => r.json());
+            if (existing?.name) { onSignIn(existing); return; }
+          } catch(e) {}
           setGoogleUser({ name: u.name, email: u.email, picture: u.picture });
         } catch(e) {}
         setGLoading(false);
@@ -2228,6 +2233,11 @@ function App() {
     saveProfile(p);
     setProfile(p);
     setInSetup(false);
+    fetch('/api/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(p),
+    }).catch(() => {});
   };
 
   const handleSignOut = () => {
