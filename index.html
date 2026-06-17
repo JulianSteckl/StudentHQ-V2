@@ -2517,33 +2517,94 @@ function SetupFlow({ onComplete, onBack, initialData }) {
     { emoji:'📝', x:82, y:72 },
   ];
 
-  // Preview card
-  const PreviewCard = () => (
-    <div style={{width:280, background:T.bg, border:`1px solid ${T.border}`, borderRadius:12, padding:'28px 28px 24px', boxShadow:'0 16px 48px -12px rgba(24,21,14,0.12)'}}>
-      <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:18}}>
-        <div style={{width:32, height:32, border:`1px solid ${T.accent}`, display:'flex', alignItems:'center', justifyContent:'center'}}>
-          <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.accent, lineHeight:1}}>
-            {name.trim() ? name.trim()[0].toUpperCase() : 'J'}
-          </span>
+  // Live dashboard preview
+  const DashboardPreview = () => {
+    const pName = name.trim() || 'Student';
+    const pGrade = grade ? grade.charAt(0).toUpperCase()+grade.slice(1) : '—';
+    const pSchool = school.trim() || '—';
+    const pSubjs = validSubjects.length > 0 ? validSubjects : [{name:'Your classes', color:T.border}];
+    return (
+      <div style={{width:'100%', maxWidth:340, background:T.surface, border:`1px solid ${T.border}`, borderRadius:12, overflow:'hidden', boxShadow:'0 20px 60px -16px rgba(24,21,14,0.16), 0 4px 16px rgba(24,21,14,0.06)'}}>
+        {/* Mini sidebar */}
+        <div style={{display:'flex', height:260}}>
+          <div style={{width:56, background:T.bg, borderRight:`1px solid ${T.border}`, padding:'12px 0', display:'flex', flexDirection:'column', alignItems:'center', gap:2}}>
+            <div style={{width:24, height:24, borderRadius:6, background:`linear-gradient(135deg, ${T.accent}, #9a7828)`, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:8}}>
+              <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:12, color:'#fff'}}>{pName[0]}</span>
+            </div>
+            {['◷','◫','◈','▤','◇','☆','⊞'].map((ic,i) => (
+              <div key={i} style={{width:32, height:24, borderRadius:5, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color: i===0 ? T.accent : T.ink3, background: i===0 ? T.accentSoft : 'transparent', opacity: i===0 ? 1 : 0.4}}>{ic}</div>
+            ))}
+          </div>
+          {/* Mini content */}
+          <div style={{flex:1, padding:'14px 16px', overflow:'hidden'}}>
+            <div style={{fontFamily:T.mono, fontSize:6.5, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:2}}>Good morning</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink, marginBottom:12, lineHeight:1.2}}>{pName.split(' ')[0]}'s Dashboard</div>
+            {/* Stats row */}
+            <div style={{display:'flex', gap:6, marginBottom:12}}>
+              {[{l:'GPA',v:'—'},{l:'Open',v:'0'},{l:'Streak',v:'0'}].map(s => (
+                <div key={s.l} style={{flex:1, background:T.bg, borderRadius:6, padding:'6px 8px', textAlign:'center'}}>
+                  <div style={{fontFamily:T.mono, fontSize:11, fontWeight:600, color:T.ink}}>{s.v}</div>
+                  <div style={{fontFamily:T.mono, fontSize:5.5, color:T.ink3, letterSpacing:'0.1em', textTransform:'uppercase'}}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+            {/* Subject pills */}
+            <div style={{fontFamily:T.mono, fontSize:6, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6}}>Subjects</div>
+            <div style={{display:'flex', flexDirection:'column', gap:3}}>
+              {pSubjs.slice(0,4).map((s,i) => (
+                <div key={i} style={{display:'flex', alignItems:'center', gap:6, padding:'4px 8px', background:T.bg, borderRadius:5}}>
+                  <div style={{width:5, height:5, borderRadius:2, background:s.color, flexShrink:0}} />
+                  <span style={{fontFamily:T.ui, fontSize:9, color:T.ink2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, letterSpacing:'0.17em', textTransform:'uppercase'}}>Scholar</div>
+        {/* Bottom info bar */}
+        <div style={{borderTop:`1px solid ${T.border}`, padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', background:T.bg}}>
+          <div>
+            <div style={{fontFamily:T.ui, fontSize:10, fontWeight:600, color:T.ink}}>{pName}</div>
+            <div style={{fontFamily:T.mono, fontSize:6.5, color:T.ink3}}>{pGrade}{pSchool !== '—' ? ` · ${pSchool}` : ''}</div>
+          </div>
+          <div style={{display:'flex', gap:4}}>
+            {[1,2,3].map(s => (
+              <div key={s} style={{width: s<=step ? 16 : 8, height:3, borderRadius:2, background: s<=step ? T.accent : T.border, transition:'all 0.4s ease'}} />
+            ))}
+          </div>
+        </div>
       </div>
-      <div style={{height:1, background:T.border, marginBottom:18}} />
-      {[
-        ['Reader',   name.trim() || 'Your name'],
-        ['Year',     grade ? grade.charAt(0).toUpperCase()+grade.slice(1) : '—'],
-        ['School',   step > 1 && school.trim() ? school.trim() : (step > 1 ? '—' : 'next step')],
-        ['Classes',  step > 2 ? validSubjects.length+' added' : 'step III'],
-      ].map(([k,v]) => (
-        <div key={k} style={{display:'flex', gap:12, alignItems:'baseline', marginBottom:12}}>
-          <span style={{fontFamily:T.mono, fontSize:8, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink3, width:50, flexShrink:0}}>{k}</span>
-          <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink}}>{v}</span>
-        </div>
-      ))}
-      <div style={{marginTop:18, display:'flex', gap:6}}>
-        {[1,2,3].map(s => (
-          <div key={s} style={{height:3, borderRadius:2, background: s<=step ? T.accent : T.border, flex: s===step ? 2 : 1, transition:'flex 0.3s ease, background 0.3s'}} />
-        ))}
+    );
+  };
+
+  // Unlock checklist
+  const UNLOCK_ITEMS = [
+    { label:'Personalized dashboard',    step:1, desc:'Tailored to your name & year' },
+    { label:'Homework kanban board',     step:1, desc:'Track every assignment' },
+    { label:'School calendar sync',      step:2, desc:'Semester-aware scheduling' },
+    { label:'GPA calculator',            step:2, desc:'Live grade tracking' },
+    { label:'Subject-linked flashcards', step:3, desc:'Study by class' },
+    { label:'Grade analytics',           step:3, desc:'See trends over time' },
+  ];
+
+  const UnlockChecklist = () => (
+    <div style={{width:'100%', maxWidth:340}}>
+      <div style={{fontFamily:T.mono, fontSize:7, color:T.ink3, letterSpacing:'0.16em', textTransform:'uppercase', marginBottom:8}}>What you'll unlock</div>
+      <div style={{display:'flex', flexDirection:'column', gap:1}}>
+        {UNLOCK_ITEMS.map((item, i) => {
+          const done = step > item.step || (step === item.step && (step===1 ? canNext1 : step===2 ? canNext2 : canFinish));
+          const current = step === item.step && !done;
+          return (
+            <div key={i} style={{display:'flex', alignItems:'center', gap:8, padding:'6px 0', transition:'opacity 0.3s', opacity: done ? 1 : current ? 0.7 : 0.35}}>
+              <div style={{width:16, height:16, borderRadius:4, border: done ? 'none' : `1.5px solid ${current ? T.accent+'60' : T.border}`, background: done ? T.accent : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.3s'}}>
+                {done && <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 6l2.5 2.5 5-5"/></svg>}
+              </div>
+              <div style={{flex:1, minWidth:0}}>
+                <div style={{fontFamily:T.ui, fontSize:10.5, color: done ? T.ink : T.ink2, fontWeight: done ? 500 : 400}}>{item.label}</div>
+                <div style={{fontFamily:T.mono, fontSize:7, color:T.ink3}}>{item.desc}</div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -2611,7 +2672,7 @@ function SetupFlow({ onComplete, onBack, initialData }) {
       <div style={{flex:1, minHeight:0, display:'flex', overflow:'hidden'}}>
 
         {/* Left — form */}
-        <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', overflowY:'auto', padding:'80px 48px 40px', position:'relative'}}>
+        <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', overflowY:'auto', padding:'80px 48px 40px', position:'relative', backgroundImage:`radial-gradient(${T.border} 1px, transparent 1px)`, backgroundSize:'20px 20px', backgroundPosition:'10px 10px'}}>
 
 
 
@@ -2790,15 +2851,10 @@ function SetupFlow({ onComplete, onBack, initialData }) {
           </div>
         </div>
 
-        {/* Right — preview */}
-        <div style={{width:400, flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', borderLeft:`1px solid ${T.border}`, padding:40, gap:24, position:'relative', background:`linear-gradient(180deg, ${T.surface} 0%, ${T.bg} 100%)`}}>
-          <PreviewCard />
-
-          {/* Stat line */}
-          <div style={{display:'flex', alignItems:'center', gap:8, padding:'10px 18px', background:T.surface, border:`1px solid ${T.border}`, borderRadius:8}}>
-            <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52'}} />
-            <span style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, letterSpacing:'0.08em'}}>Join 200+ students organizing their semester</span>
-          </div>
+        {/* Right — preview & checklist */}
+        <div style={{width:420, flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', borderLeft:`1px solid ${T.border}`, padding:'32px 36px', gap:20, position:'relative', background:`linear-gradient(180deg, ${T.surface} 0%, ${T.bg} 100%)`}}>
+          <DashboardPreview />
+          <UnlockChecklist />
         </div>
       </div>
 
