@@ -2774,20 +2774,48 @@ function SetupFlow({ onComplete, onBack, initialData }) {
                   <div style={{flex:1, height:1, background:T.border}} />
                 </div>
 
-                {/* Feature preview cards */}
-                <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12}}>
-                  {FEATURES.map(f => (
-                    <div key={f.label} style={{padding:'18px 16px', border:`1px solid ${T.border}`, background:T.bg, borderRadius:8}}>
-                      <div style={{fontSize:18, marginBottom:10, lineHeight:1}}>{f.ic}</div>
-                      <div style={{fontFamily:T.ui, fontSize:12, fontWeight:500, color:T.ink, marginBottom:5}}>{f.label}</div>
-                      <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, lineHeight:1.5, letterSpacing:'0.02em'}}>{f.desc}</div>
+                {/* Semester timeline */}
+                <div style={{marginBottom:24}}>
+                  <div style={{fontFamily:T.mono, fontSize:7.5, letterSpacing:'0.16em', textTransform:'uppercase', color:T.ink3, marginBottom:14}}>Your semester at a glance</div>
+                  <div style={{display:'flex', gap:3, marginBottom:10}}>
+                    {Array.from({length:5}, (_,i) => {
+                      const m = (startM + i) % 12;
+                      return (
+                        <div key={i} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4}}>
+                          <div style={{width:'100%', height:28, borderRadius:5, background: i===0 ? `linear-gradient(135deg, ${T.accent}18, ${T.accent}30)` : T.bg, border:`1px solid ${i===0 ? T.accent+'40' : T.border}`, display:'flex', alignItems:'center', justifyContent:'center'}}>
+                            {i===0 && <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}} />}
+                          </div>
+                          <span style={{fontFamily:T.mono, fontSize:7, color: i===0 ? T.accent : T.ink3, letterSpacing:'0.08em', textTransform:'uppercase'}}>{MONTHS[m].slice(0,3)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{fontFamily:T.ui, fontSize:10.5, color:T.ink3, textAlign:'center'}}>
+                    {school.trim() ? school.trim() : 'Your school'}'s year begins {MONTHS[startM]} {startY}
+                  </div>
+                </div>
+
+                {/* Why this matters */}
+                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
+                  {[
+                    {ic:'◷', title:'Smart deadlines', desc:'We\'ll track assignment dates relative to your semester calendar'},
+                    {ic:'◈', title:'Term-aware GPA', desc:'Grades reset each term so your GPA stays accurate and current'},
+                    {ic:'▤', title:'Week numbering', desc:'See "Week 3 of 16" so you always know where you stand'},
+                    {ic:'☆', title:'Break detection', desc:'We\'ll account for holidays and breaks in your planning'},
+                  ].map(item => (
+                    <div key={item.title} style={{padding:'14px 16px', border:`1px solid ${T.border}`, background:T.bg, borderRadius:8, display:'flex', gap:10, alignItems:'flex-start'}}>
+                      <span style={{fontSize:14, lineHeight:1, flexShrink:0, opacity:0.5}}>{item.ic}</span>
+                      <div>
+                        <div style={{fontFamily:T.ui, fontSize:11, fontWeight:500, color:T.ink, marginBottom:3}}>{item.title}</div>
+                        <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, lineHeight:1.5, letterSpacing:'0.02em'}}>{item.desc}</div>
+                      </div>
                     </div>
                   ))}
                 </div>
 
                 {/* Pull quote */}
-                <div style={{marginTop:28, padding:'20px 0', borderTop:`1px solid ${T.border}`}}>
-                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink3, lineHeight:1.6, textAlign:'center', letterSpacing:'-0.01em'}}>
+                <div style={{marginTop:24, padding:'16px 0', borderTop:`1px solid ${T.border}`}}>
+                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink3, lineHeight:1.6, textAlign:'center', letterSpacing:'-0.01em'}}>
                     "Your semester, organized in one place."
                   </div>
                 </div>
