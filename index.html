@@ -279,8 +279,98 @@ function AddSubjectModal({ open, onClose, onAdd, existingCount }) {
   );
 }
 
-function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject }) {
+function ProfileModal({ open, onClose, profile, onSave }) {
+  const [name, setName] = useState('');
+  const [grade, setGrade] = useState('');
+  const [school, setSchool] = useState('');
+  const [closing, setClosing] = useState(false);
+
+  useEffect(() => {
+    if (open && profile) {
+      setName(profile.name || '');
+      setGrade(profile.grade || 'junior');
+      setSchool(profile.school || '');
+      setClosing(false);
+    }
+  }, [open]);
+
+  if (!open) return null;
+
+  const dismiss = () => { setClosing(true); setTimeout(onClose, 200); };
+  const submit = () => {
+    if (!name.trim()) return;
+    onSave({ ...profile, name: name.trim(), grade, school: school.trim() });
+    dismiss();
+  };
+
+  const GRADES = [['freshman','Freshman'],['sophomore','Sophomore'],['junior','Junior'],['senior','Senior']];
+
+  return (
+    <div onClick={dismiss} style={{position:'fixed', inset:0, zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.35)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', animation: closing ? 'shq-modal-fade-out 0.2s ease forwards' : 'shq-modal-fade-in 0.25s ease forwards'}}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width:380, background:T.surface, border:`1px solid ${T.border}`, borderRadius:16,
+        padding:'36px 32px 28px', position:'relative',
+        boxShadow:'0 24px 80px rgba(24,21,14,0.18), 0 2px 12px rgba(24,21,14,0.08)',
+        animation: closing ? 'shq-modal-slide-down 0.2s ease forwards' : 'shq-modal-slide-up 0.3s cubic-bezier(0.16,1,0.3,1) forwards',
+      }}>
+        <button onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
+
+        <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:20}}>
+          {profile?.picture ? (
+            <img src={profile.picture} style={{width:40, height:40, borderRadius:10, objectFit:'cover'}} referrerPolicy="no-referrer" />
+          ) : (
+            <div style={{width:40, height:40, borderRadius:10, background:`linear-gradient(135deg, ${T.accent}, #9a7828)`, display:'flex', alignItems:'center', justifyContent:'center'}}>
+              <span style={{fontFamily:T.serif, fontSize:18, color:'#fff', fontWeight:600}}>{(name || 'U')[0]}</span>
+            </div>
+          )}
+          <div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink}}>Edit <span style={{color:T.accent}}>profile</span></div>
+            <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, letterSpacing:'0.08em'}}>{profile?.email || ''}</div>
+          </div>
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <label style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', display:'block', marginBottom:5}}>Name</label>
+          <input value={name} onChange={e => setName(e.target.value)} autoFocus
+            style={{width:'100%', padding:'10px 14px', border:`1px solid ${T.border}`, borderRadius:10, fontFamily:T.ui, fontSize:14, color:T.ink, background:T.bg, outline:'none', boxSizing:'border-box', transition:'border-color 0.15s'}}
+            onFocus={e => e.target.style.borderColor=T.accent} onBlur={e => e.target.style.borderColor=T.border} />
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <label style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', display:'block', marginBottom:5}}>School</label>
+          <input value={school} onChange={e => setSchool(e.target.value)} placeholder="e.g. University of Cincinnati"
+            style={{width:'100%', padding:'10px 14px', border:`1px solid ${T.border}`, borderRadius:10, fontFamily:T.ui, fontSize:14, color:T.ink, background:T.bg, outline:'none', boxSizing:'border-box', transition:'border-color 0.15s'}}
+            onFocus={e => e.target.style.borderColor=T.accent} onBlur={e => e.target.style.borderColor=T.border} />
+        </div>
+
+        <div style={{marginBottom:24}}>
+          <label style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', display:'block', marginBottom:5}}>Year</label>
+          <div style={{display:'flex', gap:6}}>
+            {GRADES.map(([k,l]) => (
+              <button key={k} onClick={() => setGrade(k)} style={{
+                flex:1, padding:'8px 0', border:`1px solid ${grade===k ? T.accent : T.border}`,
+                background: grade===k ? T.accentSoft : 'transparent', borderRadius:8,
+                fontFamily:T.mono, fontSize:9, color: grade===k ? T.accent : T.ink3,
+                fontWeight: grade===k ? 600 : 400, cursor:'pointer', transition:'all 0.15s', letterSpacing:'0.04em',
+              }}>{l}</button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{display:'flex', gap:10, justifyContent:'flex-end'}}>
+          <button onClick={dismiss} style={{padding:'9px 20px', border:`1px solid ${T.border}`, background:'transparent', borderRadius:10, fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.06em', cursor:'pointer', transition:'background 0.15s'}}
+            onMouseOver={e => e.currentTarget.style.background=T.bl} onMouseOut={e => e.currentTarget.style.background='transparent'}>Cancel</button>
+          <button onClick={submit} disabled={!name.trim()} style={{padding:'9px 24px', border:'none', background: name.trim() ? T.accent : T.border, borderRadius:10, fontFamily:T.mono, fontSize:9, color:'#fff', letterSpacing:'0.06em', cursor: name.trim() ? 'pointer' : 'default', transition:'all 0.15s', fontWeight:600}}
+            onMouseOver={e => { if(name.trim()) e.currentTarget.style.transform='scale(1.03)' }} onMouseOut={e => e.currentTarget.style.transform='scale(1)'}>Save Changes</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, onUpdateProfile }) {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [hov, setHov] = useState(null);
   const settingsRef = useRef(null);
@@ -435,8 +525,7 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject }) 
         {showSettings && (
           <div style={{position:'absolute', bottom:'100%', left:8, right:8, marginBottom:6, background:T.surface, border:`1px solid ${T.border}`, borderRadius:10, padding:'4px', boxShadow:'0 -8px 32px rgba(24,21,14,0.12), 0 -2px 8px rgba(24,21,14,0.06)', animation:'shq-modal-slide-up 0.18s cubic-bezier(0.16,1,0.3,1) forwards', zIndex:100}}>
             {[
-              { label:'Profile', icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="6" r="3"/><path d="M3 14c0-2.8 2.2-5 5-5s5 2.2 5 5"/></svg>, action: () => { setShowSettings(false); onNav('subjects'); } },
-              { label:'Preferences', icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.8 3.8l1 1M11.2 11.2l1 1M12.2 3.8l-1 1M4.8 11.2l-1 1"/></svg>, action: () => { setShowSettings(false); } },
+              { label:'Profile', icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="6" r="3"/><path d="M3 14c0-2.8 2.2-5 5-5s5 2.2 5 5"/></svg>, action: () => { setShowSettings(false); setShowProfileModal(true); } },
               { label:'Manage Subjects', icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"/></svg>, action: () => { setShowSettings(false); onNav('subjects'); } },
               { type:'divider' },
               { label:'Sign Out', icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 14H3V2h3M11 11l3-3-3-3M6 8h8"/></svg>, action: () => { setShowSettings(false); onSignOut && onSignOut(); }, danger: true },
@@ -481,6 +570,7 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject }) 
 
     </aside>
     <AddSubjectModal open={showAddModal} onClose={() => setShowAddModal(false)} onAdd={subj => onAddSubject && onAddSubject(subj)} existingCount={subjects.length} />
+    <ProfileModal open={showProfileModal} onClose={() => setShowProfileModal(false)} profile={profile} onSave={p => onUpdateProfile && onUpdateProfile(p)} />
     </>
   );
 }
@@ -2802,6 +2892,10 @@ function App() {
         const updated = { ...profile, subjects: [...(profile.subjects||[]), subj] };
         saveProfile(updated);
         setProfile(updated);
+        setKey(k => k+1);
+      }} onUpdateProfile={p => {
+        saveProfile(p);
+        setProfile(p);
         setKey(k => k+1);
       }} />
       <div style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
