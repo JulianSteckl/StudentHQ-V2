@@ -2138,6 +2138,16 @@ function SetupFlow({ onComplete, onBack, initialData }) {
   const canProceed = step===1 ? canNext1 : step===2 ? canNext2 : canFinish;
   const nextLabel  = step===3 ? 'Open my dashboard →' : 'Next →';
 
+  const STEP_LABELS = ['About You', 'Your School', 'Your Classes'];
+
+  const FEATURES = [
+    { ic:'✦', label:'Track homework', desc:'Kanban board with due dates and priorities' },
+    { ic:'◈', label:'Monitor grades', desc:'Live GPA calculator across all subjects' },
+    { ic:'⊞', label:'Study smarter', desc:'Flashcards, quizzes, and spaced repetition' },
+  ];
+
+  const FLOAT_SUBJECTS = ['AP English', 'Chemistry', 'Calculus', 'U.S. History', 'Biology', 'Spanish III', 'Physics', 'Art Studio'];
+
   // Preview card
   const PreviewCard = () => (
     <div style={{width:280, background:T.bg, border:`1px solid ${T.border}`, borderRadius:12, padding:'28px 28px 24px', boxShadow:'0 16px 48px -12px rgba(24,21,14,0.12)'}}>
@@ -2178,25 +2188,75 @@ function SetupFlow({ onComplete, onBack, initialData }) {
       opacity: exit ? 0 : 1, transform: exit ? 'scale(0.97)' : 'scale(1)',
       transition: exit ? 'opacity 0.35s ease, transform 0.35s ease' : 'none',
     }}>
-      <style>{`.shq-ob-input::placeholder{color:${T.ink3}} .shq-ob-select option{background:${T.surface}} .shq-yr-btn:hover{border-color:${T.accent}!important}`}</style>
+      <style>{`
+        .shq-ob-input::placeholder{color:${T.ink3}}
+        .shq-ob-select option{background:${T.surface}}
+        .shq-yr-btn:hover{border-color:${T.accent}!important}
+        @keyframes shq-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+        @keyframes shq-fade-float { 0%{opacity:0;transform:translateY(12px)} 30%{opacity:0.7} 70%{opacity:0.7} 100%{opacity:0;transform:translateY(-12px)} }
+      `}</style>
 
-      {/* Progress bar */}
-      <div style={{display:'flex', height:3, flexShrink:0}}>
-        {[1,2,3].map(s => (
-          <div key={s} style={{flex:1, background: s<=step ? T.accent : T.border, marginRight: s<3 ? 2 : 0, transition:'background 0.3s'}} />
-        ))}
+      {/* Stepped progress bar */}
+      <div style={{display:'flex', alignItems:'center', gap:0, padding:'0 48px', height:44, flexShrink:0, borderBottom:`1px solid ${T.border}`, background:T.surface}}>
+        {STEP_LABELS.map((label, i) => {
+          const s = i + 1;
+          const done = step > s;
+          const active = step === s;
+          return (
+            <React.Fragment key={s}>
+              <div style={{display:'flex', alignItems:'center', gap:8}}>
+                <div style={{
+                  width:22, height:22, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
+                  background: done ? T.accent : active ? T.accentSoft : T.bl,
+                  border: active ? `1.5px solid ${T.accent}` : done ? `1.5px solid ${T.accent}` : `1px solid ${T.border}`,
+                  transition:'all 0.25s',
+                }}>
+                  {done
+                    ? <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 6l2.5 2.5 4.5-5"/></svg>
+                    : <span style={{fontFamily:T.mono, fontSize:8, color: active ? T.accent : T.ink3}}>{s}</span>
+                  }
+                </div>
+                <span style={{fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.12em', textTransform:'uppercase', color: active ? T.accent : done ? T.ink2 : T.ink3, fontWeight: active ? 500 : 400}}>{label}</span>
+              </div>
+              {s < 3 && <div style={{flex:1, height:1, background: done ? T.accent : T.border, margin:'0 16px', transition:'background 0.3s'}} />}
+            </React.Fragment>
+          );
+        })}
       </div>
 
       {/* Two-column body */}
       <div style={{flex:1, minHeight:0, display:'flex', overflow:'hidden'}}>
 
         {/* Left — form */}
-        <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', justifyContent:'center', overflowY:'auto', padding:'40px 72px 40px 96px'}}>
-          <div style={{maxWidth:480}}>
-            <div style={{fontFamily:T.mono, fontSize:10, letterSpacing:'0.18em', color:T.ink3, marginBottom:16}}>
-              {'0'+step} / 03 · {['ABOUT YOU','YOUR SCHOOL','YOUR CLASSES'][step-1]}
-            </div>
+        <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', overflowY:'auto', padding:'40px 72px 40px 96px', position:'relative'}}>
 
+          {/* Background watermark */}
+          <div style={{position:'absolute', bottom:40, right:40, opacity:0.035, pointerEvents:'none'}}>
+            <svg width="260" height="260" viewBox="0 0 260 260" fill="none">
+              <path d="M130 20 C130 20 160 60 160 100 C160 130 140 145 130 150 C120 145 100 130 100 100 C100 60 130 20 130 20Z" fill={T.ink} />
+              <path d="M130 150 L130 240" stroke={T.ink} strokeWidth="3" />
+              <path d="M110 180 C120 160 130 170 130 170 C130 170 140 160 150 180" stroke={T.ink} strokeWidth="2" fill="none" />
+              <circle cx="130" cy="100" r="70" stroke={T.ink} strokeWidth="1.5" fill="none" strokeDasharray="4 4" />
+            </svg>
+          </div>
+
+          {/* Floating subject pills — step 1 only */}
+          {step === 1 && (
+            <div style={{position:'absolute', top:0, left:0, right:0, bottom:0, overflow:'hidden', pointerEvents:'none'}}>
+              {FLOAT_SUBJECTS.map((subj, i) => (
+                <div key={subj} style={{
+                  position:'absolute',
+                  left: `${15 + (i % 4) * 22}%`,
+                  top: `${55 + Math.floor(i / 4) * 18}%`,
+                  fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.08em',
+                  background:T.bl, padding:'4px 12px', borderRadius:12,
+                  opacity:0, animation:`shq-fade-float ${5 + i * 0.7}s ease-in-out ${i * 0.9}s infinite`,
+                }}>{subj}</div>
+              ))}
+            </div>
+          )}
+
+          <div style={{maxWidth:480, position:'relative', zIndex:1}}>
             {/* Step 1 */}
             {step===1 && (
               <>
@@ -2211,7 +2271,7 @@ function SetupFlow({ onComplete, onBack, initialData }) {
                     onFocus={e => e.target.style.borderColor=T.accent}
                     onBlur={e => e.target.style.borderColor=T.border} />
                 </div>
-                <div>
+                <div style={{marginBottom:36}}>
                   <div style={{fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink3, marginBottom:10}}>What year are you in?</div>
                   <div style={{display:'flex', gap:8}}>
                     {[['freshman','Freshman'],['sophomore','Sophomore'],['junior','Junior'],['senior','Senior']].map(([k,l]) => (
@@ -2223,6 +2283,31 @@ function SetupFlow({ onComplete, onBack, initialData }) {
                         fontFamily:T.ui, fontWeight: grade===k ? 500 : 400, transition:'all 0.12s',
                       }}>{l}</button>
                     ))}
+                  </div>
+                </div>
+
+                {/* Ornamental rule */}
+                <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:28}}>
+                  <div style={{flex:1, height:1, background:T.border}} />
+                  <div style={{width:4, height:4, borderRadius:'50%', background:T.accent, opacity:0.5}} />
+                  <div style={{flex:1, height:1, background:T.border}} />
+                </div>
+
+                {/* Feature preview cards */}
+                <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12}}>
+                  {FEATURES.map(f => (
+                    <div key={f.label} style={{padding:'18px 16px', border:`1px solid ${T.border}`, background:T.bg, borderRadius:8}}>
+                      <div style={{fontSize:18, marginBottom:10, lineHeight:1}}>{f.ic}</div>
+                      <div style={{fontFamily:T.ui, fontSize:12, fontWeight:500, color:T.ink, marginBottom:5}}>{f.label}</div>
+                      <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, lineHeight:1.5, letterSpacing:'0.02em'}}>{f.desc}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pull quote */}
+                <div style={{marginTop:28, padding:'20px 0', borderTop:`1px solid ${T.border}`}}>
+                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink3, lineHeight:1.6, textAlign:'center', letterSpacing:'-0.01em'}}>
+                    "A place for every assignment, every grade, every goal."
                   </div>
                 </div>
               </>
@@ -2242,7 +2327,7 @@ function SetupFlow({ onComplete, onBack, initialData }) {
                     onFocus={e => e.target.style.borderColor=T.accent}
                     onBlur={e => e.target.style.borderColor=T.border} />
                 </div>
-                <div>
+                <div style={{marginBottom:36}}>
                   <div style={{fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink3, marginBottom:10}}>When does your school year start?</div>
                   <div style={{display:'flex', gap:10}}>
                     <select className="shq-ob-select" value={startM} onChange={e => setStartM(Number(e.target.value))}
@@ -2253,6 +2338,31 @@ function SetupFlow({ onComplete, onBack, initialData }) {
                       style={{...inputStyle, flex:1, padding:'10px 14px', cursor:'pointer', appearance:'none'}}>
                       {[CY-1,CY,CY+1].map(y => <option key={y} value={y}>{y}</option>)}
                     </select>
+                  </div>
+                </div>
+
+                {/* Ornamental rule */}
+                <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:28}}>
+                  <div style={{flex:1, height:1, background:T.border}} />
+                  <div style={{width:4, height:4, borderRadius:'50%', background:T.accent, opacity:0.5}} />
+                  <div style={{flex:1, height:1, background:T.border}} />
+                </div>
+
+                {/* Feature preview cards */}
+                <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12}}>
+                  {FEATURES.map(f => (
+                    <div key={f.label} style={{padding:'18px 16px', border:`1px solid ${T.border}`, background:T.bg, borderRadius:8}}>
+                      <div style={{fontSize:18, marginBottom:10, lineHeight:1}}>{f.ic}</div>
+                      <div style={{fontFamily:T.ui, fontSize:12, fontWeight:500, color:T.ink, marginBottom:5}}>{f.label}</div>
+                      <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, lineHeight:1.5, letterSpacing:'0.02em'}}>{f.desc}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pull quote */}
+                <div style={{marginTop:28, padding:'20px 0', borderTop:`1px solid ${T.border}`}}>
+                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink3, lineHeight:1.6, textAlign:'center', letterSpacing:'-0.01em'}}>
+                    "Your semester, organized in one place."
                   </div>
                 </div>
               </>
@@ -2298,14 +2408,32 @@ function SetupFlow({ onComplete, onBack, initialData }) {
                     + Add another class
                   </button>
                 )}
+
+                {/* Ornamental rule */}
+                <div style={{display:'flex', alignItems:'center', gap:12, marginTop:24, marginBottom:20}}>
+                  <div style={{flex:1, height:1, background:T.border}} />
+                  <div style={{width:4, height:4, borderRadius:'50%', background:T.accent, opacity:0.5}} />
+                  <div style={{flex:1, height:1, background:T.border}} />
+                </div>
+
+                {/* Pull quote */}
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink3, lineHeight:1.6, textAlign:'center', letterSpacing:'-0.01em'}}>
+                  "Almost there — one step away from your dashboard."
+                </div>
               </>
             )}
           </div>
         </div>
 
         {/* Right — preview */}
-        <div style={{width:400, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', borderLeft:`1px solid ${T.border}`, padding:40}}>
+        <div style={{width:400, flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', borderLeft:`1px solid ${T.border}`, padding:40, gap:24, position:'relative', background:`linear-gradient(180deg, ${T.surface} 0%, ${T.bg} 100%)`}}>
           <PreviewCard />
+
+          {/* Stat line */}
+          <div style={{display:'flex', alignItems:'center', gap:8, padding:'10px 18px', background:T.surface, border:`1px solid ${T.border}`, borderRadius:8}}>
+            <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52'}} />
+            <span style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, letterSpacing:'0.08em'}}>Join 200+ students organizing their semester</span>
+          </div>
         </div>
       </div>
 
