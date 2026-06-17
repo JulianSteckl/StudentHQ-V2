@@ -279,96 +279,248 @@ function AddSubjectModal({ open, onClose, onAdd, existingCount }) {
   );
 }
 
-function Sidebar({ screen, onNav, profile, onSignOut, onAddSubject }) {
+function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject }) {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [hov, setHov] = useState(null);
+
+  const ud = userData || defaultUserData();
+  const subjects = profile?.subjects || [];
+  const homework = ud.homework || [];
+  const quizzes = ud.quizzes || [];
+  const grades = ud.grades || {};
+  const streak = ud.streak || 0;
+
+  const hwOpen = homework.filter(h => !h.done).length;
+  const hwDone = homework.filter(h => h.done).length;
+  const hwTotal = homework.length;
+  const quizCount = quizzes.length;
+  const gradedCount = subjects.filter(s => grades[s.id] != null).length;
+  const gpa = calcGPA(subjects, grades);
+
+  const todayHw = homework.filter(h => {
+    if (h.done) return true;
+    if (!h.due) return false;
+    const d = h.due.toLowerCase();
+    return d === 'today' || d === 'tonight';
+  });
+  const todayDone = todayHw.filter(h => h.done).length;
+
+  const startM = profile?.startMonth || 0;
+  const startY = profile?.startYear || new Date().getFullYear();
+  const semStart = new Date(startY, startM, 1);
+  const semEnd = new Date(startY, startM + 5, 1);
+  const now = new Date();
+  const totalWeeks = Math.max(1, Math.round((semEnd - semStart) / (7*86400000)));
+  const currentWeek = Math.min(totalWeeks, Math.max(1, Math.round((now - semStart) / (7*86400000))));
+  const semPct = Math.min(100, Math.round((currentWeek / totalWeeks) * 100));
+
+  const SL = (t) => <div style={{fontFamily:T.mono, fontSize:7, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.18em', padding:'16px 16px 6px'}}>{t}</div>;
+
+  const NAV_GROUPS = [
+    { label: 'Dashboard', items: NAV.filter(n => ['today','homework','quizzes'].includes(n.id)) },
+    { label: 'Study',     items: NAV.filter(n => ['notes','flashcards'].includes(n.id)) },
+    { label: 'Academics', items: NAV.filter(n => ['schedule','grades'].includes(n.id)) },
+    { label: 'Tools',     items: NAV.filter(n => ['tools'].includes(n.id)) },
+  ];
+
+  const navBtn = (item) => {
+    const act = screen === item.id;
+    const hovering = hov === item.id;
+    return (
+      <button key={item.id} onClick={() => onNav(item.id)}
+        onMouseOver={() => setHov(item.id)} onMouseOut={() => setHov(null)}
+        style={{
+          display:'flex', alignItems:'center', gap:10, position:'relative',
+          width:'calc(100% - 16px)', margin:'1px 8px', padding:'7px 12px',
+          border:'none', borderRadius:8,
+          background: act ? T.accentSoft : hovering ? T.bl : 'transparent',
+          color: act ? T.accent : T.ink2,
+          fontSize:12, fontFamily:T.ui, textAlign:'left',
+          fontWeight: act ? 600 : 400,
+          cursor:'pointer',
+          transition:'all 0.15s ease',
+        }}>
+        {act && <div style={{position:'absolute', left:0, top:'50%', transform:'translateY(-50%)', width:3, height:16, borderRadius:'0 2px 2px 0', background:T.accent, transition:'all 0.2s ease'}} />}
+        <span style={{flexShrink:0, display:'flex', opacity: act ? 1 : 0.5, transition:'opacity 0.15s'}}>{item.icon}</span>
+        <span style={{flex:1}}>{item.label}</span>
+        {item.id === 'homework' && hwOpen > 0 && <span style={{fontFamily:T.mono, fontSize:8, color:T.ink3, background:T.bl, padding:'1px 5px', borderRadius:4, lineHeight:'14px'}}>{hwOpen}</span>}
+        {item.id === 'grades' && gpa !== '—' && <span style={{fontFamily:T.mono, fontSize:8, color:T.accent, fontWeight:600}}>{gpa}</span>}
+      </button>
+    );
+  };
+
   return (
     <>
     <aside style={{
-      width:200, flexShrink:0,
+      width:232, flexShrink:0,
       background:T.surface,
       borderRight:`1px solid ${T.border}`,
       display:'flex', flexDirection:'column', overflow:'hidden',
     }}>
+
       {/* Brand */}
-      <div style={{padding:'26px 22px 22px', borderBottom:`1px solid ${T.border}`, flexShrink:0}}>
-        <div style={{width:36, height:36, border:`1px solid ${T.accent}`, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:11}}>
-          <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:21, color:T.accent, lineHeight:1}}>J</span>
+      <div style={{padding:'20px 16px 16px', flexShrink:0}}>
+        <div style={{display:'flex', alignItems:'center', gap:10}}>
+          <div style={{width:32, height:32, borderRadius:8, background:`linear-gradient(135deg, ${T.accent}, #9a7828)`, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 8px rgba(184,148,58,0.2)'}}>
+            <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:'#fff', lineHeight:1}}>S</span>
+          </div>
+          <div>
+            <div style={{fontFamily:T.ui, fontSize:13, fontWeight:600, color:T.ink, lineHeight:1.2}}>Scholar</div>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, letterSpacing:'0.1em'}}>Student workspace</div>
+          </div>
         </div>
-        <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, letterSpacing:'0.17em', textTransform:'uppercase'}}>Scholar</div>
       </div>
 
-      {/* Nav */}
-      <div style={{padding:'10px 0', borderBottom:`1px solid ${T.border}`, flexShrink:0}}>
-        {NAV.map(item => {
-          const act = screen === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => onNav(item.id)}
-              style={{
-                display:'flex', alignItems:'center', gap:9,
-                width:'calc(100% - 20px)', margin:'2px 10px', padding:'8px 14px',
-                border:'none', borderRadius:10,
-                background: act ? T.accentSoft : 'transparent',
-                color: act ? T.accent : T.ink2,
-                fontSize:12.5, fontFamily:T.ui, textAlign:'left',
-                fontWeight: act ? 500 : 400,
-                cursor:'pointer',
-                transition:'background 0.12s, color 0.12s',
-              }}
-              onMouseOver={e => { if (!act) e.currentTarget.style.background = T.bl; }}
-              onMouseOut={e => { if (!act) e.currentTarget.style.background = 'transparent'; }}
-            >
-              <span style={{flexShrink:0, opacity: act ? 1 : 0.55, display:'flex'}}>{item.icon}</span>
-              {item.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* Scrollable content */}
+      <div style={{flex:1, overflowY:'auto', overflowX:'hidden'}}>
 
-      {/* Subjects quick list */}
-      <div style={{flex:1, overflow:'auto', padding:'16px 0'}}>
-        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 22px', marginBottom:8}}>
-          <span style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.16em'}}>Subjects</span>
-          <button onClick={() => setShowAddModal(true)} style={{width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', border:`1px solid ${T.border}`, background:'transparent', borderRadius:4, color:T.ink3, fontSize:13, cursor:'pointer', lineHeight:1, padding:0}} onMouseOver={e => {e.currentTarget.style.background=T.bl; e.currentTarget.style.color=T.accent}} onMouseOut={e => {e.currentTarget.style.background='transparent'; e.currentTarget.style.color=T.ink3}}>+</button>
-        </div>
-        {(profile?.subjects || []).length === 0 && (
-          <div style={{padding:'4px 22px', fontFamily:T.mono, fontSize:9, color:T.ink3, opacity:0.6}}>No subjects yet</div>
-        )}
-        {(profile?.subjects || []).map(s => (
-          <div
-            key={s.id}
-            style={{display:'flex', alignItems:'center', gap:9, padding:'5px 22px', fontSize:12.5, color:T.ink2, cursor:'default'}}
-            onMouseOver={e => e.currentTarget.style.background = T.bl}
-            onMouseOut={e => e.currentTarget.style.background = 'transparent'}
-          >
-            <div style={{width:6, height:6, borderRadius:1.5, background:s.color, flexShrink:0}} />
-            <span style={{flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.short || s.name}</span>
-            {s.grade && s.grade !== '—' && <span style={{fontFamily:T.mono, fontSize:8, color:s.color, fontWeight:600, flexShrink:0}}>{s.grade}</span>}
+        {/* Grouped Navigation */}
+        {NAV_GROUPS.map(g => (
+          <div key={g.label}>
+            {SL(g.label)}
+            {g.items.map(navBtn)}
           </div>
         ))}
+
+        {/* Subjects */}
+        <div style={{padding:'4px 0 0'}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 16px 6px'}}>
+            <span style={{fontFamily:T.mono, fontSize:7, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.18em'}}>Subjects</span>
+            <button onClick={() => setShowAddModal(true)} style={{width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', border:`1px solid ${T.border}`, background:'transparent', borderRadius:5, color:T.ink3, fontSize:12, cursor:'pointer', lineHeight:1, padding:0, transition:'all 0.15s'}}
+              onMouseOver={e => {e.currentTarget.style.background=T.accent; e.currentTarget.style.borderColor=T.accent; e.currentTarget.style.color='#fff'}}
+              onMouseOut={e => {e.currentTarget.style.background='transparent'; e.currentTarget.style.borderColor=T.border; e.currentTarget.style.color=T.ink3}}>+</button>
+          </div>
+          <div style={{padding:'0 8px'}}>
+            {subjects.length === 0 && (
+              <div style={{padding:'8px', fontFamily:T.mono, fontSize:8.5, color:T.ink3, opacity:0.6, textAlign:'center'}}>No subjects yet</div>
+            )}
+            {subjects.map(s => {
+              const g = grades[s.id];
+              const hwForSubj = homework.filter(h => h.subj === s.id && !h.done).length;
+              return (
+                <div key={s.id}
+                  onMouseOver={e => e.currentTarget.style.background=T.bl}
+                  onMouseOut={e => e.currentTarget.style.background=T.bg}
+                  style={{display:'flex', alignItems:'center', gap:10, padding:'7px 10px', margin:'2px 0', borderRadius:8, background:T.bg, cursor:'default', transition:'background 0.12s'}}>
+                  <div style={{width:8, height:8, borderRadius:3, background:s.color, flexShrink:0, boxShadow:`0 0 0 2px ${s.color}20`}} />
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{fontSize:11.5, fontFamily:T.ui, color:T.ink, fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', lineHeight:'16px'}}>{s.short || s.name}</div>
+                    {hwForSubj > 0 && <div style={{fontFamily:T.mono, fontSize:7, color:T.ink3, lineHeight:'12px'}}>{hwForSubj} due</div>}
+                  </div>
+                  {g && g !== '—' && <span style={{fontFamily:T.mono, fontSize:9, color:s.color, fontWeight:700, background:`${s.color}12`, padding:'2px 6px', borderRadius:4, lineHeight:'14px'}}>{g}</span>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* This Week Widget */}
+        <div style={{padding:'4px 0 0'}}>
+          {SL('This week')}
+          <div style={{padding:'0 8px'}}>
+            <div style={{background:T.bg, borderRadius:10, padding:'10px 12px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px 12px'}}>
+              {[
+                { label:'Assignments', val: hwTotal, icon:'◷' },
+                { label:'Quizzes',     val: quizCount, icon:'◈' },
+                { label:'Day streak',  val: streak, icon:'✦' },
+                { label:'Completed',   val: hwTotal > 0 ? Math.round((hwDone/hwTotal)*100)+'%' : '—', icon:'◎' },
+              ].map(w => (
+                <div key={w.label} style={{display:'flex', alignItems:'center', gap:6, padding:'2px 0'}}>
+                  <span style={{fontSize:10, opacity:0.5}}>{w.icon}</span>
+                  <div>
+                    <div style={{fontFamily:T.mono, fontSize:10, fontWeight:600, color:T.ink, lineHeight:'14px'}}>{w.val}</div>
+                    <div style={{fontFamily:T.mono, fontSize:6.5, color:T.ink3, letterSpacing:'0.06em', lineHeight:'10px'}}>{w.label}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Semester Progress Widget */}
+        <div style={{padding:'4px 0 0'}}>
+          {SL('Term progress')}
+          <div style={{padding:'0 8px'}}>
+            <div style={{background:T.bg, borderRadius:10, padding:'10px 12px'}}>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:6}}>
+                <span style={{fontFamily:T.mono, fontSize:8, color:T.ink2, fontWeight:500}}>Week {currentWeek} / {totalWeeks}</span>
+                <span style={{fontFamily:T.mono, fontSize:8, color:T.accent, fontWeight:600}}>{semPct}%</span>
+              </div>
+              <div style={{height:4, background:T.border, borderRadius:2, overflow:'hidden'}}>
+                <div style={{height:'100%', width:semPct+'%', background:`linear-gradient(90deg, ${T.accent}, #c9a84e)`, borderRadius:2, transition:'width 0.6s ease'}} />
+              </div>
+              {gradedCount > 0 && gpa !== '—' && (
+                <div style={{marginTop:8, display:'flex', justifyContent:'space-between'}}>
+                  <span style={{fontFamily:T.mono, fontSize:7, color:T.ink3}}>{gradedCount} of {subjects.length} graded</span>
+                  <span style={{fontFamily:T.mono, fontSize:7, color:T.ink3}}>GPA {gpa}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Today's Focus Widget */}
+        {todayHw.length > 0 && (
+          <div style={{padding:'4px 0 0'}}>
+            {SL('Today')}
+            <div style={{padding:'0 8px'}}>
+              <div style={{background:T.bg, borderRadius:10, padding:'8px 12px'}}>
+                {todayHw.slice(0, 4).map((h, i) => (
+                  <div key={h.id||i} style={{display:'flex', alignItems:'center', gap:8, padding:'3px 0'}}>
+                    <div style={{width:14, height:14, borderRadius:4, border: h.done ? 'none' : `1.5px solid ${T.border}`, background: h.done ? T.accent : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+                      {h.done && <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 6l2.5 2.5 5-5"/></svg>}
+                    </div>
+                    <span style={{fontFamily:T.ui, fontSize:10.5, color: h.done ? T.ink3 : T.ink, textDecoration: h.done ? 'line-through' : 'none', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', opacity: h.done ? 0.5 : 1}}>{h.title}</span>
+                  </div>
+                ))}
+                {todayHw.length > 0 && (
+                  <div style={{fontFamily:T.mono, fontSize:7, color:T.ink3, marginTop:4, paddingTop:4, borderTop:`1px solid ${T.border}`}}>{todayDone}/{todayHw.length} complete</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div style={{height:8}} />
       </div>
 
-      {/* User */}
-      <div style={{padding:'13px 22px', borderTop:`1px solid ${T.border}`, flexShrink:0}}>
-        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink, marginBottom:3, lineHeight:1.2}}>
-          {profile ? profile.name : 'Julian R.'}
-        </div>
-        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
-          <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, letterSpacing:'0.07em'}}>
-            {profile ? (profile.grade.charAt(0).toUpperCase()+profile.grade.slice(1)) : 'Junior'} · streak 12
+      {/* User Profile Footer */}
+      <div style={{borderTop:`1px solid ${T.border}`, flexShrink:0, padding:'12px 8px'}}>
+        <div style={{background:T.bg, borderRadius:10, padding:'10px 12px'}}>
+          <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:6}}>
+            {profile?.picture ? (
+              <img src={profile.picture} style={{width:28, height:28, borderRadius:8, objectFit:'cover'}} referrerPolicy="no-referrer" />
+            ) : (
+              <div style={{width:28, height:28, borderRadius:8, background:`linear-gradient(135deg, ${T.accent}, #9a7828)`, display:'flex', alignItems:'center', justifyContent:'center'}}>
+                <span style={{fontFamily:T.serif, fontSize:14, color:'#fff', fontWeight:600}}>{(profile?.name || 'U')[0]}</span>
+              </div>
+            )}
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{fontFamily:T.ui, fontSize:12, fontWeight:600, color:T.ink, lineHeight:'16px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{profile?.name || 'Student'}</div>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, letterSpacing:'0.06em'}}>{profile ? (profile.grade.charAt(0).toUpperCase()+profile.grade.slice(1)) : 'Student'}</div>
+            </div>
+            {streak > 0 && (
+              <div style={{display:'flex', alignItems:'center', gap:3, background:T.accentSoft, padding:'3px 7px', borderRadius:6}}>
+                <span style={{fontSize:9}}>✦</span>
+                <span style={{fontFamily:T.mono, fontSize:8, color:T.accent, fontWeight:700}}>{streak}</span>
+              </div>
+            )}
           </div>
-          {onSignOut && (
-            <button onClick={onSignOut} style={{background:'none', border:'none', padding:0, fontFamily:T.mono, fontSize:8, color:T.ink3, cursor:'pointer', letterSpacing:'0.06em', opacity:0.7, transition:'opacity 0.12s'}}
-              onMouseOver={e => e.currentTarget.style.opacity='1'}
-              onMouseOut={e => e.currentTarget.style.opacity='0.7'}>
-              Sign out
-            </button>
-          )}
+          <div style={{display:'flex', gap:6}}>
+            <button onClick={() => onNav('tools')} style={{flex:1, padding:'5px 0', border:`1px solid ${T.border}`, background:'transparent', borderRadius:6, fontFamily:T.mono, fontSize:7.5, color:T.ink3, letterSpacing:'0.06em', cursor:'pointer', transition:'all 0.12s'}}
+              onMouseOver={e => {e.currentTarget.style.background=T.bl; e.currentTarget.style.borderColor=T.ink3+'40'}}
+              onMouseOut={e => {e.currentTarget.style.background='transparent'; e.currentTarget.style.borderColor=T.border}}>Settings</button>
+            {onSignOut && (
+              <button onClick={onSignOut} style={{flex:1, padding:'5px 0', border:`1px solid ${T.border}`, background:'transparent', borderRadius:6, fontFamily:T.mono, fontSize:7.5, color:T.ink3, letterSpacing:'0.06em', cursor:'pointer', transition:'all 0.12s'}}
+                onMouseOver={e => {e.currentTarget.style.background='#f5e6e6'; e.currentTarget.style.color='#b04040'; e.currentTarget.style.borderColor='#d0a0a0'}}
+                onMouseOut={e => {e.currentTarget.style.background='transparent'; e.currentTarget.style.color=T.ink3; e.currentTarget.style.borderColor=T.border}}>Sign out</button>
+            )}
+          </div>
         </div>
       </div>
+
     </aside>
-    <AddSubjectModal open={showAddModal} onClose={() => setShowAddModal(false)} onAdd={subj => onAddSubject && onAddSubject(subj)} existingCount={(profile?.subjects||[]).length} />
+    <AddSubjectModal open={showAddModal} onClose={() => setShowAddModal(false)} onAdd={subj => onAddSubject && onAddSubject(subj)} existingCount={subjects.length} />
     </>
   );
 }
@@ -2686,7 +2838,7 @@ function App() {
 
   return (
     <div style={{height:'100vh', display:'flex', overflow:'hidden', background:T.bg, fontFamily:T.ui, color:T.ink}}>
-      <Sidebar screen={screen} onNav={nav} profile={profile} onSignOut={handleSignOut} onAddSubject={subj => {
+      <Sidebar screen={screen} onNav={nav} profile={profile} userData={userData} onSignOut={handleSignOut} onAddSubject={subj => {
         const updated = { ...profile, subjects: [...(profile.subjects||[]), subj] };
         saveProfile(updated);
         setProfile(updated);
