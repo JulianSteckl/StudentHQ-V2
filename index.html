@@ -2578,12 +2578,12 @@ function SetupFlow({ onComplete, onBack, initialData }) {
 
   // Unlock checklist
   const UNLOCK_ITEMS = [
-    { label:'Personalized dashboard',    step:1, desc:'Tailored to your name & year' },
-    { label:'Homework kanban board',     step:1, desc:'Track every assignment' },
-    { label:'School calendar sync',      step:2, desc:'Semester-aware scheduling' },
-    { label:'GPA calculator',            step:2, desc:'Live grade tracking' },
-    { label:'Subject-linked flashcards', step:3, desc:'Study by class' },
-    { label:'Grade analytics',           step:3, desc:'See trends over time' },
+    { label:'Your name on the dashboard', step:1, desc:'Personalized greeting every time you log in' },
+    { label:'Year-based course load',     step:1, desc:'Recommendations tuned to ' + (grade || 'your year') },
+    { label:'Semester timeline',          step:2, desc:'Track weeks and deadlines from your start date' },
+    { label:'School-aware calendar',      step:2, desc:'Scheduling built around ' + (school.trim() || 'your school') },
+    { label:'Per-subject grades',         step:3, desc:'GPA calculated across each class you add' },
+    { label:'Class-linked study tools',   step:3, desc:'Flashcards, notes, and quizzes sorted by subject' },
   ];
 
   const UnlockChecklist = () => (
