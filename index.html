@@ -403,7 +403,7 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
   });
   const todayDone = todayHw.filter(h => h.done).length;
 
-  const SL = (t) => <div style={{fontFamily:T.mono, fontSize:7, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.18em', padding:'16px 16px 6px'}}>{t}</div>;
+  const SL = (t) => <div style={{fontFamily:T.mono, fontSize:7, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.16em', padding:'12px 12px 4px'}}>{t}</div>;
 
   const NAV_GROUPS = [
     { label: 'Dashboard', items: NAV.filter(n => ['today','homework','quizzes'].includes(n.id)) },
@@ -418,12 +418,12 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
       <button key={item.id} onClick={() => onNav(item.id)}
         onMouseOver={() => setHov(item.id)} onMouseOut={() => setHov(null)}
         style={{
-          display:'flex', alignItems:'center', gap:10, position:'relative',
-          width:'calc(100% - 16px)', margin:'1px 8px', padding:'7px 12px',
-          border:'none', borderRadius:8,
+          display:'flex', alignItems:'center', gap:8, position:'relative',
+          width:'calc(100% - 12px)', margin:'1px 6px', padding:'6px 10px',
+          border:'none', borderRadius:7,
           background: act ? T.accentSoft : hovering ? T.bl : 'transparent',
           color: act ? T.accent : T.ink2,
-          fontSize:12, fontFamily:T.ui, textAlign:'left',
+          fontSize:11.5, fontFamily:T.ui, textAlign:'left',
           fontWeight: act ? 600 : 400,
           cursor:'pointer',
           transition:'all 0.15s ease',
@@ -440,21 +440,21 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
   return (
     <>
     <aside style={{
-      width:232, flexShrink:0,
+      width:200, flexShrink:0,
       background:T.surface,
       borderRight:`1px solid ${T.border}`,
       display:'flex', flexDirection:'column', overflow:'hidden',
     }}>
 
       {/* Brand */}
-      <div style={{padding:'20px 16px 16px', flexShrink:0}}>
-        <div style={{display:'flex', alignItems:'center', gap:10}}>
-          <div style={{width:32, height:32, borderRadius:8, background:`linear-gradient(135deg, ${T.accent}, #9a7828)`, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 8px rgba(184,148,58,0.2)'}}>
-            <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:'#fff', lineHeight:1}}>S</span>
+      <div style={{padding:'14px 12px 12px', flexShrink:0}}>
+        <div style={{display:'flex', alignItems:'center', gap:8}}>
+          <div style={{width:28, height:28, borderRadius:7, background:`linear-gradient(135deg, ${T.accent}, #9a7828)`, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 6px rgba(184,148,58,0.18)'}}>
+            <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:'#fff', lineHeight:1}}>S</span>
           </div>
           <div>
-            <div style={{fontFamily:T.ui, fontSize:13, fontWeight:600, color:T.ink, lineHeight:1.2}}>Scholar</div>
-            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, letterSpacing:'0.1em'}}>Student workspace</div>
+            <div style={{fontFamily:T.ui, fontSize:12, fontWeight:600, color:T.ink, lineHeight:1.2}}>Scholar</div>
+            <div style={{fontFamily:T.mono, fontSize:7, color:T.ink3, letterSpacing:'0.08em'}}>Student workspace</div>
           </div>
         </div>
       </div>
@@ -471,16 +471,16 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
         ))}
 
         {/* Subjects */}
-        <div style={{padding:'4px 0 0'}}>
-          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 16px 6px'}}>
-            <span style={{fontFamily:T.mono, fontSize:7, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.18em'}}>Subjects</span>
-            <button onClick={() => setShowAddModal(true)} style={{width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', border:`1px solid ${T.border}`, background:'transparent', borderRadius:5, color:T.ink3, fontSize:12, cursor:'pointer', lineHeight:1, padding:0, transition:'all 0.15s'}}
+        <div style={{padding:'2px 0 0'}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 12px 4px'}}>
+            <span style={{fontFamily:T.mono, fontSize:7, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.16em'}}>Subjects</span>
+            <button onClick={() => setShowAddModal(true)} style={{width:16, height:16, display:'flex', alignItems:'center', justifyContent:'center', border:`1px solid ${T.border}`, background:'transparent', borderRadius:4, color:T.ink3, fontSize:11, cursor:'pointer', lineHeight:1, padding:0, transition:'all 0.15s'}}
               onMouseOver={e => {e.currentTarget.style.background=T.accent; e.currentTarget.style.borderColor=T.accent; e.currentTarget.style.color='#fff'}}
               onMouseOut={e => {e.currentTarget.style.background='transparent'; e.currentTarget.style.borderColor=T.border; e.currentTarget.style.color=T.ink3}}>+</button>
           </div>
-          <div style={{padding:'0 8px'}}>
+          <div style={{padding:'0 6px'}}>
             {subjects.length === 0 && (
-              <div style={{padding:'8px', fontFamily:T.mono, fontSize:8.5, color:T.ink3, opacity:0.6, textAlign:'center'}}>No subjects yet</div>
+              <div style={{padding:'6px', fontFamily:T.mono, fontSize:8.5, color:T.ink3, opacity:0.6, textAlign:'center'}}>No subjects yet</div>
             )}
             {subjects.map(s => {
               const g = grades[s.id];
@@ -489,9 +489,9 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
                 <div key={s.id}
                   onMouseOver={e => e.currentTarget.style.background=T.bl}
                   onMouseOut={e => e.currentTarget.style.background='transparent'}
-                  style={{display:'flex', alignItems:'center', gap:9, padding:'5px 10px', margin:'0', borderRadius:6, background:'transparent', cursor:'default', transition:'background 0.12s'}}>
+                  style={{display:'flex', alignItems:'center', gap:7, padding:'4px 8px', height:32, margin:'0', borderRadius:5, background:'transparent', cursor:'default', transition:'background 0.12s'}}>
                   <div style={{width:6, height:6, borderRadius:2, background:s.color, flexShrink:0}} />
-                  <span style={{flex:1, fontSize:11.5, fontFamily:T.ui, color:T.ink2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', lineHeight:'18px'}}>{s.short || s.name}</span>
+                  <span style={{flex:1, fontSize:11, fontFamily:T.ui, color:T.ink2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.short || s.name}</span>
                   {hwForSubj > 0 && <span style={{fontFamily:T.mono, fontSize:7, color:T.ink3}}>{hwForSubj}</span>}
                   {g && g !== '—' && <span style={{fontFamily:T.mono, fontSize:8, color:s.color, fontWeight:600}}>{g}</span>}
                 </div>
@@ -502,44 +502,43 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
 
         {/* Today's Focus Widget */}
         {todayHw.length > 0 && (
-          <div style={{padding:'4px 0 0'}}>
+          <div style={{padding:'2px 0 0'}}>
             {SL('Today')}
-            <div style={{padding:'0 8px'}}>
-              <div style={{background:T.bg, borderRadius:10, padding:'8px 12px'}}>
+            <div style={{padding:'0 6px'}}>
+              <div style={{background:T.bg, borderRadius:8, padding:'6px 8px'}}>
                 {todayHw.slice(0, 4).map((h, i) => (
-                  <div key={h.id||i} style={{display:'flex', alignItems:'center', gap:8, padding:'3px 0'}}>
-                    <div style={{width:14, height:14, borderRadius:4, border: h.done ? 'none' : `1.5px solid ${T.border}`, background: h.done ? T.accent : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
-                      {h.done && <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 6l2.5 2.5 5-5"/></svg>}
+                  <div key={h.id||i} style={{display:'flex', alignItems:'center', gap:6, padding:'2px 0'}}>
+                    <div style={{width:13, height:13, borderRadius:3, border: h.done ? 'none' : `1.5px solid ${T.border}`, background: h.done ? T.accent : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+                      {h.done && <svg width="7" height="7" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 6l2.5 2.5 5-5"/></svg>}
                     </div>
-                    <span style={{fontFamily:T.ui, fontSize:10.5, color: h.done ? T.ink3 : T.ink, textDecoration: h.done ? 'line-through' : 'none', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', opacity: h.done ? 0.5 : 1}}>{h.title}</span>
+                    <span style={{fontFamily:T.ui, fontSize:10, color: h.done ? T.ink3 : T.ink, textDecoration: h.done ? 'line-through' : 'none', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', opacity: h.done ? 0.5 : 1}}>{h.title}</span>
                   </div>
                 ))}
-                <div style={{fontFamily:T.mono, fontSize:7, color:T.ink3, marginTop:4, paddingTop:4, borderTop:`1px solid ${T.border}`}}>{todayDone}/{todayHw.length} complete</div>
+                <div style={{fontFamily:T.mono, fontSize:7, color:T.ink3, marginTop:3, paddingTop:3, borderTop:`1px solid ${T.border}`}}>{todayDone}/{todayHw.length} complete</div>
               </div>
             </div>
           </div>
         )}
 
-        <div style={{height:8}} />
+        <div style={{height:4}} />
       </div>
 
       {/* User Profile Footer */}
-      <div style={{borderTop:`1px solid ${T.border}`, flexShrink:0, padding:'12px 8px', position:'relative'}} ref={settingsRef}>
-        {/* Settings Popup */}
+      <div style={{borderTop:`1px solid ${T.border}`, flexShrink:0, padding:'8px 6px', position:'relative'}} ref={settingsRef}>
         {showSettings && (
-          <div style={{position:'absolute', bottom:'100%', left:8, right:8, marginBottom:6, background:T.surface, border:`1px solid ${T.border}`, borderRadius:10, padding:'4px', boxShadow:'0 -8px 32px rgba(24,21,14,0.12), 0 -2px 8px rgba(24,21,14,0.06)', animation:'shq-modal-slide-up 0.18s cubic-bezier(0.16,1,0.3,1) forwards', zIndex:100}}>
+          <div style={{position:'absolute', bottom:'100%', left:6, right:6, marginBottom:4, background:T.surface, border:`1px solid ${T.border}`, borderRadius:8, padding:'3px', boxShadow:'0 -8px 32px rgba(24,21,14,0.12), 0 -2px 8px rgba(24,21,14,0.06)', animation:'shq-modal-slide-up 0.18s cubic-bezier(0.16,1,0.3,1) forwards', zIndex:100}}>
             {[
-              { label:'Profile', icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="6" r="3"/><path d="M3 14c0-2.8 2.2-5 5-5s5 2.2 5 5"/></svg>, action: () => { setShowSettings(false); setShowProfileModal(true); } },
-              { label:'Manage Subjects', icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"/></svg>, action: () => { setShowSettings(false); onNav('subjects'); } },
+              { label:'Profile', icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="6" r="3"/><path d="M3 14c0-2.8 2.2-5 5-5s5 2.2 5 5"/></svg>, action: () => { setShowSettings(false); setShowProfileModal(true); } },
+              { label:'Manage Subjects', icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"/></svg>, action: () => { setShowSettings(false); onNav('subjects'); } },
               { type:'divider' },
-              { label:'Sign Out', icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 14H3V2h3M11 11l3-3-3-3M6 8h8"/></svg>, action: () => { setShowSettings(false); onSignOut && onSignOut(); }, danger: true },
+              { label:'Sign Out', icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 14H3V2h3M11 11l3-3-3-3M6 8h8"/></svg>, action: () => { setShowSettings(false); onSignOut && onSignOut(); }, danger: true },
             ].map((item, i) => item.type === 'divider' ? (
-              <div key={i} style={{height:1, background:T.border, margin:'4px 8px'}} />
+              <div key={i} style={{height:1, background:T.border, margin:'3px 6px'}} />
             ) : (
               <button key={item.label} onClick={item.action} style={{
-                display:'flex', alignItems:'center', gap:9, width:'100%', padding:'7px 10px',
-                border:'none', borderRadius:7, background:'transparent',
-                fontFamily:T.ui, fontSize:11.5, color: item.danger ? '#b04040' : T.ink2,
+                display:'flex', alignItems:'center', gap:7, width:'100%', padding:'5px 8px',
+                border:'none', borderRadius:6, background:'transparent',
+                fontFamily:T.ui, fontSize:11, color: item.danger ? '#b04040' : T.ink2,
                 cursor:'pointer', textAlign:'left', transition:'background 0.1s',
               }}
                 onMouseOver={e => e.currentTarget.style.background = item.danger ? '#faf0f0' : T.bl}
@@ -550,23 +549,23 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
             ))}
           </div>
         )}
-        <div style={{background:T.bg, borderRadius:10, padding:'10px 12px'}}>
-          <div style={{display:'flex', alignItems:'center', gap:10}}>
+        <div style={{background:T.bg, borderRadius:8, padding:'8px 10px'}}>
+          <div style={{display:'flex', alignItems:'center', gap:8}}>
             {profile?.picture ? (
-              <img src={profile.picture} style={{width:28, height:28, borderRadius:8, objectFit:'cover'}} referrerPolicy="no-referrer" />
+              <img src={profile.picture} style={{width:24, height:24, borderRadius:6, objectFit:'cover'}} referrerPolicy="no-referrer" />
             ) : (
-              <div style={{width:28, height:28, borderRadius:8, background:`linear-gradient(135deg, ${T.accent}, #9a7828)`, display:'flex', alignItems:'center', justifyContent:'center'}}>
-                <span style={{fontFamily:T.serif, fontSize:14, color:'#fff', fontWeight:600}}>{(profile?.name || 'U')[0]}</span>
+              <div style={{width:24, height:24, borderRadius:6, background:`linear-gradient(135deg, ${T.accent}, #9a7828)`, display:'flex', alignItems:'center', justifyContent:'center'}}>
+                <span style={{fontFamily:T.serif, fontSize:12, color:'#fff', fontWeight:600}}>{(profile?.name || 'U')[0]}</span>
               </div>
             )}
             <div style={{flex:1, minWidth:0}}>
-              <div style={{fontFamily:T.ui, fontSize:12, fontWeight:600, color:T.ink, lineHeight:'16px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{profile?.name || 'Student'}</div>
-              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, letterSpacing:'0.06em'}}>{profile ? (profile.grade.charAt(0).toUpperCase()+profile.grade.slice(1)) : 'Student'}{streak > 0 ? ` · ${streak} day streak` : ''}</div>
+              <div style={{fontFamily:T.ui, fontSize:11, fontWeight:600, color:T.ink, lineHeight:'14px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{profile?.name || 'Student'}</div>
+              <div style={{fontFamily:T.mono, fontSize:7, color:T.ink3, letterSpacing:'0.05em'}}>{profile ? (profile.grade.charAt(0).toUpperCase()+profile.grade.slice(1)) : 'Student'}{streak > 0 ? ` · ${streak}d streak` : ''}</div>
             </div>
-            <button onClick={() => setShowSettings(s => !s)} style={{width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', border:`1px solid ${showSettings ? T.accent+'40' : T.border}`, background: showSettings ? T.accentSoft : 'transparent', borderRadius:6, color: showSettings ? T.accent : T.ink3, cursor:'pointer', padding:0, transition:'all 0.15s', flexShrink:0}}
+            <button onClick={() => setShowSettings(s => !s)} style={{width:22, height:22, display:'flex', alignItems:'center', justifyContent:'center', border:`1px solid ${showSettings ? T.accent+'40' : T.border}`, background: showSettings ? T.accentSoft : 'transparent', borderRadius:5, color: showSettings ? T.accent : T.ink3, cursor:'pointer', padding:0, transition:'all 0.15s', flexShrink:0}}
               onMouseOver={e => { if(!showSettings) { e.currentTarget.style.background=T.bl; e.currentTarget.style.borderColor=T.ink3+'40'; }}}
               onMouseOut={e => { if(!showSettings) { e.currentTarget.style.background='transparent'; e.currentTarget.style.borderColor=T.border; }}}>
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><circle cx="8" cy="3" r="1"/><circle cx="8" cy="8" r="1"/><circle cx="8" cy="13" r="1"/></svg>
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><circle cx="8" cy="3" r="1"/><circle cx="8" cy="8" r="1"/><circle cx="8" cy="13" r="1"/></svg>
             </button>
           </div>
         </div>
