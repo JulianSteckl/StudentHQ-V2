@@ -249,7 +249,10 @@ function Sidebar({ screen, onNav, profile, onSignOut }) {
 
       {/* Subjects quick list */}
       <div style={{flex:1, overflow:'auto', padding:'16px 0'}}>
-        <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.16em', padding:'0 22px', marginBottom:8}}>Subjects</div>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 22px', marginBottom:8}}>
+          <span style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.16em'}}>Subjects</span>
+          <button onClick={() => onNav('subjects')} style={{width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', border:`1px solid ${T.border}`, background:'transparent', borderRadius:4, color:T.ink3, fontSize:13, cursor:'pointer', lineHeight:1, padding:0}} onMouseOver={e => {e.currentTarget.style.background=T.bl; e.currentTarget.style.color=T.accent}} onMouseOut={e => {e.currentTarget.style.background='transparent'; e.currentTarget.style.color=T.ink3}}>+</button>
+        </div>
         {(profile?.subjects || []).length === 0 && (
           <div style={{padding:'4px 22px', fontFamily:T.mono, fontSize:9, color:T.ink3, opacity:0.6}}>No subjects yet</div>
         )}
