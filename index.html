@@ -2578,12 +2578,12 @@ function SetupFlow({ onComplete, onBack, initialData }) {
 
   // Unlock checklist
   const UNLOCK_ITEMS = [
-    { label:'Your name on the dashboard', step:1, desc:'Personalized greeting every time you log in' },
-    { label:'Year-based course load',     step:1, desc:'Recommendations tuned to ' + (grade || 'your year') },
-    { label:'Semester week tracker',        step:2, desc:'Always know which week you\'re in — "Week 3 of 16"' },
-    { label:'Your school on your profile', step:2, desc:(school.trim() || 'Your school') + ' displayed across your dashboard' },
-    { label:'Per-subject grades',         step:3, desc:'GPA calculated across each class you add' },
-    { label:'Class-linked study tools',   step:3, desc:'Flashcards, notes, and quizzes sorted by subject' },
+    { label:'Your name on the dashboard', step:1, check: () => !!name.trim(),          desc:'Personalized greeting every time you log in' },
+    { label:'Year-based course load',     step:1, check: () => !!grade,                 desc:'Recommendations tuned to ' + (grade || 'your year') },
+    { label:'Semester week tracker',      step:2, check: () => step >= 2,               desc:'Always know which week you\'re in — "Week 3 of 16"' },
+    { label:'Your school on your profile',step:2, check: () => !!school.trim(),         desc:(school.trim() || 'Your school') + ' displayed across your dashboard' },
+    { label:'Per-subject grades',         step:3, check: () => validSubjects.length > 0,desc:'GPA calculated across each class you add' },
+    { label:'Class-linked study tools',   step:3, check: () => validSubjects.length > 0,desc:'Flashcards, notes, and quizzes sorted by subject' },
   ];
 
   const UnlockChecklist = () => (
@@ -2591,7 +2591,7 @@ function SetupFlow({ onComplete, onBack, initialData }) {
       <div style={{fontFamily:T.mono, fontSize:7, color:T.ink3, letterSpacing:'0.16em', textTransform:'uppercase', marginBottom:8}}>What you'll unlock</div>
       <div style={{display:'flex', flexDirection:'column', gap:1}}>
         {UNLOCK_ITEMS.map((item, i) => {
-          const done = step > item.step || (step === item.step && (step===1 ? canNext1 : step===2 ? canNext2 : canFinish));
+          const done = item.check();
           const current = step === item.step && !done;
           return (
             <div key={i} style={{display:'flex', alignItems:'center', gap:8, padding:'6px 0', transition:'opacity 0.3s', opacity: done ? 1 : current ? 0.7 : 0.35}}>
