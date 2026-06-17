@@ -2583,7 +2583,7 @@ function SetupFlow({ onComplete, onBack, initialData }) {
     { label:'Semester week tracker',      step:2, check: () => step >= 2,               desc:'Always know which week you\'re in — "Week 3 of 16"' },
     { label:'Your school on your profile',step:2, check: () => !!school.trim(),         desc:(school.trim() || 'Your school') + ' displayed across your dashboard' },
     { label:'Per-subject grades',         step:3, check: () => validSubjects.length >= 1, desc:'GPA calculated across each class you add' },
-    { label:'Class-linked study tools',   step:3, check: () => validSubjects.length >= 2, desc:'Flashcards, notes, and quizzes sorted by subject' },
+    { label:'Class-linked study tools',   step:3, check: () => subjects.length >= 2,      desc:'Flashcards, notes, and quizzes sorted by subject' },
   ];
 
   const UnlockChecklist = () => (
