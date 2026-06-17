@@ -1462,6 +1462,60 @@ function GradesScreen({ profile, userData, onUpdate }) {
           <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{graded.length} of {subjects.length} graded</div>
         </div>
 
+        {/* Subject Balance Radar Chart */}
+        {(() => {
+          const radarSubjs = subjects.slice(0, 8);
+          const n = radarSubjs.length;
+          if (n < 3) return null;
+          const CX = 120, CY2 = 120, RAD = 85;
+          const levels = 4;
+          const angleStep = (2 * Math.PI) / n;
+          const pt = (i, r) => [CX + r * Math.sin(i * angleStep), CY2 - r * Math.cos(i * angleStep)];
+          const gridLines = Array.from({length: levels}, (_, l) => {
+            const r = RAD * (l + 1) / levels;
+            return radarSubjs.map((_, i) => pt(i, r)).map(p => p.join(',')).join(' ');
+          });
+          const dataPoints = radarSubjs.map((s, i) => {
+            const g = grades[s.id] ? (GPA_MAP[grades[s.id]] || 0) : 0;
+            const r = (g / 4) * RAD;
+            return pt(i, Math.max(r, 4));
+          });
+          const dataPath = dataPoints.map(p => p.join(',')).join(' ');
+          return (
+            <div style={{background:T.surface, borderRadius:12, padding:'20px 22px', marginTop:12}}>
+              <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:4}}>
+                <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
+                <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Subject Balance</div>
+              </div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink, marginBottom:12}}>Subject balance</div>
+              <div style={{display:'flex', justifyContent:'center'}}>
+                <svg width={240} height={240} viewBox="0 0 240 240">
+                  {gridLines.map((pts, l) => (
+                    <polygon key={l} points={pts} fill="none" stroke={T.border} strokeWidth={0.8} opacity={0.6}/>
+                  ))}
+                  {radarSubjs.map((_, i) => {
+                    const [x, y] = pt(i, RAD);
+                    return <line key={i} x1={CX} y1={CY2} x2={x} y2={y} stroke={T.border} strokeWidth={0.5} opacity={0.4}/>;
+                  })}
+                  <polygon points={dataPath} fill={`${T.accent}25`} stroke={T.accent} strokeWidth={1.8} strokeLinejoin="round"/>
+                  {dataPoints.map((p, i) => (
+                    <circle key={i} cx={p[0]} cy={p[1]} r={3} fill={T.accent}/>
+                  ))}
+                  {radarSubjs.map((s, i) => {
+                    const [x, y] = pt(i, RAD + 16);
+                    return (
+                      <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="central"
+                        style={{fontFamily:T.mono, fontSize:8, fill:T.ink3, letterSpacing:'0.05em'}}>
+                        {s.short || s.name.slice(0,8)}
+                      </text>
+                    );
+                  })}
+                </svg>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Floating cards — Recent Scores · Grade Targets · Grade Insights */}
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, marginTop:12}}>
           <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
