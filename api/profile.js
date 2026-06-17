@@ -117,22 +117,6 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(204).end();
 
-  // Safe diagnostic: reports only whether the database is reachable. Exposes
-  // no personal data. Visit /api/profile?health=1 in a browser.
-  if (req.method === 'GET' && req.query && req.query.health === '1') {
-    let db = 'error';
-    let detail = '';
-    try {
-      await connectDB();
-      db = 'ok';
-    } catch (e) {
-      detail = String((e && e.message) || e)
-        .replace(/mongodb(\+srv)?:\/\/\S+/gi, '[redacted]') // never leak the connection string
-        .slice(0, 400);
-    }
-    return res.json({ ok: true, hasMongoUri: !!uri, db, detail });
-  }
-
   let email;
   try {
     email = await getVerifiedEmail(req);
