@@ -12,6 +12,20 @@ const saveProfile = (p) => { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)
 const USER_DATA_KEY = (email) => 'shq-v2-data-' + (email || 'anon');
 const loadUserData  = (email) => { try { return JSON.parse(localStorage.getItem(USER_DATA_KEY(email)) || 'null'); } catch { return null; } };
 const saveUserData  = (email, data) => localStorage.setItem(USER_DATA_KEY(email), JSON.stringify(data));
-const defaultUserData = () => ({ homework: [], grades: {}, streak: 0, quizzes: [], notes: [], schedule: [] });
+const defaultUserData = () => ({ homework: [], grades: {}, streak: 0, quizzes: [], notes: [], schedule: [], flashcards: [], updatedAt: 0 });
 const setGoogleAccessToken = (t) => { googleAccessToken = t; };
-export { GOOGLE_CLIENT_ID, authHeaders, setGoogleAccessToken, PROFILE_KEY, loadProfile, loadProfileByEmail, saveProfile, loadUserData, saveUserData, defaultUserData };
+
+// Cloud sync for the user's work (homework, notes, etc.). The server verifies
+// the Google token and scopes every read/write to the signed-in user.
+const fetchServerUserData = () =>
+  fetch('/api/data', { headers: authHeaders() })
+    .then(r => r.ok ? r.json() : null)
+    .catch(() => null);
+const saveServerUserData = (data) =>
+  fetch('/api/data', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  }).catch(() => {});
+
+export { GOOGLE_CLIENT_ID, authHeaders, setGoogleAccessToken, PROFILE_KEY, loadProfile, loadProfileByEmail, saveProfile, loadUserData, saveUserData, defaultUserData, fetchServerUserData, saveServerUserData };
