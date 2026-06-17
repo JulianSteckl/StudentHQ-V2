@@ -2,7 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { createPortal } from 'react-dom';
 import { T } from './theme.js';
-import { GOOGLE_CLIENT_ID, authHeaders, setGoogleAccessToken, PROFILE_KEY, loadProfile, loadProfileByEmail, saveProfile, loadUserData, saveUserData, defaultUserData, fetchServerUserData, saveServerUserData } from './storage.js';
+import { GOOGLE_CLIENT_ID, authHeaders, setGoogleAccessToken, PROFILE_KEY, loadProfile, loadProfileByEmail, saveProfile, loadUserData, saveUserData, defaultUserData, fetchServerUserData, saveServerUserData, getSyncStatus, onSyncStatus, setSyncStatus } from './storage.js';
 import { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, HOMEWORK, QUIZZES_DATA, NOTES_DATA, SCHEDULE_DATA, DECKS, QUIZ, HIST, GPA_MAP, TOOLS_DATA, GPA, subjectBy, calcGPA, makeSubjectBy, greeting, formatDate } from './data.js';
 import { ICO, NAV } from './icons.jsx';
 
@@ -29,6 +29,30 @@ function acquireGoogleToken(silent) {
       client.requestAccessToken({ prompt: silent ? 'none' : '' });
     } catch (e) { resolve(null); }
   });
+}
+
+// Small, subtle cloud-sync indicator. When not connected, tapping it does a
+// reliable (user-initiated) reconnect.
+function SyncBadge({ onReconnect }) {
+  const [status, setStatus] = useState(getSyncStatus());
+  useEffect(() => onSyncStatus(setStatus), []);
+  const map = {
+    saving:  { t: 'Syncing…',                      c: T.ink3 },
+    synced:  { t: 'Synced to cloud',               c: '#3a8a52' },
+    error:   { t: 'Sync error — tap to reconnect', c: '#bf4a30' },
+    offline: { t: 'Not connected — tap to connect', c: '#b07020' },
+  };
+  const s = map[status];
+  if (!s) return null;
+  const clickable = status === 'error' || status === 'offline';
+  return ReactDOM.createPortal(
+    <div onClick={clickable ? onReconnect : undefined}
+      style={{position:'fixed', left:12, bottom:10, zIndex:1000, display:'flex', alignItems:'center', gap:7, fontFamily:T.mono, fontSize:8.5, color:s.c, background:T.surface, border:`1px solid ${T.border}`, borderRadius:20, padding:'6px 12px', boxShadow:'0 2px 10px rgba(24,21,14,0.06)', cursor: clickable ? 'pointer' : 'default'}}>
+      <span style={{width:6, height:6, borderRadius:'50%', background:s.c}} />
+      {s.t}
+    </div>,
+    document.body
+  );
 }
 
 /* ── Sidebar ────────────────────────────────────────────── */
@@ -3102,7 +3126,9 @@ function App() {
         return;
       }
       acquireGoogleToken(true).then(token => {
-        if (cancelled || !token) return;
+        if (cancelled) return;
+        if (!token) { setSyncStatus('offline'); return; }
+        setSyncStatus('synced');
         fetchServerUserData().then(serverUD => {
           if (cancelled) return;
           const localUD = loadUserData(email) || defaultUserData();
@@ -3118,6 +3144,23 @@ function App() {
     tryAuth();
     return () => { cancelled = true; };
   }, [profile?.email]);
+
+  // Reliable manual reconnect (triggered by tapping the sync badge): does a
+  // user-initiated Google token request, which works even when the silent
+  // background renewal can't.
+  const reconnectCloud = async () => {
+    const token = await acquireGoogleToken(false);
+    if (!token || !profile?.email) { setSyncStatus('offline'); return; }
+    const serverUD = await fetchServerUserData();
+    const localUD = loadUserData(profile.email) || defaultUserData();
+    if (serverUD && (serverUD.updatedAt || 0) > (localUD.updatedAt || 0)) {
+      saveUserData(profile.email, serverUD);
+      setUserData(serverUD);
+      setSyncStatus('synced');
+    } else {
+      saveServerUserData(localUD);
+    }
+  };
 
   if (!profile && !inSetup) {
     return <WelcomeScreen onSignIn={handleSignIn} onSetup={(data) => { setSetupPrefill(data || null); setInSetup(true); }} />;
@@ -3142,6 +3185,7 @@ function App() {
       <div style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
         <Screen key={key} profile={profile} userData={userData} onUpdate={updateUserData} />
       </div>
+      <SyncBadge onReconnect={reconnectCloud} />
     </div>
   );
 }
