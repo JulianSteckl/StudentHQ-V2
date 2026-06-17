@@ -1464,7 +1464,7 @@ function GradesScreen({ profile, userData, onUpdate }) {
 
         {/* Subject Balance Radar Chart */}
         {(() => {
-          const radarSubjs = subjects.slice(0, 8);
+          const radarSubjs = subjects.length > 0 ? subjects.slice(0, 8) : SUBJECTS.slice(0, 6);
           const n = radarSubjs.length;
           if (n < 3) return null;
           const CX = 120, CY2 = 120, RAD = 85;
