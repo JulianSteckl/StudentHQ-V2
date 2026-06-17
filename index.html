@@ -372,9 +372,79 @@ function ProfileModal({ open, onClose, profile, onSave }) {
   );
 }
 
+function AIKeysModal({ open, onClose }) {
+  const AI_PROVIDERS = [
+    { id:'openai',    name:'OpenAI',    placeholder:'sk-...', color:'#10a37f', icon:'◈' },
+    { id:'anthropic', name:'Anthropic', placeholder:'sk-ant-...', color:'#d97706', icon:'◇' },
+    { id:'gemini',    name:'Google Gemini', placeholder:'AI...', color:'#4285f4', icon:'◆' },
+  ];
+  const KEYS_STORAGE = 'shq-v2-ai-keys';
+  const loadKeys = () => { try { return JSON.parse(localStorage.getItem(KEYS_STORAGE) || '{}'); } catch { return {}; } };
+  const [keys, setKeys] = useState(loadKeys);
+  const [visible, setVisible] = useState({});
+  const [closing, setClosing] = useState(false);
+
+  const dismiss = () => { setClosing(true); setTimeout(() => { setClosing(false); onClose(); }, 280); };
+  const save = (id, val) => {
+    const next = {...keys, [id]: val};
+    setKeys(next);
+    localStorage.setItem(KEYS_STORAGE, JSON.stringify(next));
+  };
+
+  if (!open) return null;
+  return ReactDOM.createPortal(
+    <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }}
+      style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
+      <div style={{background:T.surface, borderRadius:12, width:420, maxHeight:'80vh', overflowY:'auto', border:`1px solid ${T.border}`, boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)', opacity:0, animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`}}>
+        <div style={{padding:'24px 28px 0'}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
+            <h3 style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, fontWeight:400, margin:0, color:T.ink}}>AI Connections</h3>
+            <button onClick={dismiss} style={{background:'none', border:'none', cursor:'pointer', padding:4, color:T.ink3, fontSize:18, lineHeight:1}}>×</button>
+          </div>
+          <p style={{fontFamily:T.ui, fontSize:11.5, color:T.ink3, margin:'0 0 20px', lineHeight:1.5}}>Connect your API keys to unlock AI-powered study features like smart flashcards, quiz generation, and note summaries.</p>
+        </div>
+        <div style={{padding:'0 28px 24px', display:'flex', flexDirection:'column', gap:16}}>
+          {AI_PROVIDERS.map(p => {
+            const val = keys[p.id] || '';
+            const connected = val.length > 8;
+            return (
+              <div key={p.id} style={{padding:'16px', border:`1px solid ${connected ? p.color+'40' : T.border}`, borderRadius:10, background: connected ? p.color+'08' : T.bg, transition:'all 0.2s'}}>
+                <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:10}}>
+                  <span style={{fontSize:14, color:p.color}}>{p.icon}</span>
+                  <span style={{fontFamily:T.ui, fontSize:13, fontWeight:500, color:T.ink}}>{p.name}</span>
+                  {connected && <span style={{marginLeft:'auto', fontFamily:T.mono, fontSize:7.5, color:p.color, letterSpacing:'0.08em', textTransform:'uppercase', background:p.color+'15', padding:'2px 7px', borderRadius:4}}>Connected</span>}
+                </div>
+                <div style={{display:'flex', gap:6}}>
+                  <input
+                    type={visible[p.id] ? 'text' : 'password'}
+                    value={val}
+                    onChange={e => save(p.id, e.target.value)}
+                    placeholder={p.placeholder}
+                    style={{flex:1, padding:'8px 10px', border:`1px solid ${T.border}`, borderRadius:6, background:T.surface, fontFamily:T.mono, fontSize:11, color:T.ink, outline:'none', boxSizing:'border-box'}}
+                    onFocus={e => e.target.style.borderColor = p.color}
+                    onBlur={e => e.target.style.borderColor = T.border}
+                  />
+                  <button onClick={() => setVisible(v => ({...v, [p.id]: !v[p.id]}))} style={{padding:'0 8px', border:`1px solid ${T.border}`, borderRadius:6, background:T.bg, cursor:'pointer', fontFamily:T.mono, fontSize:9, color:T.ink3}}>
+                    {visible[p.id] ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, lineHeight:1.6, letterSpacing:'0.02em', textAlign:'center', padding:'4px 0'}}>
+            Keys are stored locally on your device and never sent to our servers.
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, onUpdateProfile }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showAIKeys, setShowAIKeys] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [hov, setHov] = useState(null);
   const settingsRef = useRef(null);
@@ -530,6 +600,7 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
             {[
               { label:'Profile', icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="6" r="3"/><path d="M3 14c0-2.8 2.2-5 5-5s5 2.2 5 5"/></svg>, action: () => { setShowSettings(false); setShowProfileModal(true); } },
               { label:'Manage Subjects', icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"/></svg>, action: () => { setShowSettings(false); onNav('subjects'); } },
+              { label:'AI Connections', icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M8 1v4M8 11v4M1 8h4M11 8h4M3.5 3.5l2.8 2.8M9.7 9.7l2.8 2.8M12.5 3.5l-2.8 2.8M6.3 9.7l-2.8 2.8"/></svg>, action: () => { setShowSettings(false); setShowAIKeys(true); } },
               { type:'divider' },
               { label:'Sign Out', icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 14H3V2h3M11 11l3-3-3-3M6 8h8"/></svg>, action: () => { setShowSettings(false); onSignOut && onSignOut(); }, danger: true },
             ].map((item, i) => item.type === 'divider' ? (
@@ -574,6 +645,7 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
     </aside>
     <AddSubjectModal open={showAddModal} onClose={() => setShowAddModal(false)} onAdd={subj => onAddSubject && onAddSubject(subj)} existingCount={subjects.length} />
     <ProfileModal open={showProfileModal} onClose={() => setShowProfileModal(false)} profile={profile} onSave={p => onUpdateProfile && onUpdateProfile(p)} />
+    <AIKeysModal open={showAIKeys} onClose={() => setShowAIKeys(false)} />
     </>
   );
 }
