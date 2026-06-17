@@ -1329,6 +1329,11 @@ function GradesScreen({ profile, userData, onUpdate }) {
             <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>Click any subject to view grade detail.</div>
           </div>
           <div style={{display:'flex', gap:8, flexShrink:0}}>
+            <button style={{
+              display:'flex', alignItems:'center', gap:6, padding:'7px 13px',
+              border:'none', background:T.accent, color:'#fff',
+              fontFamily:T.mono, fontSize:8, letterSpacing:'0.07em', cursor:'pointer',
+            }}>+ Add Subject</button>
             {['Import Grades PDF','Export CSV'].map((label,i) => (
               <button key={label} style={{
                 display:'flex', alignItems:'center', gap:6, padding:'7px 13px',
