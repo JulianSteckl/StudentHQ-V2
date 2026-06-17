@@ -2,7 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { createPortal } from 'react-dom';
 import { T } from './theme.js';
-import { GOOGLE_CLIENT_ID, authHeaders, setGoogleAccessToken, PROFILE_KEY, loadProfile, loadProfileByEmail, saveProfile, loadUserData, saveUserData, defaultUserData } from './storage.js';
+import { GOOGLE_CLIENT_ID, authHeaders, setGoogleAccessToken, PROFILE_KEY, loadProfile, loadProfileByEmail, saveProfile, loadUserData, saveUserData, defaultUserData, fetchServerUserData, saveServerUserData } from './storage.js';
 import { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, HOMEWORK, QUIZZES_DATA, NOTES_DATA, SCHEDULE_DATA, DECKS, QUIZ, HIST, GPA_MAP, TOOLS_DATA, GPA, subjectBy, calcGPA, makeSubjectBy, greeting, formatDate } from './data.js';
 import { ICO, NAV } from './icons.jsx';
 
@@ -1036,12 +1036,99 @@ function QuizzesScreen({ profile, userData }) {
 }
 
 /* ── 4. Notes ───────────────────────────────────────────── */
-function NotesScreen({ profile, userData }) {
+const fmtNoteDate = (ts) => new Date(ts).toLocaleDateString('en-US', { month:'short', day:'numeric' });
+const makeNotePreview = (body) => (body || '').replace(/\s+/g, ' ').trim().slice(0, 160);
+
+function NoteEditorModal({ open, onClose, onSave, subjects, initial }) {
+  const [title, setTitle] = useState('');
+  const [subj, setSubj]   = useState('');
+  const [body, setBody]   = useState('');
+  const [closing, setClosing] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setTitle(initial?.title || '');
+      setSubj(initial?.subj || subjects[0]?.id || '');
+      setBody(initial?.body ?? initial?.preview ?? '');
+      setClosing(false);
+    }
+  }, [open]);
+
+  if (!open) return null;
+  const isEdit = !!(initial && initial.id);
+  const dismiss = () => { setClosing(true); setTimeout(onClose, 320); };
+  const submit = () => {
+    if (!title.trim()) return;
+    onSave({ title: title.trim(), subj: subj || subjects[0]?.id || '', body });
+    dismiss();
+  };
+
+  return ReactDOM.createPortal(
+    <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
+      <div style={{ width:520, maxWidth:'92vw', background:T.surface, border:`1px solid ${T.border}`, borderRadius:16, padding:'36px 32px 28px', position:'relative', opacity:0, boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)', animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards` }}>
+        <button onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
+        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, marginBottom:4}}>{isEdit ? 'Edit ' : 'New '}<span style={{color:T.accent}}>note</span></div>
+        <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:22}}>Saved to your account · syncs across devices</div>
+
+        <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Note title" autoFocus
+          style={{width:'100%', padding:'10px 14px', border:`1px solid ${T.border}`, borderRadius:10, fontFamily:T.ui, fontSize:14, color:T.ink, background:T.bg, outline:'none', boxSizing:'border-box', marginBottom:16}}
+          onFocus={e=>e.target.style.borderColor=T.accent} onBlur={e=>e.target.style.borderColor=T.border} />
+
+        {subjects.length > 0 && (
+          <div style={{marginBottom:16}}>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:8}}>Subject</div>
+            <div style={{display:'flex', gap:7, flexWrap:'wrap'}}>
+              {subjects.map(s => {
+                const sel = subj === s.id;
+                return (
+                  <button key={s.id} onClick={()=>setSubj(s.id)} style={{display:'flex', alignItems:'center', gap:6, padding:'5px 11px', border:`1px solid ${sel ? s.color : T.border}`, background: sel ? s.color+'14' : T.bg, borderRadius:20, cursor:'pointer', fontFamily:T.ui, fontSize:11, color: sel ? T.ink : T.ink3}}>
+                    <span style={{width:7, height:7, borderRadius:'50%', background:s.color}} />
+                    {s.short}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <textarea value={body} onChange={e=>setBody(e.target.value)} placeholder="Write your note…" rows={8}
+          style={{width:'100%', padding:'12px 14px', border:`1px solid ${T.border}`, borderRadius:10, fontFamily:T.ui, fontSize:13, lineHeight:1.6, color:T.ink, background:T.bg, outline:'none', boxSizing:'border-box', resize:'vertical', marginBottom:24}}
+          onFocus={e=>e.target.style.borderColor=T.accent} onBlur={e=>e.target.style.borderColor=T.border} />
+
+        <div style={{display:'flex', gap:10, justifyContent:'flex-end'}}>
+          <button onClick={dismiss} style={{padding:'9px 20px', border:`1px solid ${T.border}`, background:'transparent', borderRadius:10, fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.06em', cursor:'pointer'}}
+            onMouseOver={e=>e.currentTarget.style.background=T.bl} onMouseOut={e=>e.currentTarget.style.background='transparent'}>Cancel</button>
+          <button onClick={submit} disabled={!title.trim()} style={{padding:'9px 24px', border:'none', background: title.trim() ? T.accent : T.border, borderRadius:10, fontFamily:T.mono, fontSize:9, color:'#fff', letterSpacing:'0.06em', cursor: title.trim() ? 'pointer' : 'default', fontWeight:600}}>{isEdit ? 'Save changes' : 'Create note'}</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function NotesScreen({ profile, userData, onUpdate }) {
   const subjectBy = makeSubjectBy(profile?.subjects || []);
   const subjects  = profile?.subjects || [];
   const notes     = userData?.notes   || [];
   const [active, setActive] = useState(null);
   const [search, setSearch] = useState('');
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
+
+  const openNew  = (subjId) => { setEditTarget(subjId ? { subj: subjId } : null); setEditorOpen(true); };
+  const openEdit = (note)   => { setEditTarget(note); setEditorOpen(true); };
+  const saveNote = ({ title, subj, body }) => {
+    const now = Date.now();
+    const preview = makeNotePreview(body);
+    if (editTarget && editTarget.id) {
+      onUpdate({ notes: notes.map(n => n.id === editTarget.id ? { ...n, title, subj, body, preview, date: fmtNoteDate(now), updatedAt: now } : n) });
+    } else {
+      const newNote = { id: 'n-' + now.toString(36) + Math.random().toString(36).slice(2,5), subj: subj || subjects[0]?.id || '', title, body, preview, date: fmtNoteDate(now), createdAt: now, updatedAt: now };
+      onUpdate({ notes: [newNote, ...notes] });
+    }
+  };
+  const deleteNote = (id) => { onUpdate({ notes: notes.filter(n => n.id !== id) }); setActive(null); };
+  const noteEditor = <NoteEditorModal open={editorOpen} onClose={() => setEditorOpen(false)} onSave={saveNote} subjects={subjects} initial={editTarget} />;
 
   if (active) {
     const note = notes.find(n => n.id === active);
@@ -1049,19 +1136,25 @@ function NotesScreen({ profile, userData }) {
     const s = subjectBy(note.subj);
     return (
       <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'56px 72px'}}>
-        <button onClick={() => setActive(null)} style={{background:'none', border:'none', padding:0, fontFamily:T.mono, fontSize:8.5, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:28, display:'flex', alignItems:'center', gap:7, cursor:'pointer'}}>
-          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><path d="M8 2L4 6l4 4"/></svg>
-          All Notes
-        </button>
+        {noteEditor}
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:28}}>
+          <button onClick={() => setActive(null)} style={{background:'none', border:'none', padding:0, fontFamily:T.mono, fontSize:8.5, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase', display:'flex', alignItems:'center', gap:7, cursor:'pointer'}}>
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><path d="M8 2L4 6l4 4"/></svg>
+            All Notes
+          </button>
+          <div style={{display:'flex', gap:8}}>
+            <button onClick={() => openEdit(note)} style={{padding:'7px 16px', border:`1px solid ${T.border}`, background:T.surface, color:T.ink, fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>Edit</button>
+            <button onClick={() => deleteNote(note.id)} style={{padding:'7px 16px', border:`1px solid ${T.border}`, background:T.surface, color:'#bf4a30', fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>Delete</button>
+          </div>
+        </div>
         <div style={{display:'flex', alignItems:'center', gap:9, marginBottom:16}}>
           <div style={{width:6, height:6, borderRadius:1.5, background:s.color}}/>
           <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, letterSpacing:'0.11em', textTransform:'uppercase'}}>{s.name} · {note.date}</div>
         </div>
         <h1 style={{fontFamily:T.serif, fontStyle:'italic', fontSize:38, fontWeight:400, color:T.ink, margin:'0 0 32px', lineHeight:1.15}}>{note.title}</h1>
         <Hr/>
-        <div style={{fontFamily:T.serif, fontSize:18, color:T.ink2, lineHeight:1.9, maxWidth:600}}>
-          {note.preview}<br/><br/>
-          <span style={{color:T.ink3, fontStyle:'italic'}}>Your full note continues here. Scholar keeps notes organized by subject and connected to upcoming assignments and quizzes.</span>
+        <div style={{fontFamily:T.serif, fontSize:18, color:T.ink2, lineHeight:1.9, maxWidth:600, whiteSpace:'pre-wrap'}}>
+          {note.body || note.preview || <span style={{color:T.ink3, fontStyle:'italic'}}>This note is empty. Use Edit to add content.</span>}
         </div>
       </div>
     );
@@ -1077,6 +1170,7 @@ function NotesScreen({ profile, userData }) {
 
   return (
     <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'28px 52px'}}>
+        {noteEditor}
         {/* Header */}
         <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:20}}>
           <div>
@@ -1084,7 +1178,7 @@ function NotesScreen({ profile, userData }) {
             <h1 style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:38, color:T.ink, margin:'0 0 5px', lineHeight:1.05}}>Notes.</h1>
             <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>Your personal knowledge base.</div>
           </div>
-          <button style={{padding:'8px 18px', border:`1px solid ${T.border}`, background:T.surface, color:T.ink, fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.07em', cursor:'pointer', flexShrink:0, marginTop:4}}>+ New note</button>
+          <button onClick={() => openNew()} style={{padding:'8px 18px', border:`1px solid ${T.border}`, background:T.surface, color:T.ink, fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.07em', cursor:'pointer', flexShrink:0, marginTop:4}}>+ New note</button>
         </div>
 
         {/* 4 stat cards */}
@@ -1123,6 +1217,13 @@ function NotesScreen({ profile, userData }) {
             </div>
             <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3}}>{filtered.length}</div>
           </div>
+          {filtered.length === 0 ? (
+            <div style={{background:T.surface, padding:'48px 24px', textAlign:'center'}}>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink2, marginBottom:6}}>{notes.length === 0 ? 'Nothing here yet' : 'No matching notes'}</div>
+              <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, marginBottom:18}}>{notes.length === 0 ? 'Create your first note to start building your knowledge base.' : 'Try a different search.'}</div>
+              {notes.length === 0 && <button onClick={() => openNew()} style={{padding:'9px 20px', border:`1px solid ${T.accent}`, background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:9, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>+ Create your first note</button>}
+            </div>
+          ) : (
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))', gap:1}}>
             {filtered.map(note => {
               const s = subjectBy(note.subj);
@@ -1142,6 +1243,7 @@ function NotesScreen({ profile, userData }) {
               );
             })}
           </div>
+          )}
         </div>
 
         {/* Subject Library */}
@@ -1151,11 +1253,11 @@ function NotesScreen({ profile, userData }) {
             <div key={s.id} style={{background:T.surface, padding:'15px 16px', borderRadius:12, borderLeft:`3px solid ${s.color}`}}>
               <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:4}}>
                 <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink, lineHeight:1.2}}>{s.name}</div>
-                <button style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, background:'none', border:'none', cursor:'pointer', padding:0, flexShrink:0, marginLeft:6}}>Open →</button>
+                <button onClick={() => { const first = sn[0]; if (first) setActive(first.id); else openNew(s.id); }} style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, background:'none', border:'none', cursor:'pointer', padding:0, flexShrink:0, marginLeft:6}}>Open →</button>
               </div>
               <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, marginBottom:7}}>{sn.length} notes</div>
               {sn.length > 0 && <div style={{fontFamily:T.ui, fontSize:11, color:T.ink3, lineHeight:1.5, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical'}}>{sn[0].preview}</div>}
-              <button style={{marginTop:9, fontFamily:T.mono, fontSize:7.5, color:s.color, background:`${s.color}14`, border:`1px solid ${s.color}35`, padding:'4px 10px', cursor:'pointer', letterSpacing:'0.07em'}}>+ Create note</button>
+              <button onClick={() => openNew(s.id)} style={{marginTop:9, fontFamily:T.mono, fontSize:7.5, color:s.color, background:`${s.color}14`, border:`1px solid ${s.color}35`, padding:'4px 10px', cursor:'pointer', letterSpacing:'0.07em'}}>+ Create note</button>
             </div>
           ))}
         </div>
@@ -2918,8 +3020,11 @@ function App() {
 
   const updateUserData = (update) => {
     setUserData(prev => {
-      const next = { ...prev, ...update };
-      if (profile?.email) saveUserData(profile.email, next);
+      const next = { ...prev, ...update, updatedAt: Date.now() };
+      if (profile?.email) {
+        saveUserData(profile.email, next);
+        saveServerUserData(next); // best-effort cloud save so work follows the user
+      }
       return next;
     });
   };
@@ -2931,14 +3036,24 @@ function App() {
       : p;
     saveProfile(merged);
     setProfile(merged);
-    const ud = loadUserData(merged.email) || defaultUserData();
-    setUserData(ud);
+    const localUD = loadUserData(merged.email) || defaultUserData();
+    setUserData(localUD);
     setInSetup(false);
     fetch('/api/profile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(p),
     }).catch(() => {});
+
+    // Reconcile this device's work with the cloud: whichever is newer wins.
+    fetchServerUserData().then(serverUD => {
+      if (serverUD && (serverUD.updatedAt || 0) > (localUD.updatedAt || 0)) {
+        saveUserData(merged.email, serverUD);
+        setUserData(serverUD);
+      } else if (localUD.updatedAt) {
+        saveServerUserData(localUD);
+      }
+    });
   };
 
   const handleSignOut = () => {
