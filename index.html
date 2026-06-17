@@ -61,6 +61,10 @@ const T = {
 
 /* ── Profile ────────────────────────────────────────────── */
 const GOOGLE_CLIENT_ID = '262784487938-jek8tem7bheq8ms983j338p2s34ip3rc.apps.googleusercontent.com';
+// Holds the current Google access token so the server can verify who we are
+// on every profile read/write. Set right after Google sign-in.
+let googleAccessToken = null;
+const authHeaders = () => googleAccessToken ? { Authorization: 'Bearer ' + googleAccessToken } : {};
 const PROFILE_KEY = 'shq-v2-profile';
 const PROFILE_BY_EMAIL = (email) => 'shq-v2-profile-' + (email || 'anon');
 const loadProfile = () => { try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch { return null; } };
@@ -2344,13 +2348,15 @@ function WelcomeScreen({ onSignIn, onSetup }) {
       scope: 'openid profile email',
       callback: async (resp) => {
         if (resp.error) { setGLoading(false); return; }
+        googleAccessToken = resp.access_token;
         try {
           const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
             { headers: { Authorization: 'Bearer ' + resp.access_token } });
           const u = await r.json();
-          // Check MongoDB for existing profile — restores data across devices
+          // Restore this user's saved profile from the server. The server
+          // verifies the token and returns only this user's own record.
           try {
-            const existing = await fetch(`/api/profile?email=${encodeURIComponent(u.email)}`).then(r => r.json());
+            const existing = await fetch('/api/profile', { headers: authHeaders() }).then(r => r.json());
             if (existing?.name) { onSignIn(existing); return; }
           } catch(e) {}
           setGoogleUser({ name: u.name, email: u.email, picture: u.picture });
@@ -3132,7 +3138,7 @@ function App() {
     setInSetup(false);
     fetch('/api/profile', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(p),
     }).catch(() => {});
   };
