@@ -52,8 +52,10 @@ const T = {
 /* ── Profile ────────────────────────────────────────────── */
 const GOOGLE_CLIENT_ID = '262784487938-jek8tem7bheq8ms983j338p2s34ip3rc.apps.googleusercontent.com';
 const PROFILE_KEY = 'shq-v2-profile';
+const PROFILE_BY_EMAIL = (email) => 'shq-v2-profile-' + (email || 'anon');
 const loadProfile = () => { try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch { return null; } };
-const saveProfile = (p) => localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+const loadProfileByEmail = (email) => { try { return JSON.parse(localStorage.getItem(PROFILE_BY_EMAIL(email)) || 'null'); } catch { return null; } };
+const saveProfile = (p) => { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); if (p?.email) localStorage.setItem(PROFILE_BY_EMAIL(p.email), JSON.stringify(p)); };
 
 const USER_DATA_KEY = (email) => 'shq-v2-data-' + (email || 'anon');
 const loadUserData  = (email) => { try { return JSON.parse(localStorage.getItem(USER_DATA_KEY(email)) || 'null'); } catch { return null; } };
@@ -2648,9 +2650,13 @@ function App() {
   };
 
   const handleSignIn = (p) => {
-    saveProfile(p);
-    setProfile(p);
-    const ud = loadUserData(p.email) || defaultUserData();
+    const saved = loadProfileByEmail(p.email);
+    const merged = (saved && saved.subjects?.length && !p.subjects?.length)
+      ? { ...saved, name: p.name || saved.name, picture: p.picture || saved.picture }
+      : p;
+    saveProfile(merged);
+    setProfile(merged);
+    const ud = loadUserData(merged.email) || defaultUserData();
     setUserData(ud);
     setInSetup(false);
     fetch('/api/profile', {
