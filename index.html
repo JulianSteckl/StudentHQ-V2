@@ -2353,12 +2353,18 @@ function WelcomeScreen({ onSignIn, onSetup }) {
           const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
             { headers: { Authorization: 'Bearer ' + resp.access_token } });
           const u = await r.json();
-          // Restore this user's saved profile from the server. The server
-          // verifies the token and returns only this user's own record.
+          // Restore this user's saved profile. Try the server first (verified
+          // by their token, lets data follow them across devices); if the
+          // server has nothing, fall back to the copy saved in this browser.
+          let existing = null;
           try {
-            const existing = await fetch('/api/profile', { headers: authHeaders() }).then(r => r.json());
-            if (existing?.name) { onSignIn(existing); return; }
+            existing = await fetch('/api/profile', { headers: authHeaders() }).then(r => r.ok ? r.json() : null);
           } catch(e) {}
+          if (!existing?.name) {
+            const local = loadProfileByEmail(u.email);
+            if (local?.name) existing = local;
+          }
+          if (existing?.name) { onSignIn(existing); return; }
           setGoogleUser({ name: u.name, email: u.email, picture: u.picture });
         } catch(e) {}
         setGLoading(false);

@@ -1,7 +1,24 @@
 const { MongoClient } = require('mongodb');
+const https = require('https');
 
 const uri = process.env.MONGODB_URI;
 let cachedClient = null;
+
+// Small GET-JSON helper that works on every Node version (no global fetch needed).
+function httpGetJson(url, headers) {
+  return new Promise((resolve) => {
+    const request = https.get(url, { headers: headers || {} }, (resp) => {
+      let data = '';
+      resp.on('data', (chunk) => { data += chunk; });
+      resp.on('end', () => {
+        if (resp.statusCode < 200 || resp.statusCode >= 300) return resolve(null);
+        try { resolve(JSON.parse(data)); } catch (e) { resolve(null); }
+      });
+    });
+    request.on('error', () => resolve(null));
+    request.setTimeout(5000, () => { request.destroy(); resolve(null); });
+  });
+}
 
 // Public Google OAuth client id (safe to expose). Override via env if needed.
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
@@ -41,17 +58,26 @@ async function getVerifiedEmail(req) {
   const auth = req.headers.authorization || '';
   const match = auth.match(/^Bearer\s+(.+)$/i);
   if (!match) return null;
+  const token = match[1];
 
-  const resp = await fetch(
-    'https://oauth2.googleapis.com/tokeninfo?access_token=' + encodeURIComponent(match[1])
+  // Validate the token and confirm it was issued for our app.
+  const info = await httpGetJson(
+    'https://oauth2.googleapis.com/tokeninfo?access_token=' + encodeURIComponent(token)
   );
-  if (!resp.ok) return null;
+  if (!info) return null;
+  if (info.aud !== GOOGLE_CLIENT_ID && info.azp !== GOOGLE_CLIENT_ID) return null;
 
-  const info = await resp.json();
-  if (info.aud !== GOOGLE_CLIENT_ID) return null;        // token issued for our app
-  if (!info.email) return null;
-  if (info.email_verified === false || info.email_verified === 'false') return null;
-  return info.email.toLowerCase();
+  // Prefer the email from the token introspection; some tokens omit it, so
+  // fall back to the userinfo endpoint using the same token.
+  if (info.email && info.email_verified !== false && info.email_verified !== 'false') {
+    return info.email.toLowerCase();
+  }
+  const userinfo = await httpGetJson(
+    'https://www.googleapis.com/oauth2/v3/userinfo',
+    { Authorization: 'Bearer ' + token }
+  );
+  if (userinfo && userinfo.email) return userinfo.email.toLowerCase();
+  return null;
 }
 
 function str(value, max) {
