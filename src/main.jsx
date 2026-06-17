@@ -9,6 +9,28 @@ import { ICO, NAV } from './icons.jsx';
 const { useState, useEffect, useRef } = React;
 const ReactDOM = { createRoot, createPortal };
 
+// Acquire a Google access token. With silent=true it tries to renew the token
+// in the background (no popup) so cloud sync keeps working after a page reload,
+// as long as the user still has an active Google session.
+function acquireGoogleToken(silent) {
+  return new Promise((resolve) => {
+    const g = window.google;
+    if (!g || !g.accounts || !g.accounts.oauth2) return resolve(null);
+    try {
+      const client = g.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: 'openid profile email',
+        callback: (resp) => {
+          if (resp && resp.access_token) { setGoogleAccessToken(resp.access_token); resolve(resp.access_token); }
+          else resolve(null);
+        },
+        error_callback: () => resolve(null),
+      });
+      client.requestAccessToken({ prompt: silent ? 'none' : '' });
+    } catch (e) { resolve(null); }
+  });
+}
+
 /* ── Sidebar ────────────────────────────────────────────── */
 function AddSubjectModal({ open, onClose, onAdd, existingCount }) {
   const [name, setName] = useState('');
@@ -3065,6 +3087,37 @@ function App() {
   };
 
   const [setupPrefill, setSetupPrefill] = useState(null);
+
+  // On load (and whenever the signed-in user changes), silently renew the
+  // Google token so cloud saves work after a reload, then reconcile this
+  // device's work with the cloud (newest wins).
+  useEffect(() => {
+    const email = profile?.email;
+    if (!email) return;
+    let cancelled = false;
+    const tryAuth = (attempt = 0) => {
+      if (cancelled) return;
+      if (!window.google?.accounts?.oauth2) {
+        if (attempt < 20) setTimeout(() => tryAuth(attempt + 1), 300);
+        return;
+      }
+      acquireGoogleToken(true).then(token => {
+        if (cancelled || !token) return;
+        fetchServerUserData().then(serverUD => {
+          if (cancelled) return;
+          const localUD = loadUserData(email) || defaultUserData();
+          if (serverUD && (serverUD.updatedAt || 0) > (localUD.updatedAt || 0)) {
+            saveUserData(email, serverUD);
+            setUserData(serverUD);
+          } else if ((localUD.updatedAt || 0) > (serverUD?.updatedAt || 0)) {
+            saveServerUserData(localUD);
+          }
+        });
+      });
+    };
+    tryAuth();
+    return () => { cancelled = true; };
+  }, [profile?.email]);
 
   if (!profile && !inSetup) {
     return <WelcomeScreen onSignIn={handleSignIn} onSetup={(data) => { setSetupPrefill(data || null); setInSetup(true); }} />;
