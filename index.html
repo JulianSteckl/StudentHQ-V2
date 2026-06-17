@@ -221,14 +221,14 @@ function AddSubjectModal({ open, onClose, onAdd, existingCount }) {
   };
 
   return (
-    <div onClick={dismiss} style={{position:'fixed', inset:0, zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.35)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', animation: closing ? 'shq-modal-fade-out 0.2s ease forwards' : 'shq-modal-fade-in 0.25s ease forwards'}}>
+    <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.35)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', animation: closing ? 'shq-modal-fade-out 0.2s ease forwards' : 'shq-modal-fade-in 0.25s ease forwards'}}>
       <style>{`
         @keyframes shq-modal-fade-in { from { opacity:0 } to { opacity:1 } }
         @keyframes shq-modal-fade-out { from { opacity:1 } to { opacity:0 } }
         @keyframes shq-modal-slide-up { from { opacity:0; transform:translateY(24px) scale(0.97) } to { opacity:1; transform:translateY(0) scale(1) } }
         @keyframes shq-modal-slide-down { from { opacity:1; transform:translateY(0) scale(1) } to { opacity:0; transform:translateY(16px) scale(0.97) } }
       `}</style>
-      <div onClick={e => e.stopPropagation()} style={{
+      <div style={{
         width:380, background:T.surface, border:`1px solid ${T.border}`, borderRadius:16,
         padding:'36px 32px 28px', position:'relative',
         boxShadow:'0 24px 80px rgba(24,21,14,0.18), 0 2px 12px rgba(24,21,14,0.08)',
@@ -306,8 +306,8 @@ function ProfileModal({ open, onClose, profile, onSave }) {
   const GRADES = [['freshman','Freshman'],['sophomore','Sophomore'],['junior','Junior'],['senior','Senior']];
 
   return (
-    <div onClick={dismiss} style={{position:'fixed', inset:0, zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.35)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', animation: closing ? 'shq-modal-fade-out 0.2s ease forwards' : 'shq-modal-fade-in 0.25s ease forwards'}}>
-      <div onClick={e => e.stopPropagation()} style={{
+    <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.35)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', animation: closing ? 'shq-modal-fade-out 0.2s ease forwards' : 'shq-modal-fade-in 0.25s ease forwards'}}>
+      <div style={{
         width:380, background:T.surface, border:`1px solid ${T.border}`, borderRadius:16,
         padding:'36px 32px 28px', position:'relative',
         boxShadow:'0 24px 80px rgba(24,21,14,0.18), 0 2px 12px rgba(24,21,14,0.08)',
