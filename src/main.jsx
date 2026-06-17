@@ -2,7 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { createPortal } from 'react-dom';
 import { T } from './theme.js';
-import { GOOGLE_CLIENT_ID, authHeaders, setGoogleAccessToken, PROFILE_KEY, loadProfile, loadProfileByEmail, saveProfile, loadUserData, saveUserData, defaultUserData, fetchServerUserData, saveServerUserData, getSyncStatus, onSyncStatus, setSyncStatus } from './storage.js';
+import { GOOGLE_CLIENT_ID, authHeaders, setGoogleAccessToken, restoreGoogleToken, PROFILE_KEY, loadProfile, loadProfileByEmail, saveProfile, loadUserData, saveUserData, defaultUserData, fetchServerUserData, saveServerUserData, getSyncStatus, onSyncStatus, setSyncStatus } from './storage.js';
 import { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, HOMEWORK, QUIZZES_DATA, NOTES_DATA, SCHEDULE_DATA, DECKS, QUIZ, HIST, GPA_MAP, TOOLS_DATA, GPA, subjectBy, calcGPA, makeSubjectBy, greeting, formatDate } from './data.js';
 import { ICO, NAV } from './icons.jsx';
 
@@ -21,7 +21,7 @@ function acquireGoogleToken(silent) {
         client_id: GOOGLE_CLIENT_ID,
         scope: 'openid profile email',
         callback: (resp) => {
-          if (resp && resp.access_token) { setGoogleAccessToken(resp.access_token); resolve(resp.access_token); }
+          if (resp && resp.access_token) { setGoogleAccessToken(resp.access_token, resp.expires_in); resolve(resp.access_token); }
           else resolve(null);
         },
         error_callback: () => resolve(null),
@@ -2288,7 +2288,7 @@ function WelcomeScreen({ onSignIn, onSetup }) {
       scope: 'openid profile email',
       callback: async (resp) => {
         if (resp.error) { setGLoading(false); return; }
-        setGoogleAccessToken(resp.access_token);
+        setGoogleAccessToken(resp.access_token, resp.expires_in);
         try {
           const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
             { headers: { Authorization: 'Bearer ' + resp.access_token } });
@@ -3119,6 +3119,28 @@ function App() {
     const email = profile?.email;
     if (!email) return;
     let cancelled = false;
+
+    const reconcile = () => {
+      fetchServerUserData().then(serverUD => {
+        if (cancelled) return;
+        const localUD = loadUserData(email) || defaultUserData();
+        if (serverUD && (serverUD.updatedAt || 0) > (localUD.updatedAt || 0)) {
+          saveUserData(email, serverUD);
+          setUserData(serverUD);
+        } else if ((localUD.updatedAt || 0) > (serverUD?.updatedAt || 0)) {
+          saveServerUserData(localUD);
+        }
+      });
+    };
+
+    // 1) Reuse a still-valid saved token immediately — no reconnect needed.
+    if (restoreGoogleToken()) {
+      setSyncStatus('synced');
+      reconcile();
+      return () => { cancelled = true; };
+    }
+
+    // 2) Otherwise try a silent background renewal; if blocked, show "offline".
     const tryAuth = (attempt = 0) => {
       if (cancelled) return;
       if (!window.google?.accounts?.oauth2) {
@@ -3129,16 +3151,7 @@ function App() {
         if (cancelled) return;
         if (!token) { setSyncStatus('offline'); return; }
         setSyncStatus('synced');
-        fetchServerUserData().then(serverUD => {
-          if (cancelled) return;
-          const localUD = loadUserData(email) || defaultUserData();
-          if (serverUD && (serverUD.updatedAt || 0) > (localUD.updatedAt || 0)) {
-            saveUserData(email, serverUD);
-            setUserData(serverUD);
-          } else if ((localUD.updatedAt || 0) > (serverUD?.updatedAt || 0)) {
-            saveServerUserData(localUD);
-          }
-        });
+        reconcile();
       });
     };
     tryAuth();

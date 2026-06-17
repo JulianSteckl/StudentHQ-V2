@@ -13,7 +13,25 @@ const USER_DATA_KEY = (email) => 'shq-v2-data-' + (email || 'anon');
 const loadUserData  = (email) => { try { return JSON.parse(localStorage.getItem(USER_DATA_KEY(email)) || 'null'); } catch { return null; } };
 const saveUserData  = (email, data) => localStorage.setItem(USER_DATA_KEY(email), JSON.stringify(data));
 const defaultUserData = () => ({ homework: [], grades: {}, streak: 0, quizzes: [], notes: [], schedule: [], flashcards: [], updatedAt: 0 });
-const setGoogleAccessToken = (t) => { googleAccessToken = t; };
+
+// Remember the Google access token (valid ~1h) across page reloads so the user
+// doesn't have to reconnect every time. Tokens are short-lived and scoped.
+const TOKEN_KEY = 'shq-v2-gtoken';
+const setGoogleAccessToken = (t, expiresInSec) => {
+  googleAccessToken = t;
+  try {
+    if (t) localStorage.setItem(TOKEN_KEY, JSON.stringify({ t, exp: Date.now() + (Number(expiresInSec) || 3600) * 1000 }));
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch (e) {}
+};
+const restoreGoogleToken = () => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(TOKEN_KEY) || 'null');
+    // keep a 60s safety margin before expiry
+    if (raw && raw.t && raw.exp && Date.now() < raw.exp - 60000) { googleAccessToken = raw.t; return raw.t; }
+  } catch (e) {}
+  return null;
+};
 
 // Visible cloud-sync status so the user can see whether their work is saving.
 // States: 'idle' | 'saving' | 'synced' | 'error' | 'offline'
@@ -48,8 +66,12 @@ const saveServerUserData = (data) => {
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(data),
   })
-    .then(r => { setSyncStatus(r.ok ? 'synced' : 'error'); return r; })
+    .then(r => {
+      if (r.status === 401) setGoogleAccessToken(null); // expired token → prompt reconnect
+      setSyncStatus(r.ok ? 'synced' : 'error');
+      return r;
+    })
     .catch(() => { setSyncStatus('error'); });
 };
 
-export { GOOGLE_CLIENT_ID, authHeaders, setGoogleAccessToken, PROFILE_KEY, loadProfile, loadProfileByEmail, saveProfile, loadUserData, saveUserData, defaultUserData, fetchServerUserData, saveServerUserData, getSyncStatus, onSyncStatus, setSyncStatus };
+export { GOOGLE_CLIENT_ID, authHeaders, setGoogleAccessToken, restoreGoogleToken, PROFILE_KEY, loadProfile, loadProfileByEmail, saveProfile, loadUserData, saveUserData, defaultUserData, fetchServerUserData, saveServerUserData, getSyncStatus, onSyncStatus, setSyncStatus };
