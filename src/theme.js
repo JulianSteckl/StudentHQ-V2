@@ -1,0 +1,14 @@
+export const T = {
+  bg:         '#f8f6f0',
+  surface:    '#ffffff',
+  ink:        '#18150e',
+  ink2:       '#5a5240',
+  ink3:       '#9a9080',
+  accent:     '#b8943a',
+  accentSoft: 'rgba(184,148,58,0.08)',
+  border:     '#e8e2d8',
+  bl:         '#f0ece4',
+  serif:      '"Cormorant Garamond",Georgia,serif',
+  ui:         '"DM Sans",sans-serif',
+  mono:       '"Geist Mono",monospace',
+};
