@@ -6,7 +6,7 @@
 <title>Scholar — Academic Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&family=Geist+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <style>
   *, *::before, *::after { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; height: 100%; }
@@ -335,149 +335,178 @@ function TodayScreen({ profile, userData, onUpdate }) {
   const tonight   = homework.filter(hw => hw.due === 'Tonight' && !hw.done);
   const curPeriod = schedule.find(p => p.current);
 
-  // Broadsheet design tokens
-  const PF     = "'Playfair Display', Georgia, serif";
-  const DMMONO = "'DM Mono', 'Courier New', monospace";
-  const RULE   = '#ddd8cc';
-  const GOLD   = T.accent;
-  const GSOFT  = 'rgba(184,148,58,0.08)';
-  const GMID   = 'rgba(184,148,58,0.25)';
-
-  const dayOfYear = Math.floor((now - new Date(now.getFullYear(),0,0)) / (1000*60*60*24));
-  const fullDate  = now.toLocaleDateString('en-US',{weekday:'long', month:'long', day:'numeric', year:'numeric'});
+  const Btn = ({children, gold}) => (
+    <button style={{padding:'7px 14px', border: gold ? 'none' : `1px solid ${T.border}`, background: gold ? T.accent : T.surface, color: gold ? '#fff' : T.ink3, fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.07em', cursor:'pointer', display:'flex', alignItems:'center', gap:6}}>{children}</button>
+  );
 
   return (
-    <div className="screen-enter" style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
-
-      {/* Masthead */}
-      <div style={{padding:'11px 28px 10px', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:`3px double ${T.ink}`, flexShrink:0}}>
-        <span style={{fontFamily:DMMONO, fontSize:8.5, color:T.ink3, letterSpacing:'0.15em', textTransform:'uppercase'}}>Vol. III, No. {dayOfYear}</span>
-        <div style={{display:'flex', alignItems:'center', gap:18}}>
-          <div style={{width:1, height:14, background:RULE, opacity:0.8}} />
-          <span style={{fontFamily:DMMONO, fontSize:8.5, color:T.ink3, letterSpacing:'0.15em', textTransform:'uppercase'}}>{fullDate}</span>
-          <div style={{width:1, height:14, background:RULE, opacity:0.8}} />
-        </div>
-        <span style={{fontFamily:DMMONO, fontSize:8.5, color:T.ink3, letterSpacing:'0.15em', textTransform:'uppercase'}}>Spring Term &middot; {timeStr}</span>
-      </div>
-
-      {/* Hero */}
-      <div style={{padding:'18px 28px 14px', borderBottom:`1px solid ${RULE}`, flexShrink:0, display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:24}}>
+    <div className="screen-enter" style={{flex:1, overflowY:'auto'}}>
+      {/* Header */}
+      <div style={{padding:'26px 52px 0', display:'flex', alignItems:'flex-start', justifyContent:'space-between'}}>
         <div>
-          <div style={{fontFamily:PF, fontStyle:'italic', fontSize:42, fontWeight:400, color:T.ink, lineHeight:1.05, letterSpacing:'-0.02em', marginBottom:6}}>
-            {timeLabel}, {firstName}.
+          <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:5}}>
+            {dayStr} · {dateStr} · {timeStr} · Spring Term
           </div>
-          <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>
-            {open.length > 0 ? `${open.length} assignment${open.length>1?'s':''} due tonight` : 'All clear tonight'} &middot; {quizzes.length > 0 ? `${quizzes.length} quiz${quizzes.length>1?'zes':''} approaching` : 'no quizzes'} &middot; {streak}-day streak
+          <h1 style={{margin:'0 0 5px', lineHeight:1.1}}>
+            <span style={{fontFamily:T.ui, fontWeight:700, fontSize:29, color:T.ink}}>{timeLabel}, </span>
+            <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:31, color:T.ink}}>{firstName}.</span>
+          </h1>
+          <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.05em'}}>
+            {open.length} things to finish tonight · {quizzes.length} quizzes scheduled
           </div>
         </div>
-        <div style={{display:'flex', gap:0, flexShrink:0, border:`1px solid ${RULE}`, borderRadius:10, overflow:'hidden', background:'#faf8f3'}}>
-          {[
-            {label:'Tasks',   val:String(open.length),    sub:'open',                                     gold:false},
-            {label:'GPA',     val:gpa,                    sub:'unweighted',                                gold:false},
-            {label:'Streak',  val:String(streak),         sub:'days running',                              gold:false},
-            {label:'Quizzes', val:String(quizzes.length), sub:quizzes.length>0?'upcoming':'none scheduled', gold:quizzes.length>0},
-          ].map((s,i) => (
-            <div key={i} style={{padding:'10px 18px', borderRight:i<3?`1px solid ${RULE}`:'none', minWidth:72, textAlign:'center'}}>
-              <div style={{fontFamily:DMMONO, fontSize:7, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:4}}>{s.label}</div>
-              <div style={{fontFamily:PF, fontStyle:'italic', fontSize:26, fontWeight:400, color:s.gold?GOLD:T.ink, lineHeight:1, marginBottom:2}}>{s.val}</div>
-              <div style={{fontFamily:DMMONO, fontSize:7.5, color:s.gold?GOLD:T.ink3}}>{s.sub}</div>
-            </div>
-          ))}
+        <div style={{display:'flex', gap:8, flexShrink:0, marginTop:4}}>
+          <Btn>✦ Customize</Btn>
+          <Btn gold>+ Add</Btn>
         </div>
       </div>
 
-      {/* Three columns */}
-      <div style={{flex:1, display:'flex', overflow:'hidden', minHeight:0}}>
+      {/* 4 stat cards */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, margin:'20px 52px 12px'}}>
+        {[
+          { label:'OPEN TASKS',    val:open.length,        sub:'all on track',                                              accent:T.accent  },
+          { label:'GPA',           val:gpa,                sub:'Unweighted · Spring',                                        accent:'#3a8a52' },
+          { label:'STUDY STREAK',  val:String(streak),     sub:'days running',                                               accent:'#2a60a0' },
+          { label:'QUIZZES AHEAD', val:quizzes.length,     sub:quizzes.length>0?`${quizzes[0].date} upcoming`:'none scheduled', accent:'#9254de' },
+        ].map(c => (
+          <div key={c.label} style={{background:T.surface, padding:'22px 24px 20px', borderRadius:12, minHeight:100, borderBottom:`2px solid ${c.accent}30`}}>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:10}}>{c.label}</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:38, color:T.ink, lineHeight:0.9, marginBottom:10}}>{c.val}</div>
+            <div style={{fontFamily:T.mono, fontSize:8, color:c.accent}}>{c.sub}</div>
+          </div>
+        ))}
+      </div>
 
-        {/* Col 1 — At a Glance */}
-        <div style={{width:218, flexShrink:0, display:'flex', flexDirection:'column', overflowY:'auto', padding:'18px 22px 24px', borderRight:`1px solid ${RULE}`}}>
-          <div style={{fontFamily:DMMONO, fontSize:7, color:T.ink, textTransform:'uppercase', letterSpacing:'0.2em', paddingBottom:7, borderBottom:`1px solid ${T.ink}`, marginBottom:16, flexShrink:0}}>At a Glance</div>
-          {[
-            {label:'Open Tasks', val:String(open.length),    sub:open.length===0?'all clear':'on track',      subColor:'#3a7a4a', gold:false},
-            {label:'GPA',        val:gpa,                    sub:'Unweighted',                                 subColor:null,      gold:false},
-            {label:'Streak',     val:String(streak),         sub:'days running',                               subColor:null,      gold:false},
-            {label:'Quizzes',    val:String(quizzes.length), sub:quizzes.length>0?'Tomorrow':'none scheduled', subColor:null,      gold:quizzes.length>0},
-          ].map((b,i,arr) => (
-            <div key={i} style={{paddingBottom:14, marginBottom:i<arr.length-1?14:0, borderBottom:i<arr.length-1?`1px solid ${RULE}`:'none'}}>
-              <div style={{fontFamily:DMMONO, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:6}}>{b.label}</div>
-              <div style={{fontFamily:PF, fontStyle:'italic', fontSize:52, fontWeight:400, color:b.gold?GOLD:T.ink, lineHeight:0.88, letterSpacing:'-0.02em', marginBottom:6}}>{b.val}</div>
-              <div style={{fontFamily:T.ui, fontSize:11, color:b.gold?GOLD:(b.subColor||T.ink3)}}>{b.sub}</div>
+      {/* Week mini-calendar */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:10, margin:'0 52px 12px'}}>
+        {weekDays.map(d => (
+          <div key={d.n} style={{background:d.today ? T.accentSoft : T.surface, padding:'16px 14px 14px', position:'relative', overflow:'hidden', borderRadius:12, minHeight:72}}>
+            {d.today && <div style={{position:'absolute', bottom:-14, right:-14, width:48, height:48, borderRadius:'50%', background:T.accent, opacity:0.12}}/>}
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:d.today?T.accent:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em', marginBottom:8}}>{d.n}</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:26, color:d.today?T.accent:T.ink3, lineHeight:1}}>{d.date}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Current period */}
+      <div style={{margin:'0 52px 12px', background:T.surface, padding:'20px 26px', borderLeft:`3px solid ${T.accent}`, borderRadius:12}}>
+        <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:7}}>
+          {open.length===0 ? 'All done for today · enjoy your evening' : `${open.length} tasks remaining · stay focused`}
+        </div>
+        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:28, color:T.ink, lineHeight:1.1, marginBottom:12}}>
+          {curPeriod ? subjectBy(curPeriod.subj).name : 'Free time'}
+        </div>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+          <span style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, border:`1px solid ${T.border}`, padding:'4px 10px', letterSpacing:'0.09em', textTransform:'uppercase'}}>
+            {curPeriod ? 'Class in session' : 'No class in session'}
+          </span>
+          <div style={{textAlign:'right'}}>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:2}}>Tomorrow</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink3}}>Clear ahead</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Game plan */}
+      <div style={{margin:'0 52px 12px', background:T.surface, padding:'17px 26px', borderRadius:12}}>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:13}}>
+          <div style={{display:'flex', alignItems:'center', gap:10}}>
+            <div style={{width:22, height:22, background:T.accent, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+              <span style={{color:'#fff', fontSize:11}}>✦</span>
             </div>
+            <div>
+              <div style={{fontFamily:T.ui, fontSize:13, color:T.ink, fontWeight:500}}>Game plan for today</div>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3}}>AI · updates with your homework & schedule</div>
+            </div>
+          </div>
+          <button style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, background:'none', border:`1px solid ${T.border}`, padding:'5px 11px', cursor:'pointer', transition:'border-color 0.12s'}}
+            onMouseOver={e=>e.currentTarget.style.borderColor=T.accent}
+            onMouseOut={e=>e.currentTarget.style.borderColor=T.border}
+          >↻ Refresh</button>
+        </div>
+        {open.length === 0
+          ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3}}>Review your notes and plan out your evening.</div>
+          : open.slice(0,4).map((hw,i) => {
+              const s = subjectBy(hw.subj);
+              return (
+                <div key={i} style={{display:'flex', gap:12, marginBottom:8}}>
+                  <span style={{fontFamily:T.mono, fontSize:9, color:T.ink3, flexShrink:0, width:12}}>{i+1}</span>
+                  <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink2, lineHeight:1.5}}>{s.short}: {hw.title} — {hw.est}</div>
+                </div>
+              );
+            })
+        }
+      </div>
+
+      {/* Bottom 3-column */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, margin:'0 52px 28px'}}>
+        {/* Workload */}
+        <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
+          <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:11}}>Workload</div>
+          <div style={{display:'flex', justifyContent:'space-between', marginBottom:8}}>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>Due Today</div>
+            <span style={{fontFamily:T.mono, fontSize:8, color:T.accent, cursor:'pointer'}}>All homework →</span>
+          </div>
+          {tonight.length > 0 ? tonight.map(hw => {
+            const s = subjectBy(hw.subj);
+            return (
+              <div key={hw.title} style={{display:'flex', gap:8, alignItems:'flex-start', marginBottom:6}}>
+                <div style={{width:5, height:5, borderRadius:1, background:s.color, marginTop:4, flexShrink:0}}/>
+                <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, lineHeight:1.4}}>{hw.title}</div>
+              </div>
+            );
+          }) : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13.5, color:T.ink3, lineHeight:1.65}}>All clear today. Nothing due — you're ahead.</div>}
+          <div style={{borderTop:`1px solid ${T.bl}`, marginTop:12, paddingTop:11}}>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em', marginBottom:7}}>Quizzes Ahead</div>
+            {quizzes.slice(0,2).map(q => {
+              const s = subjectBy(q.subj);
+              return (
+                <div key={q.title} style={{display:'flex', gap:7, alignItems:'center', marginBottom:5}}>
+                  <div style={{width:5, height:5, borderRadius:1, background:s.color, flexShrink:0}}/>
+                  <div style={{flex:1, fontFamily:T.ui, fontSize:11.5, color:T.ink2}}>{q.title.split('—')[0].trim()}</div>
+                  <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, flexShrink:0}}>{q.date}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Schedule & Notes */}
+        <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
+          <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:11}}>Schedule & Notes</div>
+          <div style={{display:'flex', justifyContent:'space-between', marginBottom:8}}>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>Schedule</div>
+            <span style={{fontFamily:T.mono, fontSize:8, color:T.accent, cursor:'pointer'}}>Edit → {dayStr.slice(0,3)}</span>
+          </div>
+          {schedule.filter(p => p.subj).slice(0,5).map(p => {
+            const s = subjectBy(p.subj);
+            return (
+              <div key={p.period} style={{display:'flex', alignItems:'center', gap:7, marginBottom:5}}>
+                <div style={{width:4, height:4, borderRadius:1, background:s.color, flexShrink:0}}/>
+                <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1}}>{s.short}</div>
+                <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, flexShrink:0}}>{p.time.split('–')[0].trim()}</div>
+              </div>
+            );
+          })}
+          {schedule.length === 0 && <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, opacity:0.5}}>No schedule set — add classes in Schedule.</div>}
+          {schedule.filter(p=>!p.subj&&p.room==='Library').map(p => (
+            <div key="lib" style={{fontFamily:T.mono, fontSize:8, color:T.ink3, marginTop:6}}>2:45 → Study Hall</div>
           ))}
         </div>
 
-        {/* Col 2 — This Week */}
-        <div style={{width:218, flexShrink:0, display:'flex', flexDirection:'column', overflowY:'auto', padding:'18px 22px 24px', borderRight:`1px solid ${RULE}`}}>
-          <div style={{fontFamily:DMMONO, fontSize:7, color:T.ink, textTransform:'uppercase', letterSpacing:'0.2em', paddingBottom:7, borderBottom:`1px solid ${T.ink}`, marginBottom:16, flexShrink:0}}>This Week</div>
-
-          {/* 7-day strip */}
-          <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:4, marginBottom:16, flexShrink:0}}>
-            {weekDays.map((d,i) => (
-              <div key={i} style={{textAlign:'center', padding:'6px 2px 5px', borderRadius:7, background:d.today?GSOFT:'transparent', border:d.today?`1px solid ${GMID}`:'1px solid transparent'}}>
-                <div style={{fontFamily:DMMONO, fontSize:7, color:d.today?GOLD:T.ink3, letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4}}>{d.n.charAt(0)}</div>
-                <div style={{fontFamily:PF, fontStyle:'italic', fontSize:19, color:d.today?GOLD:T.ink3, lineHeight:1}}>{d.date}</div>
-              </div>
+        {/* Progress */}
+        <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
+          <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:11}}>Progress</div>
+          <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em', marginBottom:7}}>Study Streak</div>
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:42, color:T.accent, lineHeight:0.9, marginBottom:4}}>{streak}</div>
+          <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, marginBottom:14}}>days</div>
+          <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, lineHeight:1.6, marginBottom:16}}>{streak > 0 ? `Day ${streak} — keep it going.` : 'Start your streak today.'}</div>
+          <div style={{display:'flex', gap:3, flexWrap:'wrap'}}>
+            {Array.from({length:14}).map((_,i) => (
+              <div key={i} style={{width:11, height:11, borderRadius:2, background: i < streak ? T.accent : T.bl}}/>
             ))}
           </div>
-
-          {quizzes.length > 0 && (
-            <div style={{marginBottom:14}}>
-              <div style={{fontFamily:DMMONO, fontSize:7, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:6}}>Quizzes</div>
-              {quizzes.slice(0,3).map((q,i) => {
-                const s = subjectBy(q.subj);
-                return <div key={i} style={{fontFamily:T.ui, fontSize:12, color:T.ink3, marginBottom:2}}>{s.short} &middot; {q.title.split('—')[0].trim()} &mdash; {q.date}</div>;
-              })}
-            </div>
-          )}
-
-          <hr style={{border:'none', borderTop:`1px solid ${RULE}`, margin:'12px 0'}} />
-
-          <div style={{marginBottom:14}}>
-            <div style={{fontFamily:DMMONO, fontSize:7, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:6}}>Now in class</div>
-            {curPeriod
-              ? <><div style={{fontFamily:PF, fontStyle:'italic', fontSize:24, fontWeight:400, color:T.ink, lineHeight:1.1, marginBottom:4}}>{subjectBy(curPeriod.subj).name}</div>
-                  <div style={{fontFamily:T.ui, fontSize:11, color:GOLD}}>Class in session</div></>
-              : <div style={{fontFamily:PF, fontStyle:'italic', fontSize:18, color:T.ink3}}>Free time</div>
-            }
-          </div>
-
-          <hr style={{border:'none', borderTop:`1px solid ${RULE}`, margin:'12px 0'}} />
-
-          <div>
-            <div style={{fontFamily:DMMONO, fontSize:7, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:6}}>Tomorrow</div>
-            <div style={{fontFamily:PF, fontStyle:'italic', fontSize:18, color:T.ink3}}>Clear ahead</div>
-          </div>
         </div>
-
-        {/* Col 3 — Tonight's Game Plan */}
-        <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', overflowY:'auto', padding:'18px 22px 24px'}}>
-          <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:4}}>
-            <span style={{color:GOLD, fontSize:12, flexShrink:0}}>✦</span>
-            <div style={{fontFamily:DMMONO, fontSize:7, color:T.ink, textTransform:'uppercase', letterSpacing:'0.2em', paddingBottom:7, borderBottom:`1px solid ${T.ink}`, flex:1}}>Tonight's Game Plan</div>
-          </div>
-          <div style={{fontFamily:DMMONO, fontSize:9.5, color:T.ink3, fontStyle:'italic', marginBottom:18}}>AI &middot; updates with homework &amp; schedule</div>
-
-          {open.length === 0
-            ? <div style={{fontFamily:PF, fontStyle:'italic', fontSize:18, color:T.ink3}}>All clear &mdash; enjoy your evening.</div>
-            : open.map((hw, i) => {
-                const s = subjectBy(hw.subj);
-                return (
-                  <div key={hw.id||i} style={{display:'flex', alignItems:'flex-start', gap:14, padding:'13px 0', borderBottom:`1px solid ${RULE}`}}>
-                    <span style={{fontFamily:DMMONO, fontSize:10, color:T.ink3, minWidth:14, paddingTop:2, flexShrink:0}}>{i+1}</span>
-                    <div style={{flex:1, minWidth:0}}>
-                      <div style={{fontFamily:T.ui, fontSize:14, fontWeight:500, color:T.ink, marginBottom:2, display:'flex', alignItems:'center', gap:7}}>
-                        <div style={{width:5, height:5, borderRadius:'50%', background:s.color, flexShrink:0}} />
-                        {s.name}
-                      </div>
-                      <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>{hw.title}</div>
-                    </div>
-                    <span style={{fontFamily:DMMONO, fontSize:10.5, color:T.ink3, flexShrink:0, paddingTop:3, letterSpacing:'0.02em', whiteSpace:'nowrap'}}>{hw.est}</span>
-                  </div>
-                );
-              })
-          }
-        </div>
-
       </div>
     </div>
   );
