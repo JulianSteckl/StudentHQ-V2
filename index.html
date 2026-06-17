@@ -231,12 +231,12 @@ function AddSubjectModal({ open, onClose, onAdd, existingCount }) {
   };
 
   return (
-    <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.35)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', animation: closing ? 'shq-modal-fade-out 0.3s ease forwards' : 'shq-modal-fade-in 0.4s ease forwards'}}>
+    <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', opacity:0, background:'rgba(24,21,14,0.35)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', animation: closing ? 'shq-modal-fade-out 0.3s ease forwards' : 'shq-modal-fade-in 0.4s cubic-bezier(0.4,0,0.2,1) forwards'}}>
       <div style={{
         width:380, background:T.surface, border:`1px solid ${T.border}`, borderRadius:16,
-        padding:'36px 32px 28px', position:'relative',
+        padding:'36px 32px 28px', position:'relative', opacity:0,
         boxShadow:'0 24px 80px rgba(24,21,14,0.18), 0 2px 12px rgba(24,21,14,0.08)',
-        animation: closing ? 'shq-modal-slide-down 0.3s cubic-bezier(0.4,0,1,1) forwards' : 'shq-modal-slide-up 0.5s cubic-bezier(0.16,1,0.3,1) forwards',
+        animation: closing ? 'shq-modal-slide-down 0.3s cubic-bezier(0.4,0,1,1) forwards' : 'shq-modal-slide-up 0.5s cubic-bezier(0.16,1,0.3,1) 0.05s forwards',
       }}>
         <button onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
 
@@ -310,12 +310,12 @@ function ProfileModal({ open, onClose, profile, onSave }) {
   const GRADES = [['freshman','Freshman'],['sophomore','Sophomore'],['junior','Junior'],['senior','Senior']];
 
   return (
-    <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.35)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', animation: closing ? 'shq-modal-fade-out 0.3s ease forwards' : 'shq-modal-fade-in 0.4s ease forwards'}}>
+    <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', opacity:0, background:'rgba(24,21,14,0.35)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', animation: closing ? 'shq-modal-fade-out 0.3s ease forwards' : 'shq-modal-fade-in 0.4s cubic-bezier(0.4,0,0.2,1) forwards'}}>
       <div style={{
         width:380, background:T.surface, border:`1px solid ${T.border}`, borderRadius:16,
-        padding:'36px 32px 28px', position:'relative',
+        padding:'36px 32px 28px', position:'relative', opacity:0,
         boxShadow:'0 24px 80px rgba(24,21,14,0.18), 0 2px 12px rgba(24,21,14,0.08)',
-        animation: closing ? 'shq-modal-slide-down 0.3s cubic-bezier(0.4,0,1,1) forwards' : 'shq-modal-slide-up 0.5s cubic-bezier(0.16,1,0.3,1) forwards',
+        animation: closing ? 'shq-modal-slide-down 0.3s cubic-bezier(0.4,0,1,1) forwards' : 'shq-modal-slide-up 0.5s cubic-bezier(0.16,1,0.3,1) 0.05s forwards',
       }}>
         <button onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
 
