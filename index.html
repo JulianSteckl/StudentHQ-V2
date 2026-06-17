@@ -2094,6 +2094,8 @@ function GoogleG({ size = 16, colored = false }) {
 function SetupFlow({ onComplete, onBack, initialData }) {
   const [step, setStep] = useState(1);
   const [exit, setExit] = useState(false);
+  const [animDir, setAnimDir] = useState(null);  // 'forward' | 'back' | null
+  const [animating, setAnimating] = useState(false);
 
   // Step 1 — pre-fill from Google if available
   const [name, setName]   = useState(initialData?.name || '');
@@ -2119,14 +2121,24 @@ function SetupFlow({ onComplete, onBack, initialData }) {
   const canNext2 = school.trim().length > 0;
   const canFinish = validSubjects.length > 0;
 
+  const animateStep = (nextStep, dir) => {
+    setAnimDir(dir);
+    setAnimating(true);
+    setTimeout(() => {
+      setStep(nextStep);
+      setAnimDir(dir === 'forward' ? 'enter-forward' : 'enter-back');
+      setTimeout(() => { setAnimating(false); setAnimDir(null); }, 350);
+    }, 300);
+  };
+
   const goBack = () => {
     if (step === 1) { setExit(true); setTimeout(() => { setExit(false); onBack(); }, 350); }
-    else setStep(s => s - 1);
+    else if (!animating) animateStep(step - 1, 'back');
   };
 
   const goNext = () => {
-    if (step < 3) setStep(s => s + 1);
-    else {
+    if (step < 3 && !animating) animateStep(step + 1, 'forward');
+    else if (step === 3) {
       const builtSubjects = validSubjects.map(s => ({
         id: makeSubjId(s.name), name: s.name.trim(), short: makeShort(s.name),
         color: s.color, grade:'—', gpa:0, pct:0,
@@ -2201,8 +2213,22 @@ function SetupFlow({ onComplete, onBack, initialData }) {
         .shq-ob-input::placeholder{color:${T.ink3}}
         .shq-ob-select option{background:${T.surface}}
         .shq-yr-btn:hover{border-color:${T.accent}!important}
-        @keyframes shq-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-        @keyframes shq-fade-float { 0%{opacity:0;transform:translateY(12px)} 30%{opacity:0.7} 70%{opacity:0.7} 100%{opacity:0;transform:translateY(-12px)} }
+        @keyframes shq-page-out-fwd {
+          0%   { opacity:1; transform:translateX(0) rotateY(0); }
+          100% { opacity:0; transform:translateX(-60px) rotateY(-8deg); }
+        }
+        @keyframes shq-page-out-back {
+          0%   { opacity:1; transform:translateX(0) rotateY(0); }
+          100% { opacity:0; transform:translateX(60px) rotateY(8deg); }
+        }
+        @keyframes shq-page-in-fwd {
+          0%   { opacity:0; transform:translateX(60px) rotateY(6deg); }
+          100% { opacity:1; transform:translateX(0) rotateY(0); }
+        }
+        @keyframes shq-page-in-back {
+          0%   { opacity:0; transform:translateX(-60px) rotateY(-6deg); }
+          100% { opacity:1; transform:translateX(0) rotateY(0); }
+        }
       `}</style>
 
       {/* Stepped progress bar */}
@@ -2241,7 +2267,13 @@ function SetupFlow({ onComplete, onBack, initialData }) {
 
 
 
-          <div style={{maxWidth:480, position:'relative', zIndex:1}}>
+          <div style={{maxWidth:480, position:'relative', zIndex:1, perspective:'800px',
+            animation: animDir === 'forward' ? 'shq-page-out-fwd 0.3s ease forwards'
+                     : animDir === 'back' ? 'shq-page-out-back 0.3s ease forwards'
+                     : animDir === 'enter-forward' ? 'shq-page-in-fwd 0.35s ease forwards'
+                     : animDir === 'enter-back' ? 'shq-page-in-back 0.35s ease forwards'
+                     : 'none',
+          }}>
             {/* Step 1 */}
             {step===1 && (
               <>
