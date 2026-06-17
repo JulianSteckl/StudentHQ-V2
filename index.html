@@ -2239,9 +2239,9 @@ function SetupFlow({ onComplete, onBack, initialData }) {
         {/* Left — form */}
         <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', overflowY:'auto', padding:'80px 48px 40px', position:'relative'}}>
 
-          {/* Background watermark — open book */}
-          <div style={{position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', opacity:0.03, pointerEvents:'none'}}>
-            <svg width="320" height="320" viewBox="0 0 320 320" fill="none">
+          {/* Background watermark — open book, bottom-right corner */}
+          <div style={{position:'absolute', bottom:-20, right:-20, opacity:0.025, pointerEvents:'none'}}>
+            <svg width="280" height="280" viewBox="0 0 320 320" fill="none">
               <path d="M160 60 L160 270" stroke={T.ink} strokeWidth="2" />
               <path d="M160 60 C130 65 60 80 40 100 C40 100 40 250 40 250 C60 235 130 220 160 218" stroke={T.ink} strokeWidth="2.5" fill="none" />
               <path d="M160 60 C190 65 260 80 280 100 C280 100 280 250 280 250 C260 235 190 220 160 218" stroke={T.ink} strokeWidth="2.5" fill="none" />
@@ -2254,21 +2254,6 @@ function SetupFlow({ onComplete, onBack, initialData }) {
               <path d="M180 140 L250 150" stroke={T.ink} strokeWidth="1" opacity="0.5" />
               <path d="M190 162 L250 170" stroke={T.ink} strokeWidth="1" opacity="0.5" />
             </svg>
-          </div>
-
-          {/* Floating emoji icons */}
-          <div style={{position:'absolute', top:0, left:0, right:0, bottom:0, overflow:'hidden', pointerEvents:'none'}}>
-            {FLOAT_ICONS.map((item, i) => (
-              <div key={i} style={{
-                position:'absolute',
-                left: `${item.x}%`,
-                top: `${item.y}%`,
-                fontSize:22,
-                opacity:0,
-                animation:`shq-fade-float ${6 + i * 0.8}s ease-in-out ${i * 1.1}s infinite`,
-                filter:'grayscale(0.3)',
-              }}>{item.emoji}</div>
-            ))}
           </div>
 
           <div style={{maxWidth:480, position:'relative', zIndex:1}}>
