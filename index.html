@@ -443,10 +443,117 @@ function AIKeysModal({ open, onClose }) {
   );
 }
 
+function ManageSubjectsModal({ open, onClose, profile, onUpdateProfile }) {
+  const [closing, setClosing] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [picker, setPicker] = useState(null);
+  const [newName, setNewName] = useState('');
+  const [newColor, setNewColor] = useState(PRESET_COLORS[0]);
+
+  const subjects = profile?.subjects || [];
+
+  useEffect(() => { if (open) { setClosing(false); setEditId(null); setNewName(''); setPicker(null); setNewColor(PRESET_COLORS[subjects.length % PRESET_COLORS.length]); } }, [open]);
+
+  if (!open) return null;
+
+  const dismiss = () => { setClosing(true); setTimeout(onClose, 280); };
+  const save = (newSubjects) => {
+    onUpdateProfile({ ...profile, subjects: newSubjects });
+  };
+  const remove = (id) => save(subjects.filter(s => s.id !== id));
+  const updateColor = (id, color) => { save(subjects.map(s => s.id === id ? {...s, color} : s)); setPicker(null); };
+  const startEdit = (s) => { setEditId(s.id); setEditName(s.name); };
+  const confirmEdit = (id) => {
+    if (editName.trim()) save(subjects.map(s => s.id === id ? {...s, name: editName.trim(), short: makeShort(editName)} : s));
+    setEditId(null);
+  };
+  const addSubject = () => {
+    if (!newName.trim() || subjects.length >= 10) return;
+    save([...subjects, { id: makeSubjId(newName), name: newName.trim(), short: makeShort(newName), color: newColor, grade:'—', gpa:0, pct:0 }]);
+    setNewName('');
+    setNewColor(PRESET_COLORS[(subjects.length + 1) % PRESET_COLORS.length]);
+  };
+
+  return ReactDOM.createPortal(
+    <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }}
+      style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
+      <div style={{background:T.surface, borderRadius:12, width:420, maxHeight:'80vh', display:'flex', flexDirection:'column', border:`1px solid ${T.border}`, boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)', opacity:0, animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`}}>
+        <div style={{padding:'24px 28px 0'}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
+            <h3 style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, fontWeight:400, margin:0, color:T.ink}}>Manage Subjects</h3>
+            <button onClick={dismiss} style={{background:'none', border:'none', cursor:'pointer', padding:4, color:T.ink3, fontSize:18, lineHeight:1}}>×</button>
+          </div>
+          <p style={{fontFamily:T.ui, fontSize:11.5, color:T.ink3, margin:'0 0 16px', lineHeight:1.5}}>{subjects.length} subject{subjects.length !== 1 ? 's' : ''} · click name to rename, dot to recolor</p>
+        </div>
+        <div style={{padding:'0 28px', overflowY:'auto', flex:1}}>
+          <div style={{display:'flex', flexDirection:'column', gap:6}}>
+            {subjects.map(s => (
+              <div key={s.id} style={{display:'flex', alignItems:'center', gap:10, padding:'10px 12px', border:`1px solid ${T.border}`, borderRadius:8, background:T.bg, position:'relative'}}>
+                <div style={{position:'relative'}}>
+                  <div onClick={() => setPicker(picker === s.id ? null : s.id)}
+                    style={{width:20, height:20, borderRadius:5, background:s.color, cursor:'pointer', border:'2px solid rgba(0,0,0,0.1)', flexShrink:0}} />
+                  {picker === s.id && (
+                    <div style={{position:'absolute', top:26, left:0, zIndex:10, background:T.surface, border:`1px solid ${T.border}`, borderRadius:8, padding:6, display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:4, boxShadow:'0 8px 24px rgba(24,21,14,0.14)'}}>
+                      {PRESET_COLORS.map(c => (
+                        <div key={c} onClick={() => updateColor(s.id, c)}
+                          style={{width:20, height:20, borderRadius:4, background:c, cursor:'pointer', outline: s.color===c ? `2px solid ${T.accent}` : 'none', outlineOffset:1}} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {editId === s.id ? (
+                  <input autoFocus value={editName} onChange={e => setEditName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') confirmEdit(s.id); if (e.key === 'Escape') setEditId(null); }}
+                    onBlur={() => confirmEdit(s.id)}
+                    style={{flex:1, padding:'4px 8px', border:`1px solid ${T.accent}`, borderRadius:5, fontFamily:T.ui, fontSize:12, color:T.ink, outline:'none', background:T.surface}} />
+                ) : (
+                  <span onClick={() => startEdit(s)} style={{flex:1, fontFamily:T.ui, fontSize:12, color:T.ink, cursor:'text'}}>{s.name}</span>
+                )}
+                <span style={{fontFamily:T.mono, fontSize:8, color:T.ink3, letterSpacing:'0.06em', flexShrink:0}}>{s.short}</span>
+                <button onClick={() => remove(s.id)} style={{background:'none', border:'none', cursor:'pointer', padding:2, color:T.ink3, fontSize:14, lineHeight:1, opacity:0.5, transition:'opacity 0.15s'}}
+                  onMouseOver={e => {e.currentTarget.style.opacity=1; e.currentTarget.style.color='#b04040'}}
+                  onMouseOut={e => {e.currentTarget.style.opacity=0.5; e.currentTarget.style.color=T.ink3}}>×</button>
+              </div>
+            ))}
+            {subjects.length === 0 && (
+              <div style={{textAlign:'center', padding:'20px 0', fontFamily:T.ui, fontSize:12, color:T.ink3}}>No subjects yet — add one below</div>
+            )}
+          </div>
+        </div>
+        {subjects.length < 10 && (
+          <div style={{padding:'16px 28px 24px', borderTop:`1px solid ${T.border}`, marginTop:12}}>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:8}}>Add new subject</div>
+            <div style={{display:'flex', gap:8}}>
+              <div onClick={() => setPicker(picker === 'new' ? null : 'new')} style={{width:36, height:36, borderRadius:6, background:newColor, cursor:'pointer', border:'2px solid rgba(0,0,0,0.1)', flexShrink:0, position:'relative'}}>
+                {picker === 'new' && (
+                  <div style={{position:'absolute', bottom:42, left:0, zIndex:10, background:T.surface, border:`1px solid ${T.border}`, borderRadius:8, padding:6, display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:4, boxShadow:'0 8px 24px rgba(24,21,14,0.14)'}}>
+                    {PRESET_COLORS.map(c => (
+                      <div key={c} onClick={e => { e.stopPropagation(); setNewColor(c); setPicker(null); }}
+                        style={{width:20, height:20, borderRadius:4, background:c, cursor:'pointer', outline: newColor===c ? `2px solid ${T.accent}` : 'none', outlineOffset:1}} />
+                    ))}
+                  </div>
+                )}
+              </div>
+              <input value={newName} onChange={e => setNewName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') addSubject(); }}
+                placeholder="e.g. AP Physics" style={{flex:1, padding:'8px 10px', border:`1px solid ${T.border}`, borderRadius:6, background:T.bg, fontFamily:T.ui, fontSize:12, color:T.ink, outline:'none'}}
+                onFocus={e => e.target.style.borderColor=T.accent} onBlur={e => e.target.style.borderColor=T.border} />
+              <button onClick={addSubject} disabled={!newName.trim()} style={{padding:'0 14px', border:'none', borderRadius:6, background: newName.trim() ? T.accent : T.border, color:'#fff', fontFamily:T.mono, fontSize:9, fontWeight:600, letterSpacing:'0.06em', cursor: newName.trim() ? 'pointer' : 'default', transition:'all 0.15s'}}>Add</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, onUpdateProfile }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAIKeys, setShowAIKeys] = useState(false);
+  const [showManageSubjects, setShowManageSubjects] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [hov, setHov] = useState(null);
   const settingsRef = useRef(null);
@@ -601,7 +708,7 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
           <div style={{position:'absolute', bottom:'100%', left:6, right:6, marginBottom:4, background:T.surface, border:`1px solid ${T.border}`, borderRadius:8, padding:'3px', boxShadow:'0 -8px 32px rgba(24,21,14,0.12), 0 -2px 8px rgba(24,21,14,0.06)', animation:'shq-modal-slide-up 0.18s cubic-bezier(0.16,1,0.3,1) forwards', zIndex:100}}>
             {[
               { label:'Profile', icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="6" r="3"/><path d="M3 14c0-2.8 2.2-5 5-5s5 2.2 5 5"/></svg>, action: () => { setShowSettings(false); setShowProfileModal(true); } },
-              { label:'Manage Subjects', icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"/></svg>, action: () => { setShowSettings(false); onNav('subjects'); } },
+              { label:'Manage Subjects', icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"/></svg>, action: () => { setShowSettings(false); setShowManageSubjects(true); } },
               { label:'AI Connections', icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M8 1v4M8 11v4M1 8h4M11 8h4M3.5 3.5l2.8 2.8M9.7 9.7l2.8 2.8M12.5 3.5l-2.8 2.8M6.3 9.7l-2.8 2.8"/></svg>, action: () => { setShowSettings(false); setShowAIKeys(true); } },
               { type:'divider' },
               { label:'Sign Out', icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 14H3V2h3M11 11l3-3-3-3M6 8h8"/></svg>, action: () => { setShowSettings(false); onSignOut && onSignOut(); }, danger: true },
@@ -648,6 +755,7 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
     <AddSubjectModal open={showAddModal} onClose={() => setShowAddModal(false)} onAdd={subj => onAddSubject && onAddSubject(subj)} existingCount={subjects.length} />
     <ProfileModal open={showProfileModal} onClose={() => setShowProfileModal(false)} profile={profile} onSave={p => onUpdateProfile && onUpdateProfile(p)} />
     <AIKeysModal open={showAIKeys} onClose={() => setShowAIKeys(false)} />
+    <ManageSubjectsModal open={showManageSubjects} onClose={() => setShowManageSubjects(false)} profile={profile} onUpdateProfile={onUpdateProfile} />
     </>
   );
 }
