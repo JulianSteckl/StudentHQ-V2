@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scholar — Design Plan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=DM+Sans:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: #f8f6f0;
+      color: #18150e;
+      line-height: 1.5;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 80px; }
+    .nav-links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .nav-links a {
+      font-family: "Geist Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid #e8e2d8;
+      background: #fff;
+      color: #5a5240;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover { border-color: #9254de; background: rgba(146,84,222,0.06); color: #18150e; }
+    .nav-links a.active {
+      border-color: #9254de;
+      background: rgba(146,84,222,0.1);
+      color: #6b3fa0;
+      pointer-events: none;
+    }
+    h1 {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      font-size: clamp(2rem, 5vw, 2.75rem);
+      margin: 0 0 6px;
+      letter-spacing: -0.02em;
+    }
+    .sub {
+      font-family: "Geist Mono", monospace;
+      font-size: 11px;
+      color: #9a9080;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      margin-bottom: 28px;
+    }
+    .progress-card {
+      background: #fff;
+      border: 1px solid #e8e2d8;
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 28px;
+    }
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 10px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .progress-label {
+      font-family: "Geist Mono", monospace;
+      font-size: 10px;
+      color: #9a9080;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+    .progress-pct {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-style: italic;
+      font-size: 1.5rem;
+      color: #9254de;
+    }
+    .progress-fill { background: #9254de; }
+    .progress-bar {
+      height: 6px;
+      background: #f0ece4;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 3px;
+      width: 0%;
+      transition: width 0.25s ease;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    button {
+      font-family: "Geist Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid #e8e2d8;
+      background: #fff;
+      color: #5a5240;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    button:hover { border-color: #9254de; background: rgba(146,84,222,0.06); }
+    button.danger:hover { border-color: #bf4a30; background: rgba(191,74,48,0.06); color: #bf4a30; }
+    section {
+      background: #fff;
+      border: 1px solid #e8e2d8;
+      border-radius: 12px;
+      padding: 20px 20px 8px;
+      margin-bottom: 16px;
+    }
+    section h2 {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      font-size: 1.35rem;
+      margin: 0 0 4px;
+      color: #18150e;
+    }
+    .phase-note {
+      font-size: 13px;
+      color: #5a5240;
+      margin: 0 0 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f0ece4;
+    }
+    .done-when {
+      font-family: "Geist Mono", monospace;
+      font-size: 10px;
+      color: #6b3fa0;
+      margin: 0 0 14px;
+      letter-spacing: 0.02em;
+    }
+    label.item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0ece4;
+      cursor: pointer;
+      user-select: none;
+    }
+    label.item:last-child { border-bottom: none; }
+    label.item:hover .text { color: #18150e; }
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      flex-shrink: 0;
+      accent-color: #9254de;
+      cursor: pointer;
+    }
+    .text { font-size: 14px; color: #5a5240; transition: color 0.15s; }
+    .sprint section { border-left: 3px solid #9254de; }
+    .hint {
+      font-size: 12px;
+      color: #9a9080;
+      margin-top: 24px;
+      text-align: center;
+      line-height: 1.7;
+    }
+    .hint code {
+      font-family: "Geist Mono", monospace;
+      font-size: 11px;
+      background: #f0ece4;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav-links">
+      <a href="implementation-plan.html">Code</a>
+      <a href="design-plan.html" class="active">Design</a>
+      <a href="launch-plan.html">Launch</a>
+      <a href="testing-plan.html">Testing</a>
+    </nav>
+
+    <h1>Design plan.</h1>
+    <p class="sub">Scholar · visuals &amp; UX · click Prompt on any task to copy for AI</p>
+
+    <div class="progress-card">
+      <div class="progress-top">
+        <span class="progress-label">Overall progress</span>
+        <span class="progress-pct" id="pct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="fill"></div></div>
+      <div class="actions">
+        <button type="button" id="scrollEnd">Jump to end</button>
+        <button type="button" class="danger" id="resetAll">Reset all</button>
+      </div>
+    </div>
+
+    <div id="plan"></div>
+
+    <p class="hint">
+      Open in your browser:<br />
+      <code>http://localhost:3456/design-plan.html</code><br />
+      or double-click <code>design-plan.html</code> in File Explorer
+    </p>
+  </div>
+
+  <script src="plans-common.js"></script>
+  <script>
+    const STORAGE_KEY = 'scholar-design-plan-v1';
+
+    const PLAN = [
+      {
+        title: 'Phase 1 — Brand identity & first impression',
+        note: 'What users see in the first 3 seconds. Highest visual impact.',
+        doneWhen: 'Done when: Scholar feels like one product everywhere — welcome, sign-in, and dashboard match.',
+        items: [
+          'Unify the wordmark (“Scholar.”) across welcome, sidebar, and mobile header',
+          'Fix sign-in overlay logo — replace hardcoded “J” with the real “S” mark',
+          'Design a favicon and apple-touch icon',
+          'Create an OG / social preview image for sharing',
+          'Align all date/term copy visually (no “Spring 2025” beside “2026 School Year”)',
+          'Pick one brand name and use it in UI only (Scholar, not StudentHQ)',
+          'Design a proper logo mark (not just a gradient square with a letter)',
+          'Make primary CTA buttons visually identical on welcome top and bottom',
+        ],
+      },
+      {
+        title: 'Phase 2 — Design system & tokens',
+        note: 'Stop reinventing styles on every screen. Foundation for everything else.',
+        doneWhen: 'Done when: every new screen can be built from a shared visual vocabulary.',
+        items: [
+          'Move theme colors (T object) into CSS custom properties',
+          'Define a spacing scale and stick to it (8 / 12 / 16 / 24 / 32 / 48 / 52)',
+          'Standardize border-radius — pick 2–3 values (e.g. 8, 12, 16) instead of 0–16 mix',
+          'Document typography roles: serif display, UI body, mono labels',
+          'Create 3 button styles: primary gold, secondary outline, ghost text',
+          'Standardize stat card pattern (label → big number → accent subline → bottom stripe)',
+          'Standardize section eyebrow style (mono, uppercase, letter-spaced)',
+          'Ensure subject accent colors meet contrast on white and cream backgrounds',
+          'Replace unicode icons (◷ ◈ ⊟) with a cohesive SVG icon set',
+        ],
+      },
+      {
+        title: 'Phase 3 — Typography & readability',
+        note: 'Editorial beauty only works if text is legible.',
+        items: [
+          'Fix or replace Geist Mono — ensure mono font actually loads',
+          'Raise minimum body text size — many labels are 7–8px and hard to read',
+          'Unify page title treatment (bold sans + italic serif split vs PageHeader vs custom)',
+          'Set a max line-width for long reading (notes detail view)',
+          'Tighten letter-spacing rules for ALL-CAPS mono labels',
+          'Improve number/stat typography (GPA, streak, countdown) for scanability',
+          'Add font-weight hierarchy so headers don’t compete with stats',
+          'Audit italic serif overuse — reserve for headlines and emphasis',
+        ],
+      },
+      {
+        title: 'Phase 4 — Layout rhythm & screen consistency',
+        note: 'Screens feel like different apps because padding and grids vary wildly.',
+        doneWhen: 'Done when: switching tabs feels like one room, not seven websites.',
+        items: [
+          'Unify horizontal padding across all screens (currently 16 / 28 / 40 / 52 / 56 / 72px)',
+          'Use PageHeader on every main screen (Homework, Schedule, Flashcards use custom headers)',
+          'Align stat-card grid column counts per breakpoint',
+          'Reduce reliance on inline margin styles — use layout classes',
+          'Give Tools screen breathing room — it’s visually denser than other pages',
+          'Balance Grades table vs cards — table feels like a different design language',
+          'Consistent gap between sections (12px vs 1px hairline grids)',
+          'Align “+ Add” button placement (top-right vs floating vs inline)',
+        ],
+      },
+      {
+        title: 'Phase 5 — Empty states & honest visuals',
+        note: 'Empty or fake UI is the biggest visual trust killer after broken features.',
+        items: [
+          'Design illustrated empty states for: no homework, no notes, no quizzes, no subjects',
+          'Replace kanban “EMPTY” ghost text with intentional empty-column design',
+          'Remove or redesign blank sparklines and dashed chart placeholders',
+          'Hide stat cards that show fake data until real (e.g. “1.3d early”, tool sessions)',
+          'Design a welcoming first-run Today dashboard (not a sea of zeros)',
+          'Notes search with zero results — needs its own empty state',
+          'Flashcards empty deck — design a “create your first card” moment',
+          'Tools “No activity yet” — make it inviting, not dead',
+        ],
+      },
+      {
+        title: 'Phase 6 — Welcome & onboarding visuals',
+        note: 'Your strongest visual work — extend that craft into setup.',
+        items: [
+          'Refine welcome letter-reveal animation timing and easing',
+          'Soften or optionalize cursor spotlight (can distract on trackpads)',
+          'Match setup flow palette and typography to the logged-in dashboard',
+          'Polish the 3-step setup progress indicator',
+          'Design the setup right-column preview (hidden on mobile — add mobile alternative)',
+          'Improve feature grid cards on welcome — hover, icons, spacing',
+          'Sign-in overlay: stronger visual hierarchy between Google step and grade step',
+          'Add subtle page texture or paper grain to reinforce “notebook” metaphor',
+          'Review Scholar.dc.html (Broadsheet) — steal or merge its best layout ideas',
+        ],
+      },
+      {
+        title: 'Phase 7 — Core component polish',
+        note: 'The pieces users interact with dozens of times per day.',
+        items: [
+          'Unify modal designs (Add Subject, Profile, AI Keys, Manage Subjects)',
+          'Add visible focus rings to all buttons and inputs',
+          'Polish sidebar: active pill, hover, subject list density',
+          'Redesign homework kanban cards — clearer urgency, subject color, done state',
+          'Add flip animation to flashcard study mode',
+          'Polish GPA ring and Pomodoro ring — consistent stroke weight and labels',
+          'Improve toast design (success vs info vs “coming soon”)',
+          'Settings dropdown — shadow, spacing, danger state for Sign Out',
+          'Color picker popover — consistent placement and shadow',
+          'Form inputs: consistent height, focus border, error state design',
+        ],
+      },
+      {
+        title: 'Phase 8 — Color, contrast & visual accessibility',
+        note: 'Pretty but illegible fails the design job.',
+        items: [
+          'Run contrast audit on ink3 (#9a9080) against bg and surface',
+          'Add non-color urgency cues on homework (icon, weight, or label)',
+          'Ensure gold accent (#b8943a) passes on white for small text',
+          'Design visible keyboard focus that matches the aesthetic',
+          'Test subject colors for color-blind users — don’t rely on hue alone',
+          'Add prefers-reduced-motion: disable letter reveal, modal bounce, spotlight',
+          'Profile avatars: consistent border-radius (6 vs 10 vs circle)',
+          'AI purple (#6c63ff) vs brand gold — define when each accent is used',
+        ],
+      },
+      {
+        title: 'Phase 9 — Mobile & responsive design',
+        note: 'Layout breakpoints exist; many screens still feel desktop-shrunk.',
+        items: [
+          'Homework 5-stat row → 2-col or scroll on mobile',
+          'Schedule 5-day grid → stack or horizontal scroll with clear day headers',
+          'Tools table → card list on narrow screens',
+          'Notes “Knowledge Insights / AI Workspace” → single column on mobile',
+          'Flashcards study modes 3-col grid → 1-col on mobile',
+          'Minimum 44px touch targets on sidebar, kanban, and modal buttons',
+          'Mobile header — add profile avatar or streak for personality',
+          'Week calendar on Today — 7 cols get cramped; redesign for small screens',
+          'Fix aggressive margin-stripping CSS that breaks intentional layouts',
+        ],
+      },
+      {
+        title: 'Phase 10 — Motion & micro-interactions',
+        note: 'Motion should feel editorial, not generic.',
+        items: [
+          'Consistent screen-enter animation across all routes',
+          'Modal backdrop blur + fade — match welcome overlay quality',
+          'Button hover: unify scale, shadow, and border transitions',
+          'Sidebar slide-in easing on mobile',
+          'Homework card hover / done strike-through animation',
+          'Streak dot grid — animate fill when streak increases',
+          'Loading state for Google sign-in (spinner or skeleton, not opacity only)',
+          'Celebrate moments: homework all done, streak milestone, GPA goal hit',
+        ],
+      },
+      {
+        title: 'Phase 11 — Personality & craft details',
+        note: 'What makes Scholar feel premium instead of template.',
+        items: [
+          'Carry welcome hairline frame motif into dashboard (subtle, not noisy)',
+          'Refine “Vol. I · MMXXVI” colophon — use or lose consistently',
+          'Custom illustrations for empty states or onboarding',
+          'Subject-specific visual identity beyond a colored dot',
+          'Dark mode exploration (optional — cream/ink palette would invert beautifully)',
+          'Seasonal or term-based subtle theme shifts (Fall vs Spring accent)',
+          'Printed-paper details: rules, margins, folio numbers on long pages',
+          'Consistent shadow language (cards vs modals vs dropdowns)',
+        ],
+      },
+      {
+        title: 'Sprint A — Quick visual wins',
+        sprint: true,
+        items: [
+          'Fix sign-in “J” → “S” logo',
+          'Hide empty sparklines and fake stats',
+          'Unify screen padding on 2–3 worst offenders (Tools, Quizzes, Subjects)',
+          'Add favicon',
+          'Design one strong empty state (homework or notes) as a template',
+        ],
+      },
+      {
+        title: 'Sprint B — Design system foundation',
+        sprint: true,
+        items: [
+          'CSS variables for all theme tokens',
+          'Three button variants used everywhere',
+          'SVG icon set for sidebar nav',
+          'Standard stat card component look',
+        ],
+      },
+      {
+        title: 'Sprint C — Mobile pass',
+        sprint: true,
+        items: [
+          'Homework + Schedule responsive grids',
+          'Tools mobile card layout',
+          'Touch target audit',
+        ],
+      },
+      {
+        title: 'Sprint D — Polish & delight',
+        sprint: true,
+        items: [
+          'Flashcard flip animation',
+          'Modal + toast visual unification',
+          'Welcome → dashboard visual handoff',
+          'prefers-reduced-motion',
+        ],
+      },
+    ];
+
+    let state = loadState();
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      updateProgress();
+    }
+
+    function itemId(phaseIdx, itemIdx) {
+      return 'p' + phaseIdx + '-i' + itemIdx;
+    }
+
+    function render() {
+      PlansUI.renderPlan({
+        plan: PLAN,
+        state,
+        itemId,
+        escapeHtml,
+        planTitle: 'Design Plan (Visuals & UX)',
+        planKind: 'design',
+        onCheck: (id, checked) => {
+          state[id] = checked;
+          saveState();
+        },
+      });
+      updateProgress();
+    }
+
+    function updateProgress() {
+      let total = 0;
+      let done = 0;
+      PLAN.forEach((phase, pi) => {
+        phase.items.forEach((_, ii) => {
+          total++;
+          if (state[itemId(pi, ii)]) done++;
+        });
+      });
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      document.getElementById('pct').textContent = pct + '%';
+      document.getElementById('fill').style.width = pct + '%';
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    document.getElementById('resetAll').addEventListener('click', () => {
+      if (confirm('Reset all checkboxes? This cannot be undone.')) {
+        state = {};
+        saveState();
+        render();
+      }
+    });
+
+    document.getElementById('scrollEnd').addEventListener('click', () => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    });
+
+    render();
+  </script>
+</body>
+</html>

@@ -3,8 +3,9 @@ import { createRoot } from 'react-dom/client';
 import { createPortal } from 'react-dom';
 import { T } from './theme.js';
 import { GOOGLE_CLIENT_ID, authHeaders, setGoogleAccessToken, restoreGoogleToken, PROFILE_KEY, loadProfile, loadProfileByEmail, saveProfile, loadUserData, saveUserData, defaultUserData, fetchServerUserData, saveServerUserData, getSyncStatus, onSyncStatus, setSyncStatus } from './storage.js';
-import { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, HOMEWORK, QUIZZES_DATA, NOTES_DATA, SCHEDULE_DATA, DECKS, QUIZ, HIST, GPA_MAP, TOOLS_DATA, GPA, subjectBy, calcGPA, makeSubjectBy, greeting, formatDate } from './data.js';
+import { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, HOMEWORK, QUIZZES_DATA, NOTES_DATA, SCHEDULE_DATA, DECKS, QUIZ, HIST, GPA_MAP, TOOLS_DATA, GPA, subjectBy, calcGPA, pickBestGradedSubject, makeSubjectBy, greeting, formatDate } from './data.js';
 import { ICO, NAV } from './icons.jsx';
+import { appendGradeHistory, gradeSparklinePoints, appendToolOpen, toolOpensThisWeek, toolOpenCounts, toolById, formatToolWhen, buildToolUsageInsight, normalizeUserData, normalizeToolOpens } from './user-data-helpers.js';
 
 const { useState, useEffect, useRef } = React;
 const ReactDOM = { createRoot, createPortal };
@@ -429,7 +430,7 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
   const NAV_GROUPS = [
     { label: 'Dashboard', items: NAV.filter(n => ['today','homework','quizzes'].includes(n.id)) },
     { label: 'Study',     items: NAV.filter(n => ['notes','flashcards'].includes(n.id)) },
-    { label: 'Academics', items: NAV.filter(n => ['schedule','grades','tools'].includes(n.id)) },
+    { label: 'Academics', items: NAV.filter(n => ['schedule','grades','subjects','tools'].includes(n.id)) },
   ];
 
   const navBtn = (item) => {
@@ -454,6 +455,7 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
         <span style={{flex:1}}>{item.label}</span>
         {item.id === 'homework' && hwOpen > 0 && <span style={{fontFamily:T.mono, fontSize:8, color:T.ink3, background:T.bl, padding:'1px 5px', borderRadius:4, lineHeight:'14px'}}>{hwOpen}</span>}
         {item.id === 'grades' && gpa !== '—' && <span style={{fontFamily:T.mono, fontSize:8, color:T.accent, fontWeight:600}}>{gpa}</span>}
+        {item.id === 'subjects' && subjects.length > 0 && <span style={{fontFamily:T.mono, fontSize:8, color:T.ink3, background:T.bl, padding:'1px 5px', borderRadius:4, lineHeight:'14px'}}>{subjects.length}</span>}
       </button>
     );
   };
@@ -1432,6 +1434,7 @@ function FlashcardsScreen({ profile, userData, onUpdate }) {
   const subjectBy  = makeSubjectBy(profile?.subjects || []);
   const subjects   = profile?.subjects || [];
   const quizzes    = userData?.quizzes    || [];
+  const grades     = userData?.grades     || {};
   const flashCards = userData?.flashcards || [];
   const [mode, setMode] = useState(null);
   const [qi, setQi]     = useState(0);
@@ -1544,9 +1547,8 @@ function FlashcardsScreen({ profile, userData, onUpdate }) {
     );
   }
 
-  const avgScore  = '—';
-  const bestSubj  = subjects[0] || { short:'—', grade:'—', pct:0, color:T.border };
-  const readiness = quizzes.length > 0 ? Math.round(quizzes.reduce((a,q)=>a+(q.confidence||0),0)/quizzes.length*100) : 0;
+  const bestSubj  = pickBestGradedSubject(subjects, grades) || { short:'—', color:T.border };
+  const readinessPct = quizzes.length > 0 ? Math.round(quizzes.reduce((a,q)=>a+(q.confidence||0),0)/quizzes.length*100) : null;
 
   const MODES = [
     {id:'flashcards', ic:'⊟', icC:'#3a8a52', title:'Flashcards',      sub:'Flip — question to answer'    },
@@ -1604,12 +1606,11 @@ function FlashcardsScreen({ profile, userData, onUpdate }) {
       {cardEditor}
 
       {/* 4 stat cards */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:28}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginBottom:28}}>
         {[
-          {label:'FLASHCARDS',        val:flashCards.length,            sub:'cards total',                                       accent:T.accent  },
-          {label:'AVG SCORE',         val:`${avgScore}%`,               sub:'last 4 results',                                    accent:'#3a8a52' },
-          {label:'BEST SUBJECT',      val:bestSubj.short,               sub:`${bestSubj.grade} · ${Math.round(bestSubj.pct*100)}%`, accent:bestSubj.color },
-          {label:'READINESS',         val:`${readiness}%`,              sub:'across upcoming',                                   accent:'#9254de' },
+          {label:'CARDS',             val:flashCards.length,            sub:'cards total',                                       accent:T.accent  },
+          {label:'BEST SUBJECT',      val:bestSubj.short,               sub:grades[bestSubj.id] || 'add grades',               accent:bestSubj.color },
+          {label:'READINESS',         val:readinessPct != null ? `${readinessPct}%` : '—', sub:readinessPct != null ? 'across upcoming' : 'add quizzes', accent:'#9254de' },
         ].map(c => (
           <div key={c.label} style={{background:T.surface, padding:'24px 22px', borderRadius:12, minHeight:100, borderBottom:`2px solid ${c.accent}28`}}>
             <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>{c.label}</div>
@@ -1912,11 +1913,20 @@ function GradesScreen({ profile, userData, onUpdate }) {
   const subjects   = profile?.subjects || [];
   const homework   = userData?.homework || [];
   const grades     = userData?.grades   || {};
+  const gradeHistory = userData?.gradeHistory || [];
   const GRADE_OPTS = ['A+','A','A−','B+','B','B−','C+','C','C−','D','F'];
 
   const setGrade = (subjId, g) => {
-    const next = { ...grades, [subjId]: g };
-    onUpdate && onUpdate({ grades: next });
+    const prev = grades[subjId];
+    let nextGrades = { ...grades };
+    let nextHistory = gradeHistory;
+    if (!g) {
+      delete nextGrades[subjId];
+    } else {
+      nextGrades[subjId] = g;
+      if (g !== prev) nextHistory = appendGradeHistory(gradeHistory, subjId, g);
+    }
+    onUpdate && onUpdate({ grades: nextGrades, gradeHistory: nextHistory });
   };
 
   const gpaStr  = calcGPA(subjects, grades);
@@ -2053,12 +2063,17 @@ function GradesScreen({ profile, userData, onUpdate }) {
                   <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16.5, color:T.ink, marginBottom:2}}>{s.name}</div>
                   <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{hw.length} assignments</div>
                 </div>
-                {/* Sparkline placeholder */}
-                <div style={{display:'flex', justifyContent:'center'}}>
-                  <svg width={108} height={18} viewBox="0 0 108 18" style={{overflow:'visible'}}>
-                    <line x1={4} y1={9} x2={108} y2={9} stroke={T.border} strokeWidth={1.5} strokeLinecap="round" strokeDasharray="3 3"/>
-                    <circle cx={108} cy={9} r={2} fill={hasGrade ? s.color : T.border}/>
-                  </svg>
+                {/* Sparkline from grade history */}
+                <div style={{display:'flex', justifyContent:'center', alignItems:'center', minHeight:18}}>
+                  {(() => {
+                    const pts = gradeSparklinePoints(gradeHistory, s.id);
+                    if (!pts) return <span style={{fontFamily:T.mono, fontSize:8, color:T.ink3}}>—</span>;
+                    return (
+                      <svg width={108} height={18} viewBox="0 0 108 18" style={{overflow:'visible'}}>
+                        <polyline points={pts} fill="none" stroke={s.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    );
+                  })()}
                 </div>
                 {/* GPA points */}
                 <div style={{fontFamily:T.mono, fontSize:11, color:T.ink2, textAlign:'center'}}>{hasGrade ? (GPA_MAP[myGrade] ?? '—') : '—'}</div>
@@ -2190,16 +2205,31 @@ function GradesScreen({ profile, userData, onUpdate }) {
 }
 
 /* ── 8. Tools ───────────────────────────────────────────── */
-function ToolsScreen() {
+function ToolsScreen({ userData, onUpdate }) {
   const [filter, setFilter] = useState('ALL');
   const cats = ['ALL','AI','DESIGN','PRODUCTIVITY'];
   const filtered = filter === 'ALL' ? TOOLS_DATA : TOOLS_DATA.filter(t => t.cat === filter);
-  const connected = TOOLS_DATA.filter(t => t.connected);
-  const topTool = TOOLS_DATA.reduce((a,b) => b.sessions > a.sessions ? b : a, TOOLS_DATA[0]);
+  const toolOpens = userData?.toolOpens || [];
+  const weekOpens = toolOpensThisWeek(toolOpens);
+  const recentOpens = normalizeToolOpens(toolOpens);
+  const lastOpen = recentOpens[0] || null;
+  const lastTool = lastOpen ? toolById(lastOpen.toolId) : null;
+  const counts = toolOpenCounts(toolOpens);
+  const trackedTools = TOOLS_DATA
+    .filter(t => counts[t.id] > 0)
+    .map(t => ({ ...t, sessions: counts[t.id] }))
+    .sort((a, b) => b.sessions - a.sessions);
+  const maxSessions = trackedTools[0]?.sessions || 1;
+  const usageInsight = buildToolUsageInsight(toolOpens);
+
+  const openTool = (tool) => {
+    if (tool?.id) onUpdate && onUpdate({ toolOpens: appendToolOpen(toolOpens, tool.id) });
+    if (tool?.url) window.open(tool.url, '_blank', 'noopener,noreferrer');
+  };
 
   const SUGGESTIONS = [
-    { tool: TOOLS_DATA.find(t => t.id==='claude'),     priority:'HIGH', msg:"You haven't opened Claude recently.", action:'Open' },
-    { tool: TOOLS_DATA.find(t => t.id==='notebooklm'), priority:'LOW',  msg:"You haven't tried NotebookLM yet.",  action:'Try'  },
+    { tool: TOOLS_DATA.find(t => t.id==='claude'),     priority:'TIP', msg:'Opens Claude in a new tab.', action:'Open' },
+    { tool: TOOLS_DATA.find(t => t.id==='notebooklm'), priority:'TIP', msg:'Try NotebookLM for note-based study.', action:'Open' },
   ];
 
   const QUICK_LAUNCH = [
@@ -2215,15 +2245,6 @@ function ToolsScreen() {
     </div>
   );
 
-  const Spark = ({ tool }) => {
-    const vals = tool.connected ? [0.25,0.6,0.35,0.85,0.5] : [0.12,0.12,0.12,0.12,0.12];
-    return (
-      <div style={{display:'flex', gap:3, alignItems:'center', justifyContent:'center'}}>
-        {vals.map((v,i) => <div key={i} style={{width:5, height:5, borderRadius:'50%', background:tool.color, opacity:v}} />)}
-      </div>
-    );
-  };
-
   return (
     <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'36px 40px 36px 56px'}}>
 
@@ -2233,16 +2254,16 @@ function ToolsScreen() {
             <span style={{fontFamily:T.ui, fontWeight:600, color:T.ink}}>Your </span>
             <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:28, color:T.ink}}>command center.</span>
           </h1>
-          <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, letterSpacing:'0.1em'}}>{connected.length} tools used · click any tool to track it</div>
+          <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, letterSpacing:'0.1em'}}>{TOOLS_DATA.length} tools · click to open in a new tab</div>
         </div>
 
         {/* Stat cards */}
         <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:12}}>
           {[
-            { label:'THIS WEEK',   val:'0',                             sub:'Open any tool to start'                             },
-            { label:'TOP TOOL',    val:topTool.name,                    sub:`${topTool.sessions} total · 0 this wk`             },
-            { label:'CONNECTED',   val:`${connected.length} / ${TOOLS_DATA.length}`, sub:`${connected.length} tools used`       },
-            { label:'LAST OPENED', val:connected[0].name,               sub:`${connected[0].lastUsed} · ${connected[0].cat.toLowerCase()}` },
+            { label:'THIS WEEK',   val:String(weekOpens),                    sub: weekOpens === 1 ? 'open this week' : 'opens this week' },
+            { label:'TOOLS',       val:String(TOOLS_DATA.length),            sub:'available to open' },
+            { label:'CATEGORIES',  val:'3',                                  sub:'AI · design · productivity' },
+            { label:'LAST OPENED', val:lastTool?.name || '—',                sub: lastOpen ? formatToolWhen(lastOpen.at) : 'Open a tool to start' },
           ].map(c => (
             <div key={c.label} style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
               <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:8}}>{c.label}</div>
@@ -2271,9 +2292,8 @@ function ToolsScreen() {
                     <span style={{fontFamily:T.mono, fontSize:7, padding:'1px 5px', background: sg.priority==='HIGH' ? 'rgba(191,74,48,0.1)' : T.bl, color: sg.priority==='HIGH' ? '#bf4a30' : T.ink3, letterSpacing:'0.07em'}}>{sg.priority}</span>
                   </div>
                   <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink3}}>{sg.msg}</div>
-                  {sg.priority === 'HIGH' && <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, marginTop:3}}>1 total sessions · Last: 8d ago</div>}
                 </div>
-                <button style={{fontFamily:T.mono, fontSize:9, color:T.accent, background:'none', border:'none', padding:0, flexShrink:0, cursor:'pointer'}}>{sg.action} →</button>
+                <button type="button" onClick={() => openTool(sg.tool)} style={{fontFamily:T.mono, fontSize:9, color:T.accent, background:'none', border:'none', padding:0, flexShrink:0, cursor:'pointer'}}>{sg.action} →</button>
               </div>
             ))}
           </div>
@@ -2284,17 +2304,19 @@ function ToolsScreen() {
               <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Breakdown</div>
               <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3}}>All time</div>
             </div>
-            {connected.map(tool => (
+            {trackedTools.length === 0
+              ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.6}}>Open a tool to start tracking.</div>
+              : trackedTools.map(tool => (
               <div key={tool.id} style={{marginBottom:11}}>
                 <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5}}>
                   <div style={{display:'flex', alignItems:'center', gap:7}}>
                     <div style={{width:6, height:6, borderRadius:'50%', background:tool.color}} />
                     <span style={{fontFamily:T.ui, fontSize:12, color:T.ink}}>{tool.name}</span>
                   </div>
-                  <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3}}>{tool.sessions} <span style={{opacity:0.5}}>100%</span></div>
+                  <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3}}>{tool.sessions}</div>
                 </div>
                 <div style={{height:2, background:T.bl, borderRadius:1, overflow:'hidden'}}>
-                  <div style={{width:'100%', height:'100%', background:tool.color, opacity:0.65}} />
+                  <div style={{width:`${(tool.sessions / maxSessions) * 100}%`, height:'100%', background:tool.color, opacity:0.65}} />
                 </div>
               </div>
             ))}
@@ -2306,7 +2328,7 @@ function ToolsScreen() {
               <span style={{color:T.accent, fontSize:11, lineHeight:1}}>★</span>
               <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Insight</div>
             </div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink3, lineHeight:1.65}}>Use your tools to generate insights.</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink3, lineHeight:1.65}}>{usageInsight || 'Open tools from this page to generate insights.'}</div>
           </div>
         </div>
 
@@ -2339,35 +2361,29 @@ function ToolsScreen() {
             </div>
 
             {/* Table header */}
-            <div style={{display:'grid', gridTemplateColumns:'1fr 100px 80px 80px 70px', gap:10, padding:'7px 14px', background:T.surface, borderRadius:'12px 12px 0 0', borderBottom:`1px solid ${T.border}`}}>
-              {['TOOL','TO ACTIVITY','SESSIONS','LAST USED','TREND'].map((h,i) => (
-                <div key={h} style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', textAlign: i>0 ? 'center' : 'left'}}>{h}</div>
-              ))}
+            <div style={{display:'grid', gridTemplateColumns:'1fr', gap:10, padding:'7px 14px', background:T.surface, borderRadius:'12px 12px 0 0', borderBottom:`1px solid ${T.border}`}}>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em'}}>Tool</div>
             </div>
 
             {/* Tool rows — touching */}
             <div style={{display:'flex', flexDirection:'column', background:T.surface, borderRadius:'0 0 12px 12px', overflow:'hidden'}}>
               {filtered.map((tool, idx) => (
                 <div key={tool.id}
-                  style={{display:'grid', gridTemplateColumns:'1fr 100px 80px 80px 70px', gap:10, padding:'11px 14px', background:T.surface, alignItems:'center', cursor:'pointer', transition:'background 0.1s', borderBottom: idx < filtered.length-1 ? `1px solid ${T.bl}` : 'none'}}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTool(tool); } }}
+                  onClick={() => openTool(tool)}
+                  style={{display:'flex', alignItems:'center', gap:11, padding:'11px 14px', background:T.surface, cursor:'pointer', transition:'background 0.1s', borderBottom: idx < filtered.length-1 ? `1px solid ${T.bl}` : 'none'}}
                   onMouseOver={e => e.currentTarget.style.background = T.bl}
                   onMouseOut={e => e.currentTarget.style.background = T.surface}
                 >
-                  <div style={{display:'flex', alignItems:'center', gap:11, minWidth:0}}>
-                    <ToolIcon tool={tool} size={26} />
-                    <div style={{minWidth:0}}>
-                      <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:2}}>
-                        <span style={{fontFamily:T.ui, fontSize:13, color:T.ink, fontWeight:500}}>{tool.name}</span>
-                        <span style={{fontFamily:T.mono, fontSize:7, padding:'1.5px 5px', background:T.bl, color:T.ink3, letterSpacing:'0.07em'}}>{tool.cat}</span>
-                      </div>
-                      <div style={{fontFamily:T.ui, fontSize:11, color:T.ink3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tool.desc}</div>
+                  <ToolIcon tool={tool} size={26} />
+                  <div style={{minWidth:0, flex:1}}>
+                    <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:2}}>
+                      <span style={{fontFamily:T.ui, fontSize:13, color:T.ink, fontWeight:500}}>{tool.name}</span>
+                      <span style={{fontFamily:T.mono, fontSize:7, padding:'1.5px 5px', background:T.bl, color:T.ink3, letterSpacing:'0.07em'}}>{tool.cat}</span>
                     </div>
-                  </div>
-                  <Spark tool={tool} />
-                  <div style={{fontFamily:T.mono, fontSize:11, color: tool.sessions > 0 ? T.ink : T.ink3, textAlign:'center'}}>{tool.sessions}</div>
-                  <div style={{fontFamily:T.mono, fontSize:11, color:T.ink3, textAlign:'center'}}>{tool.lastUsed}</div>
-                  <div style={{fontFamily:T.mono, fontSize:11, color: tool.trend < 0 ? '#bf4a30' : T.ink3, textAlign:'center'}}>
-                    {tool.trend === 0 ? '0%' : `${tool.trend}%`}
+                    <div style={{fontFamily:T.ui, fontSize:11, color:T.ink3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tool.desc}</div>
                   </div>
                 </div>
               ))}
@@ -2384,8 +2400,8 @@ function ToolsScreen() {
                 <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3}}>⌘1-4</div>
               </div>
               {QUICK_LAUNCH.map((ql,i) => (
-                <div key={i}
-                  style={{display:'flex', alignItems:'center', gap:9, padding:'8px 0', borderBottom: i < QUICK_LAUNCH.length-1 ? `1px solid ${T.bl}` : 'none', cursor:'pointer'}}
+                <button key={i} type="button" onClick={() => openTool(ql.tool)}
+                  style={{display:'flex', alignItems:'center', gap:9, padding:'8px 0', borderBottom: i < QUICK_LAUNCH.length-1 ? `1px solid ${T.bl}` : 'none', cursor:'pointer', width:'100%', background:'none', borderLeft:'none', borderRight:'none', borderTop:'none', textAlign:'left'}}
                   onMouseOver={e => e.currentTarget.style.background = T.bl}
                   onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                 >
@@ -2395,7 +2411,7 @@ function ToolsScreen() {
                     <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3}}>{ql.sub}</div>
                   </div>
                   <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, flexShrink:0}}>{ql.key}</div>
-                </div>
+                </button>
               ))}
               <div style={{marginTop:10, paddingTop:9, borderTop:`1px solid ${T.bl}`, display:'flex', justifyContent:'space-between'}}>
                 <span style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, cursor:'pointer'}}>Browse all tools</span>
@@ -2405,14 +2421,20 @@ function ToolsScreen() {
 
             {/* Activity */}
             <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
-                <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Activity</div>
-                <div style={{display:'flex', alignItems:'center', gap:5}}>
-                  <div style={{width:5, height:5, borderRadius:'50%', background:'#3a8a52'}} />
-                  <div style={{fontFamily:T.mono, fontSize:8, color:'#3a8a52'}}>Live</div>
-                </div>
-              </div>
-              <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, lineHeight:1.7}}>No activity yet. Open a tool to start tracking.</div>
+              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:12}}>Activity</div>
+              {recentOpens.length === 0
+                ? <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, lineHeight:1.7}}>No activity yet. Open a tool to start tracking.</div>
+                : recentOpens.slice(0, 5).map((entry, i, arr) => {
+                  const tool = toolById(entry.toolId);
+                  if (!tool) return null;
+                  return (
+                    <div key={entry.id} style={{display:'flex', alignItems:'center', gap:8, padding:'6px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
+                      <div style={{width:5, height:5, borderRadius:1, background:tool.color, flexShrink:0}} />
+                      <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tool.name}</div>
+                      <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, flexShrink:0}}>{formatToolWhen(entry.at)}</div>
+                    </div>
+                  );
+                })}
             </div>
 
           </div>
@@ -2427,17 +2449,23 @@ function SubjectsScreen({ profile, userData }) {
   const homework = userData?.homework || [];
   const quizzes  = userData?.quizzes  || [];
   const grades   = userData?.grades   || {};
+  const gradeHistory = userData?.gradeHistory || [];
   return (
     <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'56px 72px'}}>
-      <PageHeader eyebrow={`${subjects.length} subjects · Spring 2025`} title="Subjects" />
+      <PageHeader eyebrow={`${subjects.length} subjects`} title="Subjects" />
       <Hr />
+      {subjects.length === 0 ? (
+        <div style={{background:T.surface, padding:'40px 32px', borderRadius:12, textAlign:'center'}}>
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, marginBottom:8}}>No subjects yet.</div>
+          <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink3, lineHeight:1.6}}>Add classes from the sidebar + button or Settings → Manage Subjects.</div>
+        </div>
+      ) : (
       <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:12}}>
         {subjects.map(s => {
-          const sc = [];
-          const pts = '';
           const hw = homework.filter(h => h.subj === s.id && !h.done);
           const qz = quizzes.filter(q => q.subj === s.id);
           const myGrade = grades[s.id] || s.grade || '—';
+          const sparkPts = gradeSparklinePoints(gradeHistory, s.id, 140, 28);
           return (
             <div key={s.id} style={{background:T.surface, padding:'26px 28px'}}>
               <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:18}}>
@@ -2453,15 +2481,16 @@ function SubjectsScreen({ profile, userData }) {
                   <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, marginTop:4}}>{GPA_MAP[myGrade] != null ? GPA_MAP[myGrade].toFixed(1) + ' GPA' : '—'}</div>
                 </div>
               </div>
-              <div style={{height:2, background:T.border, marginBottom:14, borderRadius:1, overflow:'hidden'}}>
+              <div style={{height:2, background:T.border, marginBottom: sparkPts ? 14 : 16, borderRadius:1, overflow:'hidden'}}>
                 <div style={{width:`${Math.min(((GPA_MAP[myGrade]||0)/4)*100, 100)}%`, height:'100%', background:s.color, borderRadius:1}} />
               </div>
-              <div style={{marginBottom:16}}>
-                <svg width="100%" height={28} viewBox="0 0 140 28" preserveAspectRatio="none" style={{display:'block'}}>
-                  <polyline points={pts} fill="none" stroke={T.border} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
-                  {sc.map((v,i) => <circle key={i} cx={i*34+4} cy={26-(v-70)/30*22} r={2.5} fill={s.color} opacity={0.8}/>)}
-                </svg>
-              </div>
+              {sparkPts && (
+                <div style={{marginBottom:16}}>
+                  <svg width="100%" height={28} viewBox="0 0 140 28" preserveAspectRatio="none" style={{display:'block'}}>
+                    <polyline points={sparkPts} fill="none" stroke={s.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              )}
               <div style={{display:'flex', gap:14, borderTop:`1px solid ${T.bl}`, paddingTop:14}}>
                 {[['GPA', GPA_MAP[myGrade] != null ? GPA_MAP[myGrade].toFixed(1) : '—', false], ['HW open', hw.length, hw.length > 0], ['Quizzes', qz.length, false]].map(([label, val, warn]) => (
                   <div key={label}>
@@ -2474,6 +2503,7 @@ function SubjectsScreen({ profile, userData }) {
           );
         })}
       </div>
+      )}
     </div>
   );
 }
@@ -2686,7 +2716,7 @@ function WelcomeScreen({ onSignIn, onSetup }) {
             {/* Header */}
             <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:22}}>
               <div style={{width:34, height:34, border:`1px solid ${T.accent}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
-                <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:19, color:T.accent, lineHeight:1}}>J</span>
+                <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:19, color:T.accent, lineHeight:1}}>S</span>
               </div>
               <div>
                 <div style={{fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.16em', textTransform:'uppercase', color:T.ink3, marginBottom:3}}>Scholar</div>
@@ -3272,7 +3302,7 @@ function App() {
 
   const updateUserData = (update) => {
     setUserData(prev => {
-      const next = { ...prev, ...update, updatedAt: Date.now() };
+      const next = normalizeUserData({ ...prev, ...update, updatedAt: Date.now() });
       if (profile?.email) {
         saveUserData(profile.email, next);
         saveServerUserData(next); // best-effort cloud save so work follows the user

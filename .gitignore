@@ -1,5 +1,7 @@
 node_modules/
 dist/
 .vercel/
+.cursor/
+.claude/
 *.log
 .DS_Store

@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Scholar — Broadsheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:          #f0ece3;
+  --sidebar-bg:  #e8e3d8;
+  --surface:     #f5f2eb;
+  --card:        #faf8f3;
+  --ink:         #1c1916;
+  --ink2:        #4a4338;
+  --ink3:        #8a7e6e;
+  --gold:        #c49a2a;
+  --gold-soft:   rgba(196,154,42,0.11);
+  --gold-mid:    rgba(196,154,42,0.25);
+  --rule:        #ddd8cc;
+  --rule-sharp:  #1c1916;
+  --serif:       'Playfair Display', Georgia, serif;
+  --sans:        'DM Sans', system-ui, sans-serif;
+  --mono:        'DM Mono', 'Courier New', monospace;
+  --sidebar-w:   152px;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  font-family: var(--sans);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Layout shell ──────────────────────────────── */
+.layout {
+  display: flex;
+  height: 100vh;
+  min-height: 640px;
+  overflow: hidden;
+}
+
+/* ── Sidebar ───────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-brand {
+  padding: 20px 16px 14px;
+  border-bottom: 1px solid var(--rule);
+  flex-shrink: 0;
+}
+.brand-wordmark {
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: 3px;
+}
+.brand-sub {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--ink3);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.sidebar-nav {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+  flex-shrink: 0;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 7px 16px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ink2);
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  text-align: left;
+  border-radius: 0;
+  transition: background 0.1s;
+}
+.nav-item:hover { background: rgba(28,25,22,0.05); }
+.nav-item.active {
+  background: var(--ink);
+  color: #fff;
+  font-weight: 500;
+}
+
+.sidebar-subjects {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 0 10px;
+}
+.subjects-label {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  padding: 0 16px 8px;
+}
+.subject-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 16px;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  color: var(--ink2);
+  cursor: default;
+}
+.subject-row:hover { background: rgba(28,25,22,0.04); }
+.subject-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 7px;
+}
+.subject-name { flex: 1; }
+.grade-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.sidebar-footer {
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--rule);
+  flex-shrink: 0;
+}
+.footer-name {
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 1px;
+}
+.footer-meta {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink3);
+  letter-spacing: 0.06em;
+}
+.streak-pip {
+  display: inline-block;
+  width: 5px; height: 5px;
+  border-radius: 1px;
+  background: var(--gold);
+  vertical-align: middle;
+  margin-right: 3px;
+}
+
+/* ── Main ──────────────────────────────────────── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── Masthead ──────────────────────────────────── */
+.masthead {
+  padding: 11px 28px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 3px double var(--ink);
+  flex-shrink: 0;
+}
+.masthead-item {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  color: var(--ink3);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.masthead-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--rule);
+  opacity: 0.8;
+}
+
+/* ── Hero band ─────────────────────────────────── */
+.hero {
+  padding: 18px 28px 14px;
+  border-bottom: 1px solid var(--rule);
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+.hero-left {}
+.hero-headline {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 42px;
+  font-weight: 400;
+  color: var(--ink);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+.hero-sub {
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink3);
+  letter-spacing: 0.01em;
+}
+
+/* Hero stats (right of headline) */
+.hero-stats {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  flex-shrink: 0;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--card);
+}
+.hero-stat {
+  padding: 10px 18px;
+  border-right: 1px solid var(--rule);
+  min-width: 72px;
+  text-align: center;
+}
+.hero-stat:last-child { border-right: none; }
+.hero-stat-label {
+  font-family: var(--mono);
+  font-size: 7px;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  margin-bottom: 4px;
+}
+.hero-stat-val {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: 2px;
+}
+.hero-stat-val.gold { color: var(--gold); }
+.hero-stat-sub {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  color: var(--ink3);
+}
+.hero-stat-sub.gold { color: var(--gold); }
+
+/* ── Columns area ──────────────────────────────── */
+.columns-area {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 18px 22px 24px;
+  border-right: 1px solid var(--rule);
+}
+.col:last-child { border-right: none; }
+
+.col-glance { width: 218px; flex-shrink: 0; }
+.col-week   { width: 218px; flex-shrink: 0; }
+.col-plan   { flex: 1; min-width: 0; }
+
+/* Column header */
+.col-header {
+  font-family: var(--mono);
+  font-size: 7px;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--rule-sharp);
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+/* ── At a Glance ───────────────────────────────── */
+.stat-block {
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.stat-block:last-child { border-bottom: none; margin-bottom: 0; }
+.stat-block-label {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 6px;
+}
+.stat-block-number {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 52px;
+  font-weight: 400;
+  color: var(--ink);
+  line-height: 0.88;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+.stat-block-number.gold { color: var(--gold); }
+.stat-block-sub {
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--ink3);
+}
+.stat-block-sub.green { color: #3a7a4a; }
+.stat-block-sub.gold  { color: var(--gold); }
+
+/* ── This Week ─────────────────────────────────── */
+.week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 16px;
+}
+.day-cell {
+  text-align: center;
+  padding: 6px 2px 5px;
+  border-radius: 7px;
+}
+.day-cell.today {
+  background: var(--gold-soft);
+  border: 1px solid var(--gold-mid);
+}
+.day-cell-name {
+  font-family: var(--mono);
+  font-size: 7px;
+  color: var(--ink3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.day-cell.today .day-cell-name { color: var(--gold); }
+.day-cell-date {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 19px;
+  color: var(--ink3);
+  line-height: 1;
+}
+.day-cell.today .day-cell-date { color: var(--gold); }
+
+.week-section {
+  margin-bottom: 14px;
+}
+.week-section-label {
+  font-family: var(--mono);
+  font-size: 7px;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 6px;
+}
+.week-class-name {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--ink);
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+.week-status {
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--gold);
+}
+.week-clear {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 18px;
+  color: var(--ink3);
+}
+
+.mini-rule {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 12px 0;
+}
+
+/* ── Tonight's Game Plan ───────────────────────── */
+.plan-header-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.plan-spark {
+  color: var(--gold);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.plan-header-label {
+  font-family: var(--mono);
+  font-size: 7px;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--rule-sharp);
+  flex: 1;
+}
+.plan-ai-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--ink3);
+  font-style: italic;
+  margin-bottom: 18px;
+}
+
+.plan-task {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.plan-task:last-child { border-bottom: none; }
+.plan-num {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink3);
+  min-width: 14px;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+.plan-body {
+  flex: 1;
+  min-width: 0;
+}
+.plan-subject {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.plan-subject-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.plan-desc {
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink3);
+}
+.plan-est {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink3);
+  flex-shrink: 0;
+  padding-top: 3px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* ── Week section tabs ─────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.tab {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink3);
+  padding: 5px 10px 5px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+}
+.tab.active {
+  color: var(--ink);
+  border-bottom: 2px solid var(--ink);
+}
+.tab:first-child { padding-left: 0; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+
+    <div class="sidebar-brand">
+      <div class="brand-wordmark">Scholar</div>
+      <div class="brand-sub">Est. Spring Term</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="nav-item active">Today</a>
+      <a class="nav-item">Homework</a>
+      <a class="nav-item">Quizzes</a>
+      <a class="nav-item">Notes</a>
+      <a class="nav-item">Flashcards</a>
+      <a class="nav-item">Schedule</a>
+      <a class="nav-item">Grades</a>
+      <a class="nav-item">Tools</a>
+    </nav>
+
+    <div class="sidebar-subjects">
+      <div class="subjects-label">Subjects</div>
+
+      <div class="subject-row">
+        <div class="subject-dot" style="background:#bf4a30;"></div>
+        <span class="subject-name">AP Lit</span>
+        <span class="grade-badge" style="color:#bf4a30;">A+</span>
+      </div>
+      <div class="subject-row">
+        <div class="subject-dot" style="background:#3a8a52;"></div>
+        <span class="subject-name">Bio</span>
+        <span class="grade-badge" style="color:#3a8a52;">B+</span>
+      </div>
+      <div class="subject-row">
+        <div class="subject-dot" style="background:#c49a2a;"></div>
+        <span class="subject-name">Alg II</span>
+        <span class="grade-badge" style="color:#c49a2a;">A</span>
+      </div>
+      <div class="subject-row">
+        <div class="subject-dot" style="background:#2a60a0;"></div>
+        <span class="subject-name">History</span>
+        <span class="grade-badge" style="color:#2a60a0;">B</span>
+      </div>
+      <div class="subject-row">
+        <div class="subject-dot" style="background:#bf4a30;"></div>
+        <span class="subject-name">Spanish</span>
+        <span class="grade-badge" style="color:#bf4a30;">A−</span>
+      </div>
+      <div class="subject-row">
+        <div class="subject-dot" style="background:#3a8a52;"></div>
+        <span class="subject-name">Chem</span>
+        <span class="grade-badge" style="color:#3a8a52;">B+</span>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="footer-name">Julian R.</div>
+      <div class="footer-meta">Junior &nbsp;·&nbsp; <span class="streak-pip"></span>12-day streak</div>
+    </div>
+
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main">
+
+    <!-- Masthead -->
+    <div class="masthead">
+      <span class="masthead-item">Vol.&thinsp;III, No.&thinsp;165</span>
+      <div style="display:flex;align-items:center;gap:18px;">
+        <div class="masthead-divider"></div>
+        <span class="masthead-item">Monday, June 16, 2026</span>
+        <div class="masthead-divider"></div>
+      </div>
+      <span class="masthead-item">Spring Term &thinsp;·&thinsp; 7:47 PM</span>
+    </div>
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-left">
+        <div class="hero-headline">Good evening, Julian.</div>
+        <div class="hero-sub">5 assignments due tonight &thinsp;·&thinsp; 4 quizzes approaching &thinsp;·&thinsp; 12-day study streak</div>
+      </div>
+
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-label">Tasks</div>
+          <div class="hero-stat-val">5</div>
+          <div class="hero-stat-sub">on track</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">GPA</div>
+          <div class="hero-stat-val">3.50</div>
+          <div class="hero-stat-sub">unwt. spring</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">Streak</div>
+          <div class="hero-stat-val">12</div>
+          <div class="hero-stat-sub">days running</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">Quizzes</div>
+          <div class="hero-stat-val gold">4</div>
+          <div class="hero-stat-sub gold">tomorrow</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Three columns -->
+    <div class="columns-area">
+
+      <!-- Col 1 — At a Glance -->
+      <div class="col col-glance">
+        <div class="col-header">At a Glance</div>
+
+        <div class="stat-block">
+          <div class="stat-block-label">Open Tasks</div>
+          <div class="stat-block-number">5</div>
+          <div class="stat-block-sub green">all on track</div>
+        </div>
+
+        <div class="stat-block">
+          <div class="stat-block-label">GPA</div>
+          <div class="stat-block-number">3.50</div>
+          <div class="stat-block-sub">Unweighted</div>
+        </div>
+
+        <div class="stat-block">
+          <div class="stat-block-label">Streak</div>
+          <div class="stat-block-number">12</div>
+          <div class="stat-block-sub">days running</div>
+        </div>
+
+        <div class="stat-block">
+          <div class="stat-block-label">Quizzes</div>
+          <div class="stat-block-number gold">4</div>
+          <div class="stat-block-sub gold">Tomorrow</div>
+        </div>
+      </div>
+
+      <!-- Col 2 — This Week -->
+      <div class="col col-week">
+        <div class="col-header">This Week</div>
+
+        <!-- 7-day calendar strip -->
+        <div class="week-strip">
+          <div class="day-cell today">
+            <div class="day-cell-name">M</div>
+            <div class="day-cell-date">15</div>
+          </div>
+          <div class="day-cell">
+            <div class="day-cell-name">T</div>
+            <div class="day-cell-date">16</div>
+          </div>
+          <div class="day-cell">
+            <div class="day-cell-name">W</div>
+            <div class="day-cell-date">17</div>
+          </div>
+          <div class="day-cell">
+            <div class="day-cell-name">T</div>
+            <div class="day-cell-date">18</div>
+          </div>
+          <div class="day-cell">
+            <div class="day-cell-name">F</div>
+            <div class="day-cell-date">19</div>
+          </div>
+          <div class="day-cell">
+            <div class="day-cell-name">S</div>
+            <div class="day-cell-date">20</div>
+          </div>
+          <div class="day-cell">
+            <div class="day-cell-name">S</div>
+            <div class="day-cell-date">21</div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active">Focus</button>
+          <button class="tab">Deadlines</button>
+          <button class="tab">Schedule</button>
+        </div>
+
+        <div class="week-section">
+          <div class="week-section-label">Quizzes</div>
+          <div style="font-family:var(--sans);font-size:12px;color:var(--ink3);">Alg II · Trig Identities — Tomorrow</div>
+          <div style="font-family:var(--sans);font-size:12px;color:var(--ink3);margin-top:2px;">AP Bio · Enzyme Kinetics — Wed</div>
+        </div>
+
+        <hr class="mini-rule" />
+
+        <div class="week-section">
+          <div class="week-section-label">Now in class</div>
+          <div class="week-class-name">Algebra II</div>
+          <div class="week-status">Class in session</div>
+        </div>
+
+        <hr class="mini-rule" />
+
+        <div class="week-section">
+          <div class="week-section-label">Tomorrow</div>
+          <div class="week-clear">Clear ahead</div>
+        </div>
+      </div>
+
+      <!-- Col 3 — Tonight's Game Plan -->
+      <div class="col col-plan">
+
+        <div class="plan-header-row">
+          <span class="plan-spark">✦</span>
+          <div class="plan-header-label">Tonight's Game Plan</div>
+        </div>
+        <div class="plan-ai-label">AI · updates with homework &amp; schedule</div>
+
+        <div class="plan-task">
+          <span class="plan-num">1</span>
+          <div class="plan-body">
+            <div class="plan-subject">
+              <div class="plan-subject-dot" style="background:#bf4a30;"></div>
+              AP Literature
+            </div>
+            <div class="plan-desc">Read Beloved ch. 9–12</div>
+          </div>
+          <span class="plan-est">45 min</span>
+        </div>
+
+        <div class="plan-task">
+          <span class="plan-num">2</span>
+          <div class="plan-body">
+            <div class="plan-subject">
+              <div class="plan-subject-dot" style="background:#c49a2a;"></div>
+              Algebra II
+            </div>
+            <div class="plan-desc">Problem Set 7.3 — identities</div>
+          </div>
+          <span class="plan-est">30 min</span>
+        </div>
+
+        <div class="plan-task">
+          <span class="plan-num">3</span>
+          <div class="plan-body">
+            <div class="plan-subject">
+              <div class="plan-subject-dot" style="background:#3a8a52;"></div>
+              Biology
+            </div>
+            <div class="plan-desc">Lab report — enzyme kinetics</div>
+          </div>
+          <span class="plan-est">1h 30m</span>
+        </div>
+
+        <div class="plan-task">
+          <span class="plan-num">4</span>
+          <div class="plan-body">
+            <div class="plan-subject">
+              <div class="plan-subject-dot" style="background:#2a60a0;"></div>
+              History
+            </div>
+            <div class="plan-desc">Federalist No. 10 response</div>
+          </div>
+          <span class="plan-est">1h</span>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grades Tab — Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#f8f6f0; --surface:#ffffff; --ink:#18150e; --ink2:#5a5240; --ink3:#9a9080;
+    --accent:#b8943a; --accentSoft:rgba(184,148,58,0.08); --border:#e8e2d8; --bl:#f0ece4;
+    --green:#3a8a52; --red:#bf4a30;
+    --ui:"DM Sans",sans-serif; --mono:"Geist Mono",monospace; --serif:"Cormorant Garamond",Georgia,serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); font-family:var(--ui); color:var(--ink); -webkit-font-smoothing:antialiased;}
+  .app{display:flex; min-height:840px;}
+
+  /* ---------- Sidebar ---------- */
+  .sb{width:220px; background:var(--surface); border-right:1px solid var(--border); padding:18px 14px; flex-shrink:0;}
+  .sb-brand{display:flex; align-items:center; gap:9px; padding:4px 6px 18px;}
+  .sb-logo{width:28px; height:28px; border-radius:7px; background:linear-gradient(135deg,var(--accent),#9a7828); display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(184,148,58,0.18);}
+  .sb-logo span{font-family:var(--serif); font-style:italic; font-size:15px; color:#fff;}
+  .sb-name{font-family:var(--serif); font-style:italic; font-size:19px; color:var(--ink);}
+  .sb-group{font-family:var(--mono); font-size:8px; color:var(--ink3); letter-spacing:.14em; text-transform:uppercase; padding:14px 8px 6px;}
+  .sb-item{display:flex; align-items:center; gap:9px; padding:7px 10px; border-radius:7px; font-size:13px; color:var(--ink2); position:relative;}
+  .sb-item.active{background:var(--accentSoft); color:var(--ink); font-weight:500;}
+  .sb-item.active::before{content:""; position:absolute; left:-14px; top:50%; transform:translateY(-50%); width:3px; height:16px; border-radius:0 2px 2px 0; background:var(--accent);}
+  .sb-dot{width:6px; height:6px; border-radius:2px; flex-shrink:0;}
+  .sb-item .gpa{margin-left:auto; font-family:var(--mono); font-size:8px; color:var(--accent); font-weight:600;}
+
+  /* ---------- Main ---------- */
+  .main{flex:1; padding:30px 40px; overflow:hidden;}
+  .head{display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:22px;}
+  .eyebrow{font-family:var(--mono); font-size:8.5px; color:var(--ink3); text-transform:uppercase; letter-spacing:.14em; margin-bottom:7px;}
+  h1{line-height:1.1; font-weight:400;}
+  h1 .b{font-family:var(--ui); font-weight:700; font-size:29px;}
+  h1 .i{font-family:var(--serif); font-style:italic; font-size:31px;}
+  .sub{font-family:var(--ui); font-size:12px; color:var(--ink3); margin-top:5px;}
+  .actions{display:flex; gap:8px;}
+  .btn{display:flex; align-items:center; gap:6px; padding:8px 14px; font-family:var(--mono); font-size:8px; letter-spacing:.07em; text-transform:uppercase; border-radius:7px; border:1px solid var(--border); background:var(--surface); color:var(--ink3);}
+  .btn.gold{background:var(--accent); color:#fff; border:none;}
+  .seg{display:inline-flex; background:var(--bl); border-radius:8px; padding:3px;}
+  .seg span{font-family:var(--mono); font-size:8px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:6px; color:var(--ink3);}
+  .seg span.on{background:var(--surface); color:var(--ink); box-shadow:0 1px 3px rgba(24,21,14,.07);}
+
+  /* ---------- Stat cards row ---------- */
+  .cards{display:grid; grid-template-columns:300px 1fr 1fr 1fr; gap:12px; margin-bottom:12px;}
+  .card{background:var(--surface); border-radius:12px; padding:18px 20px;}
+  .clabel{font-family:var(--mono); font-size:7.5px; color:var(--ink3); text-transform:uppercase; letter-spacing:.12em; margin-bottom:10px;}
+  .gpa-card{display:flex; align-items:center; gap:18px;}
+  .ring{position:relative; width:80px; height:80px; flex-shrink:0;}
+  .ring .val{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .ring .num{font-family:var(--serif); font-style:italic; font-size:24px; line-height:1;}
+  .ring .den{font-family:var(--mono); font-size:7.5px; color:var(--ink3);}
+  .big-serif{font-family:var(--serif); font-style:italic; font-size:38px; line-height:.95;}
+  .delta{display:inline-flex; align-items:center; gap:4px; font-family:var(--mono); font-size:9px; font-weight:500; padding:2px 7px; border-radius:5px;}
+  .delta.up{color:var(--green); background:rgba(58,138,82,.1);}
+  .delta.down{color:var(--red); background:rgba(191,74,48,.1);}
+  .subj-line{display:flex; align-items:center; gap:8px; margin-bottom:5px;}
+  .subj-line .nm{font-family:var(--serif); font-style:italic; font-size:21px; line-height:1;}
+  .meta{font-family:var(--mono); font-size:7.5px; color:var(--ink3); margin-top:6px;}
+
+  /* ---------- Mid row: trend + distribution ---------- */
+  .mid{display:grid; grid-template-columns:1fr 320px; gap:12px; margin-bottom:12px;}
+  .panel{background:var(--surface); border-radius:12px; padding:18px 22px;}
+  .panel-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .panel-title{font-family:var(--serif); font-style:italic; font-size:18px; color:var(--ink);}
+  .legend{display:flex; gap:14px; flex-wrap:wrap;}
+  .leg{display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:8px; color:var(--ink3); text-transform:uppercase; letter-spacing:.05em;}
+  .leg i{width:8px; height:8px; border-radius:2px; display:inline-block;}
+  .dist-row{display:flex; align-items:center; gap:10px; margin-bottom:11px;}
+  .dist-grade{width:30px; font-family:var(--mono); font-size:11px; color:var(--ink2); font-weight:500;}
+  .dist-bar{flex:1; height:10px; background:var(--bl); border-radius:5px; overflow:hidden;}
+  .dist-fill{height:100%; border-radius:5px;}
+  .dist-n{width:18px; text-align:right; font-family:var(--mono); font-size:10px; color:var(--ink3);}
+
+  /* ---------- Table ---------- */
+  .thead{display:grid; grid-template-columns:1fr 150px 70px 90px 90px 80px; gap:8px; padding:8px 0 8px 18px; background:var(--surface); border-radius:12px 12px 0 0; border-bottom:1px solid var(--border);}
+  .th{font-family:var(--mono); font-size:7.5px; color:var(--ink3); text-transform:uppercase; letter-spacing:.11em;}
+  .th.c{text-align:center;}
+  .rows{display:flex; flex-direction:column; gap:0; background:var(--surface); border-radius:0 0 12px 12px; overflow:hidden;}
+  .row{display:grid; grid-template-columns:1fr 150px 70px 90px 90px 80px; gap:8px; align-items:center; border-bottom:1px solid var(--bl); border-left:3px solid; }
+  .row:last-child{border-bottom:none;}
+  .r-subj{padding:14px 12px;}
+  .r-name{font-family:var(--serif); font-style:italic; font-size:17px; color:var(--ink); margin-bottom:2px;}
+  .r-meta{font-family:var(--mono); font-size:7.5px; color:var(--ink3); text-transform:uppercase; letter-spacing:.09em;}
+  .r-c{display:flex; justify-content:center;}
+  .pts{font-family:var(--mono); font-size:11px; color:var(--ink2); text-align:center;}
+  .badge{padding:3px 10px; border-radius:6px; font-family:var(--mono); font-size:11px; font-weight:600;}
+  .target{padding:4px 9px; border-radius:6px; font-family:var(--mono); font-size:9px; background:var(--bl); color:var(--ink3); display:inline-flex; gap:5px; align-items:center;}
+  .trend{display:inline-flex; align-items:center; gap:3px; font-family:var(--mono); font-size:9px; font-weight:500;}
+  .foot{display:flex; justify-content:space-between; padding:9px 18px; background:var(--surface); border-radius:0 0 12px 12px; margin-top:1px;}
+  .foot div{font-family:var(--mono); font-size:8px; color:var(--ink3); text-transform:uppercase; letter-spacing:.09em;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Sidebar -->
+  <aside class="sb">
+    <div class="sb-brand">
+      <div class="sb-logo"><span>S</span></div>
+      <div class="sb-name">Scholar</div>
+    </div>
+    <div class="sb-group">Dashboard</div>
+    <div class="sb-item"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>Today</div>
+    <div class="sb-item"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 3h10v10H3z"/><path d="M6 7h4M6 10h4"/></svg>Homework <span class="gpa" style="color:var(--ink3)">3</span></div>
+    <div class="sb-item"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1"/></svg>Quizzes</div>
+    <div class="sb-group">Academics</div>
+    <div class="sb-item"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M2 6h12M5 1.5v3M11 1.5v3"/></svg>Schedule</div>
+    <div class="sb-item active"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M8 2l1.6 3.8 4 .5-2.9 2.8.7 4-3.4-1.9-3.4 1.9.7-4L2.4 6.3l4-.5z"/></svg>Grades <span class="gpa">3.74</span></div>
+    <div class="sb-item"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="2.5" width="11" height="11" rx="1"/><path d="M5.5 6h5M5.5 9h3"/></svg>Tools</div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Header -->
+    <div class="head">
+      <div>
+        <div class="eyebrow">Spring Term · 2025</div>
+        <h1><span class="b">Academic </span><span class="i">performance.</span></h1>
+        <div class="sub">Your GPA is up <strong>+0.06</strong> since last term — three classes are above target.</div>
+      </div>
+      <div class="actions">
+        <div class="seg" style="margin-right:4px;"><span>Term</span><span class="on">Year</span><span>All</span></div>
+        <button class="btn gold">+ Add Subject</button>
+        <button class="btn">Export CSV</button>
+      </div>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="cards">
+      <div class="card gpa-card">
+        <div class="ring">
+          <svg width="80" height="80" viewBox="-40 -40 80 80" style="transform:rotate(-90deg)">
+            <circle r="33" fill="none" stroke="#e8e2d8" stroke-width="4"/>
+            <circle r="33" fill="none" stroke="#b8943a" stroke-width="4" stroke-linecap="round" stroke-dasharray="192.6 207.3"/>
+          </svg>
+          <div class="val"><div class="num">3.74</div><div class="den">/ 4.0</div></div>
+        </div>
+        <div>
+          <div class="clabel">GPA This Term</div>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:7px;">
+            <div class="big-serif" style="font-size:24px;">Honor roll</div>
+          </div>
+          <span class="delta up">▲ +0.06 vs Fall</span>
+          <div class="meta">Unweighted · 18 credits</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="clabel">Best Performing</div>
+        <div class="subj-line"><span class="sb-dot" style="background:#3a8a8a"></span><span class="nm">Spanish IV</span></div>
+        <div style="font-family:var(--mono); font-size:10px; color:var(--accent); font-weight:600; margin-bottom:8px;">A · 4.0</div>
+        <span class="delta up">▲ Up from A−</span>
+      </div>
+
+      <div class="card">
+        <div class="clabel">Needs Attention</div>
+        <div class="subj-line"><span class="sb-dot" style="background:#bf4a30"></span><span class="nm">Physics</span></div>
+        <div style="font-family:var(--mono); font-size:10px; color:var(--red); font-weight:600; margin-bottom:8px;">B · 3.0</div>
+        <span class="delta down">▼ 0.4 below target</span>
+      </div>
+
+      <div class="card">
+        <div class="clabel">Class Rank</div>
+        <div class="big-serif">12<span style="font-size:18px; color:var(--ink3);">th</span></div>
+        <div class="meta" style="margin-top:6px;">of 214 · top 6%</div>
+      </div>
+    </div>
+
+    <!-- Mid: trend + distribution -->
+    <div class="mid">
+      <!-- GPA trend -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">GPA trend</div>
+          <div class="legend">
+            <div class="leg"><i style="background:var(--accent)"></i>Unweighted</div>
+            <div class="leg"><i style="background:var(--border)"></i>Class avg</div>
+          </div>
+        </div>
+        <svg width="100%" height="170" viewBox="0 0 660 170" preserveAspectRatio="none" style="overflow:visible">
+          <!-- gridlines -->
+          <g stroke="#f0ece4" stroke-width="1">
+            <line x1="0" y1="20" x2="660" y2="20"/>
+            <line x1="0" y1="60" x2="660" y2="60"/>
+            <line x1="0" y1="100" x2="660" y2="100"/>
+            <line x1="0" y1="140" x2="660" y2="140"/>
+          </g>
+          <!-- y labels -->
+          <g font-family="Geist Mono" font-size="8" fill="#9a9080">
+            <text x="0" y="17">4.0</text>
+            <text x="0" y="57">3.7</text>
+            <text x="0" y="97">3.4</text>
+            <text x="0" y="137">3.1</text>
+          </g>
+          <!-- class avg line -->
+          <polyline fill="none" stroke="#d8d0c4" stroke-width="2" stroke-dasharray="4 4"
+            points="40,118 195,112 350,108 505,104 645,100"/>
+          <!-- area -->
+          <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#b8943a" stop-opacity="0.18"/>
+            <stop offset="1" stop-color="#b8943a" stop-opacity="0"/>
+          </linearGradient></defs>
+          <path d="M40,100 L195,86 L350,80 L505,52 L645,44 L645,150 L40,150 Z" fill="url(#g)"/>
+          <!-- main line -->
+          <polyline fill="none" stroke="#b8943a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+            points="40,100 195,86 350,80 505,52 645,44"/>
+          <!-- points -->
+          <g fill="#fff" stroke="#b8943a" stroke-width="2.5">
+            <circle cx="40" cy="100" r="4"/><circle cx="195" cy="86" r="4"/><circle cx="350" cy="80" r="4"/><circle cx="505" cy="52" r="4"/>
+          </g>
+          <circle cx="645" cy="44" r="5.5" fill="#b8943a" stroke="#fff" stroke-width="2"/>
+          <!-- x labels -->
+          <g font-family="Geist Mono" font-size="8" fill="#9a9080" text-anchor="middle">
+            <text x="40" y="166">Fr Fall</text><text x="195" y="166">Fr Spr</text><text x="350" y="166">So Fall</text><text x="505" y="166">So Spr</text><text x="645" y="166">Now</text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Distribution -->
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Grade mix</div>
+          <div class="leg" style="font-size:8px;">6 classes</div>
+        </div>
+        <div class="dist-row"><div class="dist-grade">A</div><div class="dist-bar"><div class="dist-fill" style="width:50%; background:#3a8a52"></div></div><div class="dist-n">3</div></div>
+        <div class="dist-row"><div class="dist-grade">A−</div><div class="dist-bar"><div class="dist-fill" style="width:17%; background:#6aa15f"></div></div><div class="dist-n">1</div></div>
+        <div class="dist-row"><div class="dist-grade">B+</div><div class="dist-bar"><div class="dist-fill" style="width:17%; background:#b8943a"></div></div><div class="dist-n">1</div></div>
+        <div class="dist-row"><div class="dist-grade">B</div><div class="dist-bar"><div class="dist-fill" style="width:17%; background:#c98b3a"></div></div><div class="dist-n">1</div></div>
+        <div class="dist-row"><div class="dist-grade">C</div><div class="dist-bar"><div class="dist-fill" style="width:0%; background:#bf4a30"></div></div><div class="dist-n">0</div></div>
+        <div style="margin-top:14px; padding-top:13px; border-top:1px solid var(--bl); display:flex; justify-content:space-between; align-items:baseline;">
+          <div class="meta" style="font-size:8px;">5 of 6 above B+</div>
+          <div style="font-family:var(--serif); font-style:italic; font-size:16px; color:var(--green);">83% A range</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="thead">
+      <div class="th">Subject</div>
+      <div class="th c">5-week trend</div>
+      <div class="th c">Points</div>
+      <div class="th c">Grade</div>
+      <div class="th c">Target</div>
+      <div class="th c">Change</div>
+    </div>
+    <div class="rows">
+      <!-- row template repeated -->
+      <div class="row" style="border-left-color:#3a8a8a">
+        <div class="r-subj"><div class="r-name">Spanish IV</div><div class="r-meta">9 assignments · 96%</div></div>
+        <div class="r-c"><svg width="120" height="22" viewBox="0 0 120 22"><polyline fill="none" stroke="#3a8a8a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" points="4,16 30,14 58,10 86,8 116,4"/><circle cx="116" cy="4" r="2.4" fill="#3a8a8a"/></svg></div>
+        <div class="pts">4.0</div>
+        <div class="r-c"><span class="badge" style="background:rgba(58,138,138,.14); color:#3a8a8a">A</span></div>
+        <div class="r-c"><span class="target">◎ A</span></div>
+        <div class="r-c"><span class="trend" style="color:var(--green)">▲ A−</span></div>
+      </div>
+
+      <div class="row" style="border-left-color:#b8943a">
+        <div class="r-subj"><div class="r-name">English Literature</div><div class="r-meta">12 assignments · 94%</div></div>
+        <div class="r-c"><svg width="120" height="22" viewBox="0 0 120 22"><polyline fill="none" stroke="#b8943a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" points="4,12 30,10 58,11 86,7 116,6"/><circle cx="116" cy="6" r="2.4" fill="#b8943a"/></svg></div>
+        <div class="pts">4.0</div>
+        <div class="r-c"><span class="badge" style="background:rgba(184,148,58,.14); color:#b8943a">A</span></div>
+        <div class="r-c"><span class="target">◎ A</span></div>
+        <div class="r-c"><span class="trend" style="color:var(--ink3)">— A</span></div>
+      </div>
+
+      <div class="row" style="border-left-color:#c2703d">
+        <div class="r-subj"><div class="r-name">AP Calculus BC</div><div class="r-meta">14 assignments · 92%</div></div>
+        <div class="r-c"><svg width="120" height="22" viewBox="0 0 120 22"><polyline fill="none" stroke="#c2703d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" points="4,15 30,12 58,9 86,8 116,7"/><circle cx="116" cy="7" r="2.4" fill="#c2703d"/></svg></div>
+        <div class="pts">4.0</div>
+        <div class="r-c"><span class="badge" style="background:rgba(194,112,61,.14); color:#c2703d">A</span></div>
+        <div class="r-c"><span class="target">◎ A</span></div>
+        <div class="r-c"><span class="trend" style="color:var(--green)">▲ B+</span></div>
+      </div>
+
+      <div class="row" style="border-left-color:#4a8a6f">
+        <div class="r-subj"><div class="r-name">Chemistry</div><div class="r-meta">11 assignments · 90%</div></div>
+        <div class="r-c"><svg width="120" height="22" viewBox="0 0 120 22"><polyline fill="none" stroke="#4a8a6f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" points="4,10 30,12 58,9 86,11 116,8"/><circle cx="116" cy="8" r="2.4" fill="#4a8a6f"/></svg></div>
+        <div class="pts">3.7</div>
+        <div class="r-c"><span class="badge" style="background:rgba(74,138,111,.14); color:#4a8a6f">A−</span></div>
+        <div class="r-c"><span class="target">◎ A</span></div>
+        <div class="r-c"><span class="trend" style="color:var(--ink3)">— A−</span></div>
+      </div>
+
+      <div class="row" style="border-left-color:#6a6a9a">
+        <div class="r-subj"><div class="r-name">U.S. History</div><div class="r-meta">10 assignments · 88%</div></div>
+        <div class="r-c"><svg width="120" height="22" viewBox="0 0 120 22"><polyline fill="none" stroke="#6a6a9a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" points="4,8 30,10 58,12 86,11 116,12"/><circle cx="116" cy="12" r="2.4" fill="#6a6a9a"/></svg></div>
+        <div class="pts">3.3</div>
+        <div class="r-c"><span class="badge" style="background:rgba(106,106,154,.14); color:#6a6a9a">B+</span></div>
+        <div class="r-c"><span class="target">◎ A−</span></div>
+        <div class="r-c"><span class="trend" style="color:var(--red)">▼ A−</span></div>
+      </div>
+
+      <div class="row" style="border-left-color:#bf4a30">
+        <div class="r-subj"><div class="r-name">Physics</div><div class="r-meta">8 assignments · 85%</div></div>
+        <div class="r-c"><svg width="120" height="22" viewBox="0 0 120 22"><polyline fill="none" stroke="#bf4a30" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" points="4,7 30,9 58,11 86,13 116,14"/><circle cx="116" cy="14" r="2.4" fill="#bf4a30"/></svg></div>
+        <div class="pts">3.0</div>
+        <div class="r-c"><span class="badge" style="background:rgba(191,74,48,.14); color:#bf4a30">B</span></div>
+        <div class="r-c"><span class="target">◎ B+</span></div>
+        <div class="r-c"><span class="trend" style="color:var(--red)">▼ B+</span></div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <div>6 subjects · 18 credits</div>
+      <div>6 of 6 graded · last synced 2h ago</div>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>

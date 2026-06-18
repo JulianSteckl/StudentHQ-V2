@@ -20,6 +20,7 @@ const NAV = [
   { id:'flashcards', label:'Flashcards', icon: ICO.flashcards },
   { id:'schedule',   label:'Schedule',   icon: ICO.schedule   },
   { id:'grades',     label:'Grades',     icon: ICO.grades     },
+  { id:'subjects',   label:'Subjects',   icon: ICO.subjects   },
   { id:'tools',      label:'Tools',      icon: ICO.tools      },
 ];
 export { ICO, NAV };

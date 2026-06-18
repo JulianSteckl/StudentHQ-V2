@@ -85,17 +85,22 @@ const HIST = {
 const GPA_MAP = { 'A+':4.0,'A':4.0,'A−':3.7,'B+':3.3,'B':3.0,'B−':2.7,'C+':2.3,'C':2.0,'C−':1.7,'D':1.0,'F':0 };
 
 const TOOLS_DATA = [
-  { id:'claude',     name:'Claude',     cat:'AI',           color:'#c65030', desc:'Write, code, analyse, and reason — Anthropic\'s frontier AI.',          sessions:1, lastUsed:'8d ago', trend:-100, connected:true  },
-  { id:'notion',     name:'Notion',     cat:'PRODUCTIVITY', color:'#555555', desc:'All-in-one workspace for notes, wikis, and project management.',         sessions:1, lastUsed:'8d ago', trend:-100, connected:true  },
-  { id:'figma',      name:'Figma',      cat:'DESIGN',       color:'#9254de', desc:'Design and prototype interfaces collaboratively in real time.',           sessions:1, lastUsed:'8d ago', trend:-100, connected:true  },
-  { id:'notebooklm', name:'NotebookLM', cat:'AI',           color:'#4285f4', desc:'Upload your notes and lecture slides — ask AI anything about them.',     sessions:0, lastUsed:'Never',  trend:0,    connected:false },
-  { id:'zapier',     name:'Zapier',     cat:'PRODUCTIVITY', color:'#ff4a00', desc:'Automate repetitive tasks by connecting your apps and workflows.',       sessions:0, lastUsed:'Never',  trend:0,    connected:false },
-  { id:'canva',      name:'Canva',      cat:'DESIGN',       color:'#00b4bc', desc:'Create posters, presentations, and graphics with drag-and-drop.',       sessions:0, lastUsed:'Never',  trend:0,    connected:false },
-  { id:'gemini',     name:'Gemini',     cat:'AI',           color:'#4285f4', desc:'Google\'s multimodal AI for research, writing, and complex tasks.',     sessions:0, lastUsed:'Never',  trend:0,    connected:false },
+  { id:'claude',     name:'Claude',     cat:'AI',           color:'#c65030', url:'https://claude.ai',          desc:'Write, code, analyse, and reason — Anthropic\'s frontier AI.' },
+  { id:'notion',     name:'Notion',     cat:'PRODUCTIVITY', color:'#555555', url:'https://www.notion.so',      desc:'All-in-one workspace for notes, wikis, and project management.' },
+  { id:'figma',      name:'Figma',      cat:'DESIGN',       color:'#9254de', url:'https://www.figma.com',      desc:'Design and prototype interfaces collaboratively in real time.' },
+  { id:'notebooklm', name:'NotebookLM', cat:'AI',           color:'#4285f4', url:'https://notebooklm.google.com', desc:'Upload your notes and lecture slides — ask AI anything about them.' },
+  { id:'zapier',     name:'Zapier',     cat:'PRODUCTIVITY', color:'#ff4a00', url:'https://zapier.com',         desc:'Automate repetitive tasks by connecting your apps and workflows.' },
+  { id:'canva',      name:'Canva',      cat:'DESIGN',       color:'#00b4bc', url:'https://www.canva.com',      desc:'Create posters, presentations, and graphics with drag-and-drop.' },
+  { id:'gemini',     name:'Gemini',     cat:'AI',           color:'#4285f4', url:'https://gemini.google.com',  desc:'Google\'s multimodal AI for research, writing, and complex tasks.' },
 ];
 const GPA = (SUBJECTS.reduce((a,s) => a + s.gpa, 0) / SUBJECTS.length).toFixed(2);
 const subjectBy = (id) => SUBJECTS.find(s => s.id === id) || SUBJECTS[0];
 
+const pickBestGradedSubject = (subjects, grades) => {
+  const graded = (subjects || []).filter(s => grades?.[s.id] && GPA_MAP[grades[s.id]] != null);
+  if (!graded.length) return null;
+  return graded.reduce((a, b) => ((GPA_MAP[grades[b.id]] || 0) > (GPA_MAP[grades[a.id]] || 0) ? b : a));
+};
 const calcGPA = (subjects, grades) => {
   if (!subjects?.length) return '—';
   const vals = subjects.map(s => grades?.[s.id] != null ? (GPA_MAP[grades[s.id]] ?? null) : null).filter(v => v != null);
@@ -115,4 +120,4 @@ function greeting() {
 function formatDate() {
   return new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
 }
-export { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, HOMEWORK, QUIZZES_DATA, NOTES_DATA, SCHEDULE_DATA, DECKS, QUIZ, HIST, GPA_MAP, TOOLS_DATA, GPA, subjectBy, calcGPA, makeSubjectBy, greeting, formatDate };
+export { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, HOMEWORK, QUIZZES_DATA, NOTES_DATA, SCHEDULE_DATA, DECKS, QUIZ, HIST, GPA_MAP, TOOLS_DATA, GPA, subjectBy, calcGPA, pickBestGradedSubject, makeSubjectBy, greeting, formatDate };

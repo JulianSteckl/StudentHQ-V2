@@ -1,3 +1,5 @@
+import { normalizeUserData } from './user-data-helpers.js';
+
 const GOOGLE_CLIENT_ID = '262784487938-jek8tem7bheq8ms983j338p2s34ip3rc.apps.googleusercontent.com';
 // Holds the current Google access token so the server can verify who we are
 // on every profile read/write. Set right after Google sign-in.
@@ -10,9 +12,9 @@ const loadProfileByEmail = (email) => { try { return JSON.parse(localStorage.get
 const saveProfile = (p) => { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); if (p?.email) localStorage.setItem(PROFILE_BY_EMAIL(p.email), JSON.stringify(p)); };
 
 const USER_DATA_KEY = (email) => 'shq-v2-data-' + (email || 'anon');
-const loadUserData  = (email) => { try { return JSON.parse(localStorage.getItem(USER_DATA_KEY(email)) || 'null'); } catch { return null; } };
-const saveUserData  = (email, data) => localStorage.setItem(USER_DATA_KEY(email), JSON.stringify(data));
-const defaultUserData = () => ({ homework: [], grades: {}, streak: 0, quizzes: [], notes: [], schedule: [], flashcards: [], updatedAt: 0 });
+const loadUserData  = (email) => { try { const raw = JSON.parse(localStorage.getItem(USER_DATA_KEY(email)) || 'null'); return raw ? normalizeUserData(raw) : null; } catch { return null; } };
+const saveUserData  = (email, data) => localStorage.setItem(USER_DATA_KEY(email), JSON.stringify(normalizeUserData(data)));
+const defaultUserData = () => normalizeUserData({ homework: [], grades: {}, gradeHistory: [], toolOpens: [] });
 
 // Remember the Google access token (valid ~1h) across page reloads so the user
 // doesn't have to reconnect every time. Tokens are short-lived and scoped.
