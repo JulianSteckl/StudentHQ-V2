@@ -2,6 +2,21 @@
 html, body { margin: 0; padding: 0; height: 100%; }
 #root { height: 100vh; overflow: hidden; }
 button { cursor: pointer; font-family: inherit; }
+/* Skip link */
+.shq-skip {
+  position:absolute;
+  left:-9999px;
+  top:8px;
+  z-index:3000;
+  padding:10px 14px;
+  border-radius:10px;
+  background:#18150e;
+  color:#f8f6f0;
+  font-family:"DM Sans",system-ui,sans-serif;
+  font-size:13px;
+  border:1px solid #e0d8cc;
+}
+.shq-skip:focus { left:8px; outline:none; }
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #e0d8cc; border-radius: 2px; }
@@ -91,4 +106,13 @@ button { cursor: pointer; font-family: inherit; }
   box-shadow:0 12px 40px rgba(24,21,14,0.22);
   animation:shq-toast-in 0.22s ease forwards;
   pointer-events:none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

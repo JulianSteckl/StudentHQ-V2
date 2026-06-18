@@ -13,6 +13,14 @@ const ReactDOM = { createRoot, createPortal };
 
 const MODAL_FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+function Toast({ message }) {
+  if (!message) return null;
+  return ReactDOM.createPortal(
+    <div className="shq-toast" role="status" aria-live="polite">{message}</div>,
+    document.body
+  );
+}
+
 function useModalA11y(open, dismiss, panelRef) {
   const prevFocus = useRef(null);
 
@@ -131,7 +139,7 @@ function AddSubjectModal({ open, onClose, onAdd, existingCount }) {
         boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)',
         animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`,
       }}>
-        <button onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
+        <button aria-label="Close dialog" onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
 
         <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, marginBottom:4}}>Add a <span style={{color:T.accent}}>class</span></div>
         <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:24}}>Up to 10 subjects · you can always change these later</div>
@@ -214,11 +222,11 @@ function ProfileModal({ open, onClose, profile, onSave }) {
         boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)',
         animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`,
       }}>
-        <button onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
+        <button aria-label="Close dialog" onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
 
         <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:20}}>
           {profile?.picture ? (
-            <img src={profile.picture} style={{width:40, height:40, borderRadius:10, objectFit:'cover'}} referrerPolicy="no-referrer" />
+            <img src={profile.picture} alt={`${(profile?.name || 'User')} profile photo`} style={{width:40, height:40, borderRadius:10, objectFit:'cover'}} referrerPolicy="no-referrer" />
           ) : (
             <div style={{width:40, height:40, borderRadius:10, background:`linear-gradient(135deg, ${T.accent}, #9a7828)`, display:'flex', alignItems:'center', justifyContent:'center'}}>
               <span style={{fontFamily:T.serif, fontSize:18, color:'#fff', fontWeight:600}}>{(name || 'U')[0]}</span>
@@ -231,15 +239,15 @@ function ProfileModal({ open, onClose, profile, onSave }) {
         </div>
 
         <div style={{marginBottom:14}}>
-          <label style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', display:'block', marginBottom:5}}>Name</label>
-          <input value={name} onChange={e => setName(e.target.value)} autoFocus
+          <label htmlFor="profile-name" style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', display:'block', marginBottom:5}}>Name</label>
+          <input id="profile-name" value={name} onChange={e => setName(e.target.value)} autoFocus
             style={{width:'100%', padding:'10px 14px', border:`1px solid ${T.border}`, borderRadius:10, fontFamily:T.ui, fontSize:14, color:T.ink, background:T.bg, outline:'none', boxSizing:'border-box', transition:'border-color 0.15s'}}
             onFocus={e => e.target.style.borderColor=T.accent} onBlur={e => e.target.style.borderColor=T.border} />
         </div>
 
         <div style={{marginBottom:14}}>
-          <label style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', display:'block', marginBottom:5}}>School</label>
-          <input value={school} onChange={e => setSchool(e.target.value)} placeholder="e.g. University of Cincinnati"
+          <label htmlFor="profile-school" style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', display:'block', marginBottom:5}}>School</label>
+          <input id="profile-school" value={school} onChange={e => setSchool(e.target.value)} placeholder="e.g. University of Cincinnati"
             style={{width:'100%', padding:'10px 14px', border:`1px solid ${T.border}`, borderRadius:10, fontFamily:T.ui, fontSize:14, color:T.ink, background:T.bg, outline:'none', boxSizing:'border-box', transition:'border-color 0.15s'}}
             onFocus={e => e.target.style.borderColor=T.accent} onBlur={e => e.target.style.borderColor=T.border} />
         </div>
@@ -300,7 +308,7 @@ function AIKeysModal({ open, onClose }) {
         <div style={{padding:'24px 28px 0'}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
             <h3 style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, fontWeight:400, margin:0, color:T.ink}}>AI Connections</h3>
-            <button onClick={dismiss} style={{background:'none', border:'none', cursor:'pointer', padding:4, color:T.ink3, fontSize:18, lineHeight:1}}>×</button>
+            <button aria-label="Close dialog" onClick={dismiss} style={{background:'none', border:'none', cursor:'pointer', padding:4, color:T.ink3, fontSize:18, lineHeight:1}}>×</button>
           </div>
           <p style={{fontFamily:T.ui, fontSize:11.5, color:T.ink3, margin:'0 0 20px', lineHeight:1.5}}>Connect your API keys to unlock AI-powered study features like smart flashcards, quiz generation, and note summaries.</p>
         </div>
@@ -362,7 +370,11 @@ function ManageSubjectsModal({ open, onClose, profile, onUpdateProfile }) {
   const save = (newSubjects) => {
     onUpdateProfile({ ...profile, subjects: newSubjects });
   };
-  const remove = (id) => save(subjects.filter(s => s.id !== id));
+  const remove = (id) => {
+    const subj = subjects.find(s => s.id === id);
+    if (!window.confirm(`Remove ${subj?.name || 'this subject'}?`)) return;
+    save(subjects.filter(s => s.id !== id));
+  };
   const updateColor = (id, color) => { save(subjects.map(s => s.id === id ? {...s, color} : s)); setPicker(null); };
   const startEdit = (s) => { setEditId(s.id); setEditName(s.name); };
   const confirmEdit = (id) => {
@@ -383,7 +395,7 @@ function ManageSubjectsModal({ open, onClose, profile, onUpdateProfile }) {
         <div style={{padding:'24px 28px 0'}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
             <h3 style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, fontWeight:400, margin:0, color:T.ink}}>Manage Subjects</h3>
-            <button onClick={dismiss} style={{background:'none', border:'none', cursor:'pointer', padding:4, color:T.ink3, fontSize:18, lineHeight:1}}>×</button>
+            <button aria-label="Close dialog" onClick={dismiss} style={{background:'none', border:'none', cursor:'pointer', padding:4, color:T.ink3, fontSize:18, lineHeight:1}}>×</button>
           </div>
           <p style={{fontFamily:T.ui, fontSize:11.5, color:T.ink3, margin:'0 0 16px', lineHeight:1.5}}>{subjects.length} subject{subjects.length !== 1 ? 's' : ''} · click name to rename, dot to recolor</p>
         </div>
@@ -555,7 +567,7 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
         <div style={{padding:'2px 0 0'}}>
           <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 12px 4px'}}>
             <span style={{fontFamily:T.mono, fontSize:7, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.16em'}}>Subjects</span>
-            <button onClick={() => setShowAddModal(true)} style={{width:16, height:16, display:'flex', alignItems:'center', justifyContent:'center', border:`1px solid ${T.border}`, background:'transparent', borderRadius:4, color:T.ink3, fontSize:11, cursor:'pointer', lineHeight:1, padding:0, transition:'all 0.15s'}}
+            <button aria-label="Add subject" onClick={() => setShowAddModal(true)} style={{width:16, height:16, display:'flex', alignItems:'center', justifyContent:'center', border:`1px solid ${T.border}`, background:'transparent', borderRadius:4, color:T.ink3, fontSize:11, cursor:'pointer', lineHeight:1, padding:0, transition:'all 0.15s'}}
               onMouseOver={e => {e.currentTarget.style.background=T.accent; e.currentTarget.style.borderColor=T.accent; e.currentTarget.style.color='#fff'}}
               onMouseOut={e => {e.currentTarget.style.background='transparent'; e.currentTarget.style.borderColor=T.border; e.currentTarget.style.color=T.ink3}}>+</button>
           </div>
@@ -570,7 +582,11 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
                 <div key={s.id}
                   onMouseOver={e => e.currentTarget.style.background=T.bl}
                   onMouseOut={e => e.currentTarget.style.background='transparent'}
-                  style={{display:'flex', alignItems:'center', gap:7, padding:'4px 8px', height:32, margin:'0', borderRadius:5, background:'transparent', cursor:'default', transition:'background 0.12s'}}>
+                  onClick={() => onNav && onNav('subjects')}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNav && onNav('subjects'); } }}
+                  style={{display:'flex', alignItems:'center', gap:7, padding:'4px 8px', height:32, margin:'0', borderRadius:5, background:'transparent', cursor:'pointer', transition:'background 0.12s'}}>
                   <div style={{width:6, height:6, borderRadius:2, background:s.color, flexShrink:0}} />
                   <span style={{flex:1, fontSize:11, fontFamily:T.ui, color:T.ink2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.short || s.name}</span>
                   {hwForSubj > 0 && <span style={{fontFamily:T.mono, fontSize:7, color:T.ink3}}>{hwForSubj}</span>}
@@ -634,7 +650,7 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
         <div style={{background:T.bg, borderRadius:8, padding:'8px 10px'}}>
           <div style={{display:'flex', alignItems:'center', gap:8}}>
             {profile?.picture ? (
-              <img src={profile.picture} style={{width:24, height:24, borderRadius:6, objectFit:'cover'}} referrerPolicy="no-referrer" />
+              <img src={profile.picture} alt={`${(profile?.name || 'User')} profile photo`} style={{width:24, height:24, borderRadius:6, objectFit:'cover'}} referrerPolicy="no-referrer" />
             ) : (
               <div style={{width:24, height:24, borderRadius:6, background:`linear-gradient(135deg, ${T.accent}, #9a7828)`, display:'flex', alignItems:'center', justifyContent:'center'}}>
                 <span style={{fontFamily:T.serif, fontSize:12, color:'#fff', fontWeight:600}}>{(profile?.name || 'U')[0]}</span>
@@ -712,7 +728,7 @@ function DashboardCustomizeModal({ open, onClose, prefs, onSave }) {
         boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)',
         animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`,
       }}>
-        <button onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
+        <button aria-label="Close dialog" onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
         <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, marginBottom:4}}>Customize <span style={{color:T.accent}}>dashboard</span></div>
         <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:20}}>Choose what appears on Today</div>
         <div style={{display:'flex', flexDirection:'column', gap:8, marginBottom:22}}>
@@ -774,6 +790,8 @@ function TodayScreen({ profile, userData, onUpdate }) {
     <button onClick={onClick} style={{padding:'7px 14px', border: gold ? 'none' : `1px solid ${T.border}`, background: gold ? T.accent : T.surface, color: gold ? '#fff' : T.ink3, fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.07em', cursor:'pointer', display:'flex', alignItems:'center', gap:6}}>{children}</button>
   );
 
+  const hasBasics = subjects.length > 0;
+
   return (
     <div className="screen-enter" style={{flex:1, overflowY:'auto'}}>
       <DashboardCustomizeModal
@@ -782,6 +800,15 @@ function TodayScreen({ profile, userData, onUpdate }) {
         prefs={prefs}
         onSave={(next) => onUpdate && onUpdate({ dashboardPrefs: next })}
       />
+      {!hasBasics && (
+        <div style={{margin:'18px 52px 0', background:T.accentSoft, border:`1px solid ${T.accent}35`, padding:'14px 16px', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12}}>
+          <div>
+            <div style={{fontFamily:T.mono, fontSize:7.5, color:T.accent, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:4}}>Getting started</div>
+            <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink2, lineHeight:1.45}}>Add your first subject in the sidebar to unlock Homework, Notes, and Grades.</div>
+          </div>
+          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{padding:'7px 12px', border:`1px solid ${T.accent}55`, background:'#fff', borderRadius:10, fontFamily:T.mono, fontSize:8.5, color:T.accent, cursor:'pointer', whiteSpace:'nowrap'}}>Tip: tap “+”</button>
+        </div>
+      )}
       {/* Header */}
       <div style={{padding:'26px 52px 0', display:'flex', alignItems:'flex-start', justifyContent:'space-between'}}>
         <div>
@@ -1018,7 +1045,12 @@ function HomeworkScreen({ profile, userData, onUpdate }) {
         onMouseOut={e => e.currentTarget.style.background = T.bl}
         title="Click to toggle done"
       >
-        <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink, lineHeight:1.3, marginBottom:3, textDecoration: hw.done ? 'line-through' : 'none', opacity: hw.done ? 0.5 : 1}}>{hw.title}</div>
+        <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, marginBottom:3}}>
+          <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink, lineHeight:1.3, textDecoration: hw.done ? 'line-through' : 'none', opacity: hw.done ? 0.5 : 1}}>{hw.title}</div>
+          {hw.urgent && !hw.done && (
+            <span style={{flexShrink:0, fontFamily:T.mono, fontSize:7.5, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bf4a30', border:'1px solid #bf4a3040', background:'#bf4a300f', padding:'2px 6px', borderRadius:999}}>Urgent</span>
+          )}
+        </div>
         <div style={{display:'flex', justifyContent:'space-between'}}>
           <span style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3}}>{s.short}</span>
           <span style={{fontFamily:T.mono, fontSize:7.5, color: hw.urgent ? '#bf4a30' : T.ink3}}>{hw.due}</span>
@@ -1048,24 +1080,24 @@ function HomeworkScreen({ profile, userData, onUpdate }) {
         {showAdd && (
           <div style={{background:T.surface, border:`1px solid ${T.border}`, padding:'16px 20px', marginBottom:12, display:'flex', flexWrap:'wrap', gap:10, alignItems:'flex-end'}}>
             <div style={{flex:'1 1 200px'}}>
-              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5}}>Assignment</div>
-              <input value={newTitle} onChange={e=>setNewTitle(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addHomework()} placeholder="e.g. Read chapter 5" style={{width:'100%', padding:'7px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, background:T.bg, outline:'none', boxSizing:'border-box'}} />
+              <label htmlFor="hw-title" style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Assignment</label>
+              <input id="hw-title" value={newTitle} onChange={e=>setNewTitle(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addHomework()} placeholder="e.g. Read chapter 5" style={{width:'100%', padding:'7px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, background:T.bg, outline:'none', boxSizing:'border-box'}} />
             </div>
             <div style={{flex:'0 1 140px'}}>
-              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5}}>Subject</div>
-              <select value={newSubj} onChange={e=>setNewSubj(e.target.value)} style={{width:'100%', padding:'7px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, background:T.bg, cursor:'pointer'}}>
+              <label htmlFor="hw-subj" style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Subject</label>
+              <select id="hw-subj" value={newSubj} onChange={e=>setNewSubj(e.target.value)} style={{width:'100%', padding:'7px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, background:T.bg, cursor:'pointer'}}>
                 {subjects.map(s => <option key={s.id} value={s.id}>{s.short || s.name}</option>)}
               </select>
             </div>
             <div style={{flex:'0 1 120px'}}>
-              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5}}>Due</div>
-              <select value={newDue} onChange={e=>setNewDue(e.target.value)} style={{width:'100%', padding:'7px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, background:T.bg, cursor:'pointer'}}>
+              <label htmlFor="hw-due" style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Due</label>
+              <select id="hw-due" value={newDue} onChange={e=>setNewDue(e.target.value)} style={{width:'100%', padding:'7px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, background:T.bg, cursor:'pointer'}}>
                 {['Tonight','Tomorrow','Wed','Thu','Fri','Next Week'].map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
             <div style={{flex:'0 1 120px'}}>
-              <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5}}>Est. Time</div>
-              <select value={newEst} onChange={e=>setNewEst(e.target.value)} style={{width:'100%', padding:'7px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, background:T.bg, cursor:'pointer'}}>
+              <label htmlFor="hw-est" style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Est. Time</label>
+              <select id="hw-est" value={newEst} onChange={e=>setNewEst(e.target.value)} style={{width:'100%', padding:'7px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, background:T.bg, cursor:'pointer'}}>
                 {['15 min','30 min','45 min','1 hr','1 hr 30 min','2 hr','3 hr'].map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
@@ -1248,11 +1280,12 @@ function NoteEditorModal({ open, onClose, onSave, subjects, initial }) {
   return ReactDOM.createPortal(
     <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
       <div ref={panelRef} role="dialog" aria-modal="true" tabIndex={-1} className="shq-modal-box" style={{ width:520, maxWidth:'92vw', background:T.surface, border:`1px solid ${T.border}`, borderRadius:16, padding:'36px 32px 28px', position:'relative', opacity:0, outline:'none', boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)', animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards` }}>
-        <button onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
+        <button aria-label="Close dialog" onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
         <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, marginBottom:4}}>{isEdit ? 'Edit ' : 'New '}<span style={{color:T.accent}}>note</span></div>
         <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:22}}>Saved to your account · syncs across devices</div>
 
-        <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Note title" autoFocus
+        <label htmlFor="note-title" style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:6, display:'block'}}>Title</label>
+        <input id="note-title" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Note title" autoFocus
           style={{width:'100%', padding:'10px 14px', border:`1px solid ${T.border}`, borderRadius:10, fontFamily:T.ui, fontSize:14, color:T.ink, background:T.bg, outline:'none', boxSizing:'border-box', marginBottom:16}}
           onFocus={e=>e.target.style.borderColor=T.accent} onBlur={e=>e.target.style.borderColor=T.border} />
 
@@ -1273,7 +1306,8 @@ function NoteEditorModal({ open, onClose, onSave, subjects, initial }) {
           </div>
         )}
 
-        <textarea value={body} onChange={e=>setBody(e.target.value)} placeholder="Write your note…" rows={8}
+        <label htmlFor="note-body" style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:6, display:'block'}}>Body</label>
+        <textarea id="note-body" value={body} onChange={e=>setBody(e.target.value)} placeholder="Write your note…" rows={8}
           style={{width:'100%', padding:'12px 14px', border:`1px solid ${T.border}`, borderRadius:10, fontFamily:T.ui, fontSize:13, lineHeight:1.6, color:T.ink, background:T.bg, outline:'none', boxSizing:'border-box', resize:'vertical', marginBottom:24}}
           onFocus={e=>e.target.style.borderColor=T.accent} onBlur={e=>e.target.style.borderColor=T.border} />
 
@@ -1322,7 +1356,11 @@ function NotesScreen({ profile, userData, onUpdate }) {
       onUpdate({ notes: [newNote, ...notes] });
     }
   };
-  const deleteNote = (id) => { onUpdate({ notes: notes.filter(n => n.id !== id) }); setActive(null); };
+  const deleteNote = (id) => {
+    if (!window.confirm('Delete this note?')) return;
+    onUpdate({ notes: notes.filter(n => n.id !== id) });
+    setActive(null);
+  };
   const noteEditor = <NoteEditorModal open={editorOpen} onClose={() => setEditorOpen(false)} onSave={saveNote} subjects={subjects} initial={editTarget} />;
 
   if (active) {
@@ -1538,17 +1576,17 @@ function FlashcardEditorModal({ open, onClose, onSave, subjects, initial }) {
   return ReactDOM.createPortal(
     <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
       <div ref={panelRef} role="dialog" aria-modal="true" tabIndex={-1} className="shq-modal-box" style={{ width:500, maxWidth:'92vw', background:T.surface, border:`1px solid ${T.border}`, borderRadius:16, padding:'36px 32px 28px', position:'relative', opacity:0, outline:'none', boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)', animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards` }}>
-        <button onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
+        <button aria-label="Close dialog" onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
         <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, marginBottom:4}}>{isEdit ? 'Edit ' : 'New '}<span style={{color:T.accent}}>flashcard</span></div>
         <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:22}}>Saved to your account · syncs across devices</div>
 
-        <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:6}}>Question / Term</div>
-        <textarea value={q} onChange={e=>setQ(e.target.value)} placeholder="e.g. What is the Central Limit Theorem?" rows={2} autoFocus
+        <label htmlFor="fc-q" style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:6, display:'block'}}>Question / Term</label>
+        <textarea id="fc-q" value={q} onChange={e=>setQ(e.target.value)} placeholder="e.g. What is the Central Limit Theorem?" rows={2} autoFocus
           style={{width:'100%', padding:'10px 14px', border:`1px solid ${T.border}`, borderRadius:10, fontFamily:T.ui, fontSize:13, lineHeight:1.5, color:T.ink, background:T.bg, outline:'none', boxSizing:'border-box', resize:'vertical', marginBottom:16}}
           onFocus={e=>e.target.style.borderColor=T.accent} onBlur={e=>e.target.style.borderColor=T.border} />
 
-        <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:6}}>Answer / Definition</div>
-        <textarea value={a} onChange={e=>setA(e.target.value)} placeholder="The answer…" rows={3}
+        <label htmlFor="fc-a" style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:6, display:'block'}}>Answer / Definition</label>
+        <textarea id="fc-a" value={a} onChange={e=>setA(e.target.value)} placeholder="The answer…" rows={3}
           style={{width:'100%', padding:'10px 14px', border:`1px solid ${T.border}`, borderRadius:10, fontFamily:T.ui, fontSize:13, lineHeight:1.6, color:T.ink, background:T.bg, outline:'none', boxSizing:'border-box', resize:'vertical', marginBottom:16}}
           onFocus={e=>e.target.style.borderColor=T.accent} onBlur={e=>e.target.style.borderColor=T.border} />
 
@@ -1608,6 +1646,7 @@ function FlashcardsScreen({ profile, userData, onUpdate }) {
     }
   };
   const deleteCard = (id) => {
+    if (!window.confirm('Delete this flashcard?')) return;
     onUpdate({ flashcards: flashCards.filter(c => c.id !== id) });
     setQi(0);
   };
@@ -2676,15 +2715,17 @@ function WelcomeScreen({ onSignIn, onSetup }) {
   const [grade, setGrade]       = useState('');
   const [googleUser, setGoogleUser] = useState(null);
   const [gLoading, setGLoading]     = useState(false);
+  const [gError, setGError]         = useState('');
 
   const handleGoogleSignIn = () => {
-    if (!window.google?.accounts?.oauth2) { setGLoading(false); return; }
+    if (!window.google?.accounts?.oauth2) { setGLoading(false); setGError('Google sign-in is still loading. If it never appears, it may be blocked by a browser extension.'); return; }
+    setGError('');
     setGLoading(true);
     const client = window.google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
       scope: 'openid profile email',
       callback: async (resp) => {
-        if (resp.error) { setGLoading(false); return; }
+        if (resp.error) { setGError('Google sign-in failed. Please try again.'); setGLoading(false); return; }
         setGoogleAccessToken(resp.access_token, resp.expires_in);
         try {
           const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
@@ -2703,7 +2744,7 @@ function WelcomeScreen({ onSignIn, onSetup }) {
           }
           if (existing?.name) { onSignIn(existing); return; }
           setGoogleUser({ name: u.name, email: u.email, picture: u.picture });
-        } catch(e) {}
+        } catch(e) { setGError('Could not reach Google or the Scholar API. Check your connection and try again.'); }
         setGLoading(false);
       },
     });
@@ -2895,6 +2936,7 @@ function WelcomeScreen({ onSignIn, onSetup }) {
                   <GoogleG size={18} colored />
                   {gLoading ? 'Opening Google…' : 'Sign in with Google'}
                 </button>
+                {gError && <div role="status" style={{fontFamily:T.ui, fontSize:12, color:'#bf4a30', lineHeight:1.5, marginTop:10}}>{gError}</div>}
 
                 <div style={{textAlign:'center', marginTop:20}}>
                   <button onClick={() => { setOverlay(false); onSetup(); }} style={{background:'none', border:'none', fontFamily:T.mono, fontSize:9, color:T.ink3, cursor:'pointer', letterSpacing:'0.08em'}}>
@@ -2907,7 +2949,7 @@ function WelcomeScreen({ onSignIn, onSetup }) {
                 {/* Confirmed Google account */}
                 <div style={{display:'flex', alignItems:'center', gap:12, padding:'12px 14px', background:T.bg, borderRadius:8, marginBottom:22}}>
                   {googleUser.picture
-                    ? <img src={googleUser.picture} alt="" style={{width:36, height:36, borderRadius:'50%', flexShrink:0}} />
+                    ? <img src={googleUser.picture} alt={`${googleUser.name} profile photo`} style={{width:36, height:36, borderRadius:'50%', flexShrink:0}} />
                     : <div style={{width:36, height:36, borderRadius:'50%', background:T.accentSoft, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
                         <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:T.accent}}>{googleUser.name[0]}</span>
                       </div>
@@ -3447,13 +3489,36 @@ function App() {
   const [inSetup, setInSetup]   = useState(false);
   const [screen, setScreen]     = useState('today');
   const [key, setKey]           = useState(0);
+  const [toast, setToast]       = useState('');
   const [userData, setUserData] = useState(() => {
     const p = loadProfile();
     return p ? (loadUserData(p.email) || defaultUserData()) : defaultUserData();
   });
 
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(''), 2200);
+    return () => clearTimeout(id);
+  }, [toast]);
+
   const nav = (s) => { setScreen(s); setKey(k => k+1); };
   const Screen = SCREENS[screen] || TodayScreen;
+
+  useEffect(() => {
+    const map = {
+      today: 'Today',
+      homework: 'Homework',
+      quizzes: 'Quizzes',
+      notes: 'Notes',
+      flashcards: 'Flashcards',
+      schedule: 'Schedule',
+      grades: 'Grades',
+      tools: 'Tools',
+      subjects: 'Subjects',
+    };
+    const label = map[screen] || 'Dashboard';
+    document.title = `Scholar — ${label}`;
+  }, [screen]);
 
   const updateUserData = (update) => {
     setUserData(prev => {
@@ -3462,6 +3527,7 @@ function App() {
         saveUserData(profile.email, next);
         saveServerUserData(next); // best-effort cloud save so work follows the user
       }
+      setToast('Saved.');
       return next;
     });
   };
@@ -3576,6 +3642,7 @@ function App() {
 
   return (
     <div style={{height:'100vh', display:'flex', overflow:'hidden', background:T.bg, fontFamily:T.ui, color:T.ink}}>
+      <a className="shq-skip" href="#shq-main">Skip to content</a>
       <Sidebar screen={screen} onNav={nav} profile={profile} userData={userData} onSignOut={handleSignOut} onAddSubject={subj => {
         const updated = { ...profile, subjects: [...(profile.subjects||[]), subj] };
         saveProfile(updated);
@@ -3586,10 +3653,11 @@ function App() {
         setProfile(p);
         setKey(k => k+1);
       }} />
-      <div style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
+      <main id="shq-main" tabIndex={-1} style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden', outline:'none'}}>
         <Screen key={key} profile={profile} userData={userData} onUpdate={updateUserData} />
-      </div>
+      </main>
       <SyncBadge onReconnect={reconnectCloud} />
+      <Toast message={toast} />
     </div>
   );
 }
