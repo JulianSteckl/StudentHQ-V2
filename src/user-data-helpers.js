@@ -104,6 +104,50 @@ const buildToolUsageInsight = (opens) => {
   return `${tool.name} is your most-used tool (${topCount} open${topCount === 1 ? '' : 's'}).`;
 };
 
+const DEFAULT_DASHBOARD_PREFS = {
+  stats: true,
+  week: true,
+  period: true,
+  gamePlan: true,
+  bottomRow: true,
+};
+
+const normalizeDashboardPrefs = (prefs) => {
+  if (!prefs || typeof prefs !== 'object') return { ...DEFAULT_DASHBOARD_PREFS };
+  return {
+    stats: prefs.stats !== false,
+    week: prefs.week !== false,
+    period: prefs.period !== false,
+    gamePlan: prefs.gamePlan !== false,
+    bottomRow: prefs.bottomRow !== false,
+  };
+};
+
+const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+
+const exportGradesCsv = (profile, userData) => {
+  const subjects = profile?.subjects || [];
+  const grades = userData?.grades || {};
+  const homework = userData?.homework || [];
+  const rows = [
+    ['Subject', 'Short', 'Grade', 'GPA', 'Open Homework'].join(','),
+    ...subjects.map(s => {
+      const grade = grades[s.id] || '';
+      const gpa = GPA_MAP[grade] != null ? GPA_MAP[grade] : '';
+      const hwOpen = homework.filter(h => h.subj === s.id && !h.done).length;
+      return [csvCell(s.name), csvCell(s.short), csvCell(grade), csvCell(gpa), hwOpen].join(',');
+    }),
+  ];
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `scholar-grades-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+};
+
 const normalizeUserData = (raw) => {
   const d = raw || {};
   const grades = d.grades && typeof d.grades === 'object' ? d.grades : {};
@@ -118,12 +162,16 @@ const normalizeUserData = (raw) => {
     flashcards: Array.isArray(d.flashcards) ? d.flashcards : [],
     focusSessions: Number(d.focusSessions) || 0,
     toolOpens: normalizeToolOpens(d.toolOpens),
+    dashboardPrefs: normalizeDashboardPrefs(d.dashboardPrefs),
     updatedAt: Number(d.updatedAt) || 0,
   };
 };
 
 export {
   normalizeUserData,
+  normalizeDashboardPrefs,
+  DEFAULT_DASHBOARD_PREFS,
+  exportGradesCsv,
   normalizeGradeHistory,
   appendGradeHistory,
   gradeSparklinePoints,

@@ -5,7 +5,7 @@ import { T } from './theme.js';
 import { GOOGLE_CLIENT_ID, authHeaders, setGoogleAccessToken, restoreGoogleToken, PROFILE_KEY, loadProfile, loadProfileByEmail, saveProfile, loadUserData, saveUserData, defaultUserData, fetchServerUserData, saveServerUserData, getSyncStatus, onSyncStatus, setSyncStatus } from './storage.js';
 import { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, HOMEWORK, QUIZZES_DATA, NOTES_DATA, SCHEDULE_DATA, DECKS, QUIZ, HIST, GPA_MAP, TOOLS_DATA, GPA, subjectBy, calcGPA, pickBestGradedSubject, makeSubjectBy, greeting, formatDate } from './data.js';
 import { ICO, NAV } from './icons.jsx';
-import { appendGradeHistory, gradeSparklinePoints, appendToolOpen, toolOpensThisWeek, toolOpenCounts, toolById, formatToolWhen, buildToolUsageInsight, normalizeUserData, normalizeToolOpens } from './user-data-helpers.js';
+import { appendGradeHistory, gradeSparklinePoints, appendToolOpen, toolOpensThisWeek, toolOpenCounts, toolById, formatToolWhen, buildToolUsageInsight, normalizeUserData, normalizeToolOpens, normalizeDashboardPrefs, DEFAULT_DASHBOARD_PREFS, exportGradesCsv } from './user-data-helpers.js';
 
 const { useState, useEffect, useRef } = React;
 const ReactDOM = { createRoot, createPortal };
@@ -618,9 +618,68 @@ function PageHeader({ eyebrow, title, right }) {
 }
 function Hr({ mb=32 }) { return <div style={{height:1, background:T.border, marginBottom:mb}} />; }
 
+const DASHBOARD_WIDGETS = [
+  { id: 'stats', label: 'Summary cards', desc: 'Open tasks, GPA, streak, and quizzes' },
+  { id: 'week', label: 'Week calendar', desc: 'Seven-day date strip' },
+  { id: 'period', label: 'Current period', desc: 'Class in session and tomorrow preview' },
+  { id: 'gamePlan', label: 'Game plan', desc: 'Tonight\'s homework priorities' },
+  { id: 'bottomRow', label: 'Workload & progress', desc: 'Due today, schedule, and streak grid' },
+];
+
+function DashboardCustomizeModal({ open, onClose, prefs, onSave }) {
+  const [draft, setDraft] = useState(DEFAULT_DASHBOARD_PREFS);
+  const [closing, setClosing] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setDraft(normalizeDashboardPrefs(prefs));
+      setClosing(false);
+    }
+  }, [open, prefs]);
+
+  if (!open) return null;
+
+  const dismiss = () => { setClosing(true); setTimeout(onClose, 280); };
+  const toggle = (id) => setDraft(prev => ({ ...prev, [id]: !prev[id] }));
+  const submit = () => { onSave(draft); dismiss(); };
+
+  return ReactDOM.createPortal(
+    <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
+      <div className="shq-modal-box" style={{
+        width:400, background:T.surface, border:`1px solid ${T.border}`, borderRadius:16,
+        padding:'32px 28px 24px', position:'relative', opacity:0,
+        boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)',
+        animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`,
+      }}>
+        <button onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
+        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, marginBottom:4}}>Customize <span style={{color:T.accent}}>dashboard</span></div>
+        <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:20}}>Choose what appears on Today</div>
+        <div style={{display:'flex', flexDirection:'column', gap:8, marginBottom:22}}>
+          {DASHBOARD_WIDGETS.map(w => (
+            <label key={w.id} style={{display:'flex', alignItems:'flex-start', gap:10, padding:'10px 12px', border:`1px solid ${draft[w.id] ? T.accent+'40' : T.border}`, borderRadius:10, background: draft[w.id] ? T.accentSoft : T.bg, cursor:'pointer'}}>
+              <input type="checkbox" checked={!!draft[w.id]} onChange={() => toggle(w.id)} style={{marginTop:2, accentColor:T.accent}} />
+              <div>
+                <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink, fontWeight:500, marginBottom:2}}>{w.label}</div>
+                <div style={{fontFamily:T.ui, fontSize:11, color:T.ink3, lineHeight:1.45}}>{w.desc}</div>
+              </div>
+            </label>
+          ))}
+        </div>
+        <div style={{display:'flex', gap:10, justifyContent:'flex-end'}}>
+          <button onClick={dismiss} style={{padding:'9px 18px', border:`1px solid ${T.border}`, background:'transparent', borderRadius:10, fontFamily:T.mono, fontSize:9, color:T.ink3, cursor:'pointer'}}>Cancel</button>
+          <button onClick={submit} style={{padding:'9px 22px', border:'none', background:T.accent, borderRadius:10, fontFamily:T.mono, fontSize:9, color:'#fff', cursor:'pointer', fontWeight:600}}>Save layout</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 /* ── 1. Today ───────────────────────────────────────────── */
 function TodayScreen({ profile, userData, onUpdate }) {
   const ud       = userData || defaultUserData();
+  const prefs    = ud.dashboardPrefs || DEFAULT_DASHBOARD_PREFS;
+  const [showCustomize, setShowCustomize] = useState(false);
   const subjects = profile?.subjects || [];
   const subjectBy = makeSubjectBy(subjects);
   const homework  = ud.homework || [];
@@ -650,12 +709,18 @@ function TodayScreen({ profile, userData, onUpdate }) {
   const tonight   = homework.filter(hw => hw.due === 'Tonight' && !hw.done);
   const curPeriod = schedule.find(p => p.current);
 
-  const Btn = ({children, gold}) => (
-    <button style={{padding:'7px 14px', border: gold ? 'none' : `1px solid ${T.border}`, background: gold ? T.accent : T.surface, color: gold ? '#fff' : T.ink3, fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.07em', cursor:'pointer', display:'flex', alignItems:'center', gap:6}}>{children}</button>
+  const Btn = ({children, gold, onClick}) => (
+    <button onClick={onClick} style={{padding:'7px 14px', border: gold ? 'none' : `1px solid ${T.border}`, background: gold ? T.accent : T.surface, color: gold ? '#fff' : T.ink3, fontFamily:T.mono, fontSize:8.5, letterSpacing:'0.07em', cursor:'pointer', display:'flex', alignItems:'center', gap:6}}>{children}</button>
   );
 
   return (
     <div className="screen-enter" style={{flex:1, overflowY:'auto'}}>
+      <DashboardCustomizeModal
+        open={showCustomize}
+        onClose={() => setShowCustomize(false)}
+        prefs={prefs}
+        onSave={(next) => onUpdate && onUpdate({ dashboardPrefs: next })}
+      />
       {/* Header */}
       <div style={{padding:'26px 52px 0', display:'flex', alignItems:'flex-start', justifyContent:'space-between'}}>
         <div>
@@ -671,12 +736,12 @@ function TodayScreen({ profile, userData, onUpdate }) {
           </div>
         </div>
         <div style={{display:'flex', gap:8, flexShrink:0, marginTop:4}}>
-          <Btn>✦ Customize</Btn>
+          <Btn onClick={() => setShowCustomize(true)}>✦ Customize</Btn>
           <Btn gold>+ Add</Btn>
         </div>
       </div>
 
-      {/* 4 stat cards */}
+      {prefs.stats && (
       <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, margin:'20px 52px 12px'}}>
         {[
           { label:'OPEN TASKS',    val:open.length,        sub:'all on track',                                              accent:T.accent  },
@@ -691,8 +756,9 @@ function TodayScreen({ profile, userData, onUpdate }) {
           </div>
         ))}
       </div>
+      )}
 
-      {/* Week mini-calendar */}
+      {prefs.week && (
       <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:10, margin:'0 52px 12px'}}>
         {weekDays.map(d => (
           <div key={d.n} style={{background:d.today ? T.accentSoft : T.surface, padding:'16px 14px 14px', position:'relative', overflow:'hidden', borderRadius:12, minHeight:72}}>
@@ -702,8 +768,9 @@ function TodayScreen({ profile, userData, onUpdate }) {
           </div>
         ))}
       </div>
+      )}
 
-      {/* Current period */}
+      {prefs.period && (
       <div style={{margin:'0 52px 12px', background:T.surface, padding:'20px 26px', borderLeft:`3px solid ${T.accent}`, borderRadius:12}}>
         <div style={{fontFamily:T.mono, fontSize:7.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:7}}>
           {open.length===0 ? 'All done for today · enjoy your evening' : `${open.length} tasks remaining · stay focused`}
@@ -721,8 +788,9 @@ function TodayScreen({ profile, userData, onUpdate }) {
           </div>
         </div>
       </div>
+      )}
 
-      {/* Game plan */}
+      {prefs.gamePlan && (
       <div style={{margin:'0 52px 12px', background:T.surface, padding:'17px 26px', borderRadius:12}}>
         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:13}}>
           <div style={{display:'flex', alignItems:'center', gap:10}}>
@@ -752,8 +820,9 @@ function TodayScreen({ profile, userData, onUpdate }) {
             })
         }
       </div>
+      )}
 
-      {/* Bottom 3-column */}
+      {prefs.bottomRow && (
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, margin:'0 52px 28px'}}>
         {/* Workload */}
         <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
@@ -823,6 +892,7 @@ function TodayScreen({ profile, userData, onUpdate }) {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
@@ -1162,6 +1232,19 @@ function NotesScreen({ profile, userData, onUpdate }) {
   const [search, setSearch] = useState('');
   const [editorOpen, setEditorOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const searchRef = useRef(null);
+
+  useEffect(() => {
+    if (active) return;
+    const onKey = (e) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'k') return;
+      if (e.target?.tagName === 'INPUT' || e.target?.tagName === 'TEXTAREA') return;
+      e.preventDefault();
+      searchRef.current?.focus();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [active]);
 
   const openNew  = (subjId) => { setEditTarget(subjId ? { subj: subjId } : null); setEditorOpen(true); };
   const openEdit = (note)   => { setEditTarget(note); setEditorOpen(true); };
@@ -1250,7 +1333,7 @@ function NotesScreen({ profile, userData, onUpdate }) {
           <div style={{position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', color:T.ink3, pointerEvents:'none'}}>
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3"/></svg>
           </div>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search notes, subjects, tags…"
+          <input ref={searchRef} value={search} onChange={e => setSearch(e.target.value)} placeholder="Search notes, subjects, tags…"
             style={{width:'100%', padding:'11px 48px', background:T.surface, border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, outline:'none', boxSizing:'border-box'}}
           />
           <div style={{position:'absolute', right:16, top:'50%', transform:'translateY(-50%)', fontFamily:T.mono, fontSize:8.5, color:T.ink3}}>⌘K</div>
@@ -1965,8 +2048,8 @@ function GradesScreen({ profile, userData, onUpdate }) {
               border:'none', background:T.accent, color:'#fff',
               fontFamily:T.mono, fontSize:8, letterSpacing:'0.07em', cursor:'pointer',
             }}>+ Add Subject</button>
-            {['Import Grades PDF','Export CSV'].map((label,i) => (
-              <button key={label} style={{
+            {['Export CSV'].map((label) => (
+              <button key={label} type="button" onClick={() => exportGradesCsv(profile, userData)} style={{
                 display:'flex', alignItems:'center', gap:6, padding:'7px 13px',
                 border:`1px solid ${T.border}`, background:T.surface, color:T.ink3,
                 fontFamily:T.mono, fontSize:8, letterSpacing:'0.07em', cursor:'pointer', transition:'border-color 0.12s',
@@ -1974,7 +2057,7 @@ function GradesScreen({ profile, userData, onUpdate }) {
                 onMouseOver={e => e.currentTarget.style.borderColor = T.accent}
                 onMouseOut={e => e.currentTarget.style.borderColor = T.border}
               >
-                {i===0 && <svg width="10" height="11" viewBox="0 0 10 11" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"><rect x="1" y="1.5" width="8" height="9" rx="0.8"/><path d="M3 4.5h4M3 6.5h4M3 8.5h2.5"/></svg>}
+                <svg width="10" height="11" viewBox="0 0 10 11" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"><rect x="1" y="1.5" width="8" height="9" rx="0.8"/><path d="M3 4.5h4M3 6.5h4M3 8.5h2.5"/></svg>
                 {label}
               </button>
             ))}
@@ -2239,6 +2322,21 @@ function ToolsScreen({ userData, onUpdate }) {
     { tool: TOOLS_DATA.find(t => t.id==='notion'),     label:'New Notion page',       sub:'Capture & organise',     key:'⌘4' },
   ];
 
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!e.metaKey && !e.ctrlKey) return;
+      const n = Number(e.key);
+      if (n < 1 || n > 4) return;
+      e.preventDefault();
+      const tool = QUICK_LAUNCH[n - 1]?.tool;
+      if (!tool?.id) return;
+      onUpdate && onUpdate({ toolOpens: appendToolOpen(toolOpens, tool.id) });
+      if (tool.url) window.open(tool.url, '_blank', 'noopener,noreferrer');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [toolOpens, onUpdate]);
+
   const ToolIcon = ({ tool, size=28 }) => (
     <div style={{width:size, height:size, borderRadius:Math.round(size*0.2), background:`${tool.color}18`, border:`1px solid ${tool.color}38`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
       <span style={{fontFamily:T.mono, fontSize:size*0.38, color:tool.color, fontWeight:600}}>{tool.name[0]}</span>
@@ -2413,10 +2511,6 @@ function ToolsScreen({ userData, onUpdate }) {
                   <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, flexShrink:0}}>{ql.key}</div>
                 </button>
               ))}
-              <div style={{marginTop:10, paddingTop:9, borderTop:`1px solid ${T.bl}`, display:'flex', justifyContent:'space-between'}}>
-                <span style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, cursor:'pointer'}}>Browse all tools</span>
-                <span style={{fontFamily:T.mono, fontSize:8, color:T.ink3, opacity:0.5}}>⌘5</span>
-              </div>
             </div>
 
             {/* Activity */}

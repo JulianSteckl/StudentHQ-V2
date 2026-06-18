@@ -95,6 +95,15 @@ function sanitizeUserData(body, email) {
     gradeHistory: capArray(body.gradeHistory, 200),
     toolOpens: capArray(body.toolOpens, 200),
     focusSessions: Number.isFinite(body.focusSessions) ? Math.max(0, body.focusSessions) : 0,
+    dashboardPrefs: (body.dashboardPrefs && typeof body.dashboardPrefs === 'object' && !Array.isArray(body.dashboardPrefs))
+      ? {
+        stats: body.dashboardPrefs.stats !== false,
+        week: body.dashboardPrefs.week !== false,
+        period: body.dashboardPrefs.period !== false,
+        gamePlan: body.dashboardPrefs.gamePlan !== false,
+        bottomRow: body.dashboardPrefs.bottomRow !== false,
+      }
+      : { stats: true, week: true, period: true, gamePlan: true, bottomRow: true },
     streak:     Number.isFinite(body.streak) ? body.streak : 0,
     updatedAt:  Number.isFinite(body.updatedAt) ? body.updatedAt : Date.now(),
     savedAt:    Date.now(),
