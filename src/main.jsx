@@ -1,9 +1,10 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { createPortal } from 'react-dom';
+import './styles.css';
 import { T } from './theme.js';
 import { GOOGLE_CLIENT_ID, authHeaders, setGoogleAccessToken, restoreGoogleToken, PROFILE_KEY, loadProfile, loadProfileByEmail, saveProfile, loadUserData, saveUserData, defaultUserData, fetchServerUserData, saveServerUserData, getSyncStatus, onSyncStatus, setSyncStatus } from './storage.js';
-import { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, HOMEWORK, QUIZZES_DATA, NOTES_DATA, SCHEDULE_DATA, DECKS, QUIZ, HIST, GPA_MAP, TOOLS_DATA, GPA, subjectBy, calcGPA, pickBestGradedSubject, makeSubjectBy, greeting, formatDate } from './data.js';
+import { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, GPA_MAP, TOOLS_DATA, calcGPA, pickBestGradedSubject, makeSubjectBy } from './data.js';
 import { ICO, NAV } from './icons.jsx';
 import { appendGradeHistory, gradeSparklinePoints, appendToolOpen, toolOpensThisWeek, toolOpenCounts, toolById, formatToolWhen, buildToolUsageInsight, normalizeUserData, normalizeToolOpens, normalizeDashboardPrefs, DEFAULT_DASHBOARD_PREFS, exportGradesCsv } from './user-data-helpers.js';
 
@@ -2707,12 +2708,6 @@ function WelcomeScreen({ onSignIn, onSetup }) {
       },
     });
     client.requestAccessToken({ prompt: '' });
-  };
-
-  const doSignIn = () => {
-    if (!googleUser) return;
-    onSignIn({ name: googleUser.name, email: googleUser.email, picture: googleUser.picture,
-      grade: grade || 'junior', school:'', subjects:[], completedAt: Date.now() });
   };
 
   const FEATURES = [
