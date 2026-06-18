@@ -7,8 +7,55 @@ import { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, HOMEWORK, Q
 import { ICO, NAV } from './icons.jsx';
 import { appendGradeHistory, gradeSparklinePoints, appendToolOpen, toolOpensThisWeek, toolOpenCounts, toolById, formatToolWhen, buildToolUsageInsight, normalizeUserData, normalizeToolOpens, normalizeDashboardPrefs, DEFAULT_DASHBOARD_PREFS, exportGradesCsv } from './user-data-helpers.js';
 
-const { useState, useEffect, useRef } = React;
+const { useState, useEffect, useRef, useCallback } = React;
 const ReactDOM = { createRoot, createPortal };
+
+const MODAL_FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function useModalA11y(open, dismiss, panelRef) {
+  const prevFocus = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    prevFocus.current = document.activeElement;
+    const panel = panelRef.current;
+    const raf = requestAnimationFrame(() => {
+      if (!panel) return;
+      const prefer = panel.querySelector('input:not([type="hidden"]), textarea, select') || panel.querySelector(MODAL_FOCUSABLE);
+      (prefer || panel).focus?.();
+    });
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        dismiss();
+        return;
+      }
+      if (e.key !== 'Tab' || !panel) return;
+      const nodes = [...panel.querySelectorAll(MODAL_FOCUSABLE)].filter(el => !el.disabled);
+      if (nodes.length < 2) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('keydown', onKey, true);
+      if (prevFocus.current && typeof prevFocus.current.focus === 'function') {
+        prevFocus.current.focus();
+      }
+    };
+  }, [open, dismiss, panelRef]);
+}
 
 // Acquire a Google access token. With silent=true it tries to renew the token
 // in the background (no popup) so cloud sync keeps working after a page reload,
@@ -61,12 +108,14 @@ function AddSubjectModal({ open, onClose, onAdd, existingCount }) {
   const [name, setName] = useState('');
   const [color, setColor] = useState(PRESET_COLORS[(existingCount||0) % PRESET_COLORS.length]);
   const [closing, setClosing] = useState(false);
+  const panelRef = useRef(null);
+  const dismiss = useCallback(() => { setClosing(true); setTimeout(onClose, 320); }, [onClose]);
 
-  useEffect(() => { if (open) { setName(''); setColor(PRESET_COLORS[(existingCount||0) % PRESET_COLORS.length]); setClosing(false); } }, [open]);
+  useEffect(() => { if (open) { setName(''); setColor(PRESET_COLORS[(existingCount||0) % PRESET_COLORS.length]); setClosing(false); } }, [open, existingCount]);
+  useModalA11y(open, dismiss, panelRef);
 
   if (!open) return null;
 
-  const dismiss = () => { setClosing(true); setTimeout(onClose, 320); };
   const submit = () => {
     if (!name.trim()) return;
     onAdd({ id: makeSubjId(name), name: name.trim(), short: makeShort(name), color, grade:'—', gpa:0, pct:0 });
@@ -75,9 +124,9 @@ function AddSubjectModal({ open, onClose, onAdd, existingCount }) {
 
   return ReactDOM.createPortal(
     <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
-      <div style={{
+      <div ref={panelRef} role="dialog" aria-modal="true" tabIndex={-1} className="shq-modal-box" style={{
         width:380, background:T.surface, border:`1px solid ${T.border}`, borderRadius:16,
-        padding:'36px 32px 28px', position:'relative', opacity:0,
+        padding:'36px 32px 28px', position:'relative', opacity:0, outline:'none',
         boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)',
         animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`,
       }}>
@@ -132,6 +181,8 @@ function ProfileModal({ open, onClose, profile, onSave }) {
   const [grade, setGrade] = useState('');
   const [school, setSchool] = useState('');
   const [closing, setClosing] = useState(false);
+  const panelRef = useRef(null);
+  const dismiss = useCallback(() => { setClosing(true); setTimeout(onClose, 320); }, [onClose]);
 
   useEffect(() => {
     if (open && profile) {
@@ -140,11 +191,12 @@ function ProfileModal({ open, onClose, profile, onSave }) {
       setSchool(profile.school || '');
       setClosing(false);
     }
-  }, [open]);
+  }, [open, profile]);
+
+  useModalA11y(open, dismiss, panelRef);
 
   if (!open) return null;
 
-  const dismiss = () => { setClosing(true); setTimeout(onClose, 320); };
   const submit = () => {
     if (!name.trim()) return;
     onSave({ ...profile, name: name.trim(), grade, school: school.trim() });
@@ -155,9 +207,9 @@ function ProfileModal({ open, onClose, profile, onSave }) {
 
   return ReactDOM.createPortal(
     <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
-      <div style={{
+      <div ref={panelRef} role="dialog" aria-modal="true" tabIndex={-1} className="shq-modal-box" style={{
         width:380, background:T.surface, border:`1px solid ${T.border}`, borderRadius:16,
-        padding:'36px 32px 28px', position:'relative', opacity:0,
+        padding:'36px 32px 28px', position:'relative', opacity:0, outline:'none',
         boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)',
         animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`,
       }}>
@@ -228,8 +280,11 @@ function AIKeysModal({ open, onClose }) {
   const [keys, setKeys] = useState(loadKeys);
   const [visible, setVisible] = useState({});
   const [closing, setClosing] = useState(false);
+  const panelRef = useRef(null);
+  const dismiss = useCallback(() => { setClosing(true); setTimeout(() => { setClosing(false); onClose(); }, 280); }, [onClose]);
 
-  const dismiss = () => { setClosing(true); setTimeout(() => { setClosing(false); onClose(); }, 280); };
+  useModalA11y(open, dismiss, panelRef);
+
   const save = (id, val) => {
     const next = {...keys, [id]: val};
     setKeys(next);
@@ -240,7 +295,7 @@ function AIKeysModal({ open, onClose }) {
   return ReactDOM.createPortal(
     <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }}
       style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
-      <div style={{background:T.surface, borderRadius:12, width:420, maxHeight:'80vh', overflowY:'auto', border:`1px solid ${T.border}`, boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)', opacity:0, animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`}}>
+      <div ref={panelRef} role="dialog" aria-modal="true" tabIndex={-1} className="shq-modal-box" style={{background:T.surface, borderRadius:12, width:420, maxHeight:'80vh', overflowY:'auto', border:`1px solid ${T.border}`, boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)', opacity:0, outline:'none', animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`}}>
         <div style={{padding:'24px 28px 0'}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
             <h3 style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, fontWeight:400, margin:0, color:T.ink}}>AI Connections</h3>
@@ -293,14 +348,16 @@ function ManageSubjectsModal({ open, onClose, profile, onUpdateProfile }) {
   const [picker, setPicker] = useState(null);
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState(PRESET_COLORS[0]);
+  const panelRef = useRef(null);
 
   const subjects = profile?.subjects || [];
+  const dismiss = useCallback(() => { setClosing(true); setTimeout(onClose, 280); }, [onClose]);
 
-  useEffect(() => { if (open) { setClosing(false); setEditId(null); setNewName(''); setPicker(null); setNewColor(PRESET_COLORS[subjects.length % PRESET_COLORS.length]); } }, [open]);
+  useEffect(() => { if (open) { setClosing(false); setEditId(null); setNewName(''); setPicker(null); setNewColor(PRESET_COLORS[subjects.length % PRESET_COLORS.length]); } }, [open, subjects.length]);
+  useModalA11y(open, dismiss, panelRef);
 
   if (!open) return null;
 
-  const dismiss = () => { setClosing(true); setTimeout(onClose, 280); };
   const save = (newSubjects) => {
     onUpdateProfile({ ...profile, subjects: newSubjects });
   };
@@ -321,7 +378,7 @@ function ManageSubjectsModal({ open, onClose, profile, onUpdateProfile }) {
   return ReactDOM.createPortal(
     <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }}
       style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
-      <div style={{background:T.surface, borderRadius:12, width:420, maxHeight:'80vh', display:'flex', flexDirection:'column', border:`1px solid ${T.border}`, boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)', opacity:0, animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`}}>
+      <div ref={panelRef} role="dialog" aria-modal="true" tabIndex={-1} className="shq-modal-box" style={{background:T.surface, borderRadius:12, width:420, maxHeight:'80vh', display:'flex', flexDirection:'column', border:`1px solid ${T.border}`, boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)', opacity:0, outline:'none', animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`}}>
         <div style={{padding:'24px 28px 0'}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
             <h3 style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, fontWeight:400, margin:0, color:T.ink}}>Manage Subjects</h3>
@@ -347,7 +404,7 @@ function ManageSubjectsModal({ open, onClose, profile, onUpdateProfile }) {
                 </div>
                 {editId === s.id ? (
                   <input autoFocus value={editName} onChange={e => setEditName(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') confirmEdit(s.id); if (e.key === 'Escape') setEditId(null); }}
+                    onKeyDown={e => { if (e.key === 'Enter') confirmEdit(s.id); if (e.key === 'Escape') { e.stopPropagation(); setEditId(null); } }}
                     onBlur={() => confirmEdit(s.id)}
                     style={{flex:1, padding:'4px 8px', border:`1px solid ${T.accent}`, borderRadius:5, fontFamily:T.ui, fontSize:12, color:T.ink, outline:'none', background:T.surface}} />
                 ) : (
@@ -629,6 +686,8 @@ const DASHBOARD_WIDGETS = [
 function DashboardCustomizeModal({ open, onClose, prefs, onSave }) {
   const [draft, setDraft] = useState(DEFAULT_DASHBOARD_PREFS);
   const [closing, setClosing] = useState(false);
+  const panelRef = useRef(null);
+  const dismiss = useCallback(() => { setClosing(true); setTimeout(onClose, 280); }, [onClose]);
 
   useEffect(() => {
     if (open) {
@@ -637,17 +696,18 @@ function DashboardCustomizeModal({ open, onClose, prefs, onSave }) {
     }
   }, [open, prefs]);
 
+  useModalA11y(open, dismiss, panelRef);
+
   if (!open) return null;
 
-  const dismiss = () => { setClosing(true); setTimeout(onClose, 280); };
   const toggle = (id) => setDraft(prev => ({ ...prev, [id]: !prev[id] }));
   const submit = () => { onSave(draft); dismiss(); };
 
   return ReactDOM.createPortal(
     <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
-      <div className="shq-modal-box" style={{
+      <div ref={panelRef} role="dialog" aria-modal="true" tabIndex={-1} className="shq-modal-box" style={{
         width:400, background:T.surface, border:`1px solid ${T.border}`, borderRadius:16,
-        padding:'32px 28px 24px', position:'relative', opacity:0,
+        padding:'32px 28px 24px', position:'relative', opacity:0, outline:'none',
         boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)',
         animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`,
       }}>
@@ -967,7 +1027,7 @@ function HomeworkScreen({ profile, userData, onUpdate }) {
   };
 
   return (
-    <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'28px 52px'}}>
+    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
         {/* Header */}
         <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:20}}>
           <div>
@@ -1014,7 +1074,7 @@ function HomeworkScreen({ profile, userData, onUpdate }) {
         )}
 
         {/* 5 stat cards */}
-        <div style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:12, marginBottom:12}}>
+        <div className="shq-hw-stats" style={{marginBottom:12}}>
           {[
             { label:'OPEN WORK',   val:open.length,         sub:'assignments',                               accent:T.accent  },
             { label:'URGENT',      val:urgent.length,       sub:'need attention',                            accent:'#bf4a30' },
@@ -1162,6 +1222,8 @@ function NoteEditorModal({ open, onClose, onSave, subjects, initial }) {
   const [subj, setSubj]   = useState('');
   const [body, setBody]   = useState('');
   const [closing, setClosing] = useState(false);
+  const panelRef = useRef(null);
+  const dismiss = useCallback(() => { setClosing(true); setTimeout(onClose, 320); }, [onClose]);
 
   useEffect(() => {
     if (open) {
@@ -1170,11 +1232,12 @@ function NoteEditorModal({ open, onClose, onSave, subjects, initial }) {
       setBody(initial?.body ?? initial?.preview ?? '');
       setClosing(false);
     }
-  }, [open]);
+  }, [open, initial, subjects]);
+
+  useModalA11y(open, dismiss, panelRef);
 
   if (!open) return null;
   const isEdit = !!(initial && initial.id);
-  const dismiss = () => { setClosing(true); setTimeout(onClose, 320); };
   const submit = () => {
     if (!title.trim()) return;
     onSave({ title: title.trim(), subj: subj || subjects[0]?.id || '', body });
@@ -1183,7 +1246,7 @@ function NoteEditorModal({ open, onClose, onSave, subjects, initial }) {
 
   return ReactDOM.createPortal(
     <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
-      <div style={{ width:520, maxWidth:'92vw', background:T.surface, border:`1px solid ${T.border}`, borderRadius:16, padding:'36px 32px 28px', position:'relative', opacity:0, boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)', animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards` }}>
+      <div ref={panelRef} role="dialog" aria-modal="true" tabIndex={-1} className="shq-modal-box" style={{ width:520, maxWidth:'92vw', background:T.surface, border:`1px solid ${T.border}`, borderRadius:16, padding:'36px 32px 28px', position:'relative', opacity:0, outline:'none', boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)', animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards` }}>
         <button onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
         <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, marginBottom:4}}>{isEdit ? 'Edit ' : 'New '}<span style={{color:T.accent}}>note</span></div>
         <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:22}}>Saved to your account · syncs across devices</div>
@@ -1300,7 +1363,7 @@ function NotesScreen({ profile, userData, onUpdate }) {
   const subjNotes = subjects.map(s => ({ subj:s, notes: notes.filter(n => n.subj === s.id) }));
 
   return (
-    <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'28px 52px'}}>
+    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
         {noteEditor}
         {/* Header */}
         <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:20}}>
@@ -1394,7 +1457,7 @@ function NotesScreen({ profile, userData, onUpdate }) {
         </div>
 
         {/* Floating cards — Knowledge Insights + AI Workspace */}
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginTop:12}}>
+        <div className="shq-notes-panels" style={{marginTop:12}}>
           <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
             <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:14}}>
               <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
@@ -1449,6 +1512,8 @@ function FlashcardEditorModal({ open, onClose, onSave, subjects, initial }) {
   const [a, setA] = useState('');
   const [subj, setSubj] = useState('');
   const [closing, setClosing] = useState(false);
+  const panelRef = useRef(null);
+  const dismiss = useCallback(() => { setClosing(true); setTimeout(onClose, 320); }, [onClose]);
 
   useEffect(() => {
     if (open) {
@@ -1457,11 +1522,12 @@ function FlashcardEditorModal({ open, onClose, onSave, subjects, initial }) {
       setSubj(initial?.subj || subjects[0]?.id || '');
       setClosing(false);
     }
-  }, [open]);
+  }, [open, initial, subjects]);
+
+  useModalA11y(open, dismiss, panelRef);
 
   if (!open) return null;
   const isEdit = !!(initial && initial.id);
-  const dismiss = () => { setClosing(true); setTimeout(onClose, 320); };
   const submit = () => {
     if (!q.trim() || !a.trim()) return;
     onSave({ q: q.trim(), a: a.trim(), subj: subj || subjects[0]?.id || '' });
@@ -1470,7 +1536,7 @@ function FlashcardEditorModal({ open, onClose, onSave, subjects, initial }) {
 
   return ReactDOM.createPortal(
     <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
-      <div style={{ width:500, maxWidth:'92vw', background:T.surface, border:`1px solid ${T.border}`, borderRadius:16, padding:'36px 32px 28px', position:'relative', opacity:0, boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)', animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards` }}>
+      <div ref={panelRef} role="dialog" aria-modal="true" tabIndex={-1} className="shq-modal-box" style={{ width:500, maxWidth:'92vw', background:T.surface, border:`1px solid ${T.border}`, borderRadius:16, padding:'36px 32px 28px', position:'relative', opacity:0, outline:'none', boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)', animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards` }}>
         <button onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
         <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, marginBottom:4}}>{isEdit ? 'Edit ' : 'New '}<span style={{color:T.accent}}>flashcard</span></div>
         <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:22}}>Saved to your account · syncs across devices</div>
@@ -1658,7 +1724,7 @@ function FlashcardsScreen({ profile, userData, onUpdate }) {
           {!fl && <div style={{fontFamily:T.mono, fontSize:8.5, color:`${T.ink3}88`, marginTop:22, letterSpacing:'0.1em'}}>click to reveal</div>}
         </div>
         {fl && (
-          <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6, marginTop:8, flexShrink:0}}>
+          <div className="shq-fc-rating" style={{marginTop:8, flexShrink:0}}>
             {[['Again','#bf3a1a'],['Good',T.ink3],['Easy',T.accent]].map(([label,color]) => (
               <button key={label} onClick={next} style={{padding:'13px', border:'none', background:T.surface, color, fontFamily:T.serif, fontStyle:'italic', fontSize:15}}
                 onMouseOver={e=>e.currentTarget.style.background=T.bl}
@@ -1673,7 +1739,7 @@ function FlashcardsScreen({ profile, userData, onUpdate }) {
   }
 
   return (
-    <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'28px 52px'}}>
+    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
       {/* Header */}
       <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:20}}>
         <div>
@@ -1705,7 +1771,7 @@ function FlashcardsScreen({ profile, userData, onUpdate }) {
 
       {/* Study Modes */}
       <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:14}}>Study Modes</div>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12}}>
+      <div className="shq-fc-modes">
         {MODES.map(m => (
           <div key={m.id} style={{background:T.surface, padding:'28px 26px', cursor:'pointer', minHeight:160, position:'relative', overflow:'hidden', borderRadius:12}}
             onMouseOver={e => e.currentTarget.style.background = T.bl}
@@ -1827,7 +1893,7 @@ function ScheduleScreen({ profile, userData }) {
   );
 
   return (
-    <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'28px 52px'}}>
+    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
       {/* Header */}
       <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:18}}>
         <div>
@@ -1884,7 +1950,7 @@ function ScheduleScreen({ profile, userData }) {
       </div>
 
       {/* Stats row */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr) 1fr', gap:12, marginBottom:12}}>
+      <div className="shq-sched-stats" style={{marginBottom:12}}>
         {[
           {label:'TASKS DUE',  val: dayCards.reduce((a,d)=>a+d.dayHW.length,0), accent:T.accent  },
           {label:'QUIZZES',    val: quizzes.length,                                              accent:'#9254de' },
@@ -1915,7 +1981,7 @@ function ScheduleScreen({ profile, userData }) {
       </div>
 
       {/* Weekly grid Mon–Fri */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:12, marginBottom:12}}>
+      <div className="shq-sched-week" style={{marginBottom:12}}>
         {dayCards.map(d => (
           <div key={d.name} style={{background: d.isToday ? T.accentSoft : T.surface, padding:'18px 16px', borderTop: d.isToday ? `2px solid ${T.accent}` : '2px solid transparent', minHeight:148, borderRadius:12, position:'relative', overflow:'hidden'}}>
             {d.isToday && <div style={{position:'absolute', bottom:-22, right:-22, width:72, height:72, borderRadius:'50%', background:T.accent, opacity:0.08}}/>}
@@ -2344,7 +2410,7 @@ function ToolsScreen({ userData, onUpdate }) {
   );
 
   return (
-    <div className="screen-enter" style={{flex:1, overflowY:'auto', padding:'36px 40px 36px 56px'}}>
+    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
 
         {/* Header */}
         <div style={{marginBottom:28}}>
@@ -2356,7 +2422,7 @@ function ToolsScreen({ userData, onUpdate }) {
         </div>
 
         {/* Stat cards */}
-        <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:12}}>
+        <div className="shq-tools-stats" style={{marginBottom:12}}>
           {[
             { label:'THIS WEEK',   val:String(weekOpens),                    sub: weekOpens === 1 ? 'open this week' : 'opens this week' },
             { label:'TOOLS',       val:String(TOOLS_DATA.length),            sub:'available to open' },
@@ -2372,7 +2438,7 @@ function ToolsScreen({ userData, onUpdate }) {
         </div>
 
         {/* Middle row */}
-        <div style={{display:'grid', gridTemplateColumns:'1fr 0.58fr 0.42fr', gap:12, marginBottom:12, background:'transparent'}}>
+        <div className="shq-tools-mid" style={{marginBottom:12, background:'transparent'}}>
 
           {/* Intelligent suggestions */}
           <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
@@ -2431,12 +2497,12 @@ function ToolsScreen({ userData, onUpdate }) {
         </div>
 
         {/* Bottom: filter + table + side cards */}
-        <div style={{display:'flex', gap:12, alignItems:'flex-start'}}>
+        <div className="shq-tools-bottom">
 
           {/* Left: filter tabs + touching tool list */}
           <div style={{flex:1, minWidth:0}}>
             {/* Filter tabs */}
-            <div style={{display:'flex', gap:6, marginBottom:12}}>
+            <div className="shq-tools-filters">
               {cats.map(c => {
                 const count = c === 'ALL' ? TOOLS_DATA.length : TOOLS_DATA.filter(t => t.cat===c).length;
                 const act = filter === c;
@@ -2489,7 +2555,7 @@ function ToolsScreen({ userData, onUpdate }) {
           </div>
 
           {/* Right: floating side cards */}
-          <div style={{width:216, display:'flex', flexDirection:'column', justifyContent:'space-between', flexShrink:0, alignSelf:'stretch'}}>
+          <div className="shq-tools-side">
 
             {/* Quick Launch */}
             <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
