@@ -499,7 +499,6 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
   const [showAIKeys, setShowAIKeys] = useState(false);
   const [showManageSubjects, setShowManageSubjects] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [hov, setHov] = useState(null);
   const settingsRef = useRef(null);
 
   useEffect(() => {
@@ -518,196 +517,84 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
 
   const ud = userData || defaultUserData();
   const subjects = profile?.subjects || [];
-  const homework = ud.homework || [];
   const grades = ud.grades || {};
   const streak = ud.streak || 0;
 
-  const hwOpen = homework.filter(h => !h.done).length;
-  const gpa = calcGPA(subjects, grades);
-
-  const todayHw = homework.filter(h => {
-    if (h.done) return true;
-    if (!h.due) return false;
-    const d = h.due.toLowerCase();
-    return d === 'today' || d === 'tonight';
-  });
-  const todayDone = todayHw.filter(h => h.done).length;
-
-  const SL = (t) => <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.16em', padding:'12px 12px 4px'}}>{t}</div>;
-
-  const NAV_GROUPS = [
-    { label: 'Dashboard', items: NAV.filter(n => ['today','homework','quizzes'].includes(n.id)) },
-    { label: 'Study',     items: NAV.filter(n => ['notes','flashcards'].includes(n.id)) },
-    { label: 'Academics', items: NAV.filter(n => ['schedule','grades','subjects','tools'].includes(n.id)) },
-  ];
+  const NAV_FLAT = NAV.filter(n => n.id !== 'subjects');
 
   const navBtn = (item) => {
     const act = screen === item.id;
-    const hovering = hov === item.id;
     return (
-      <button key={item.id} onClick={() => { onNav(item.id); onCloseSidebar?.(); }}
-        onMouseOver={() => setHov(item.id)} onMouseOut={() => setHov(null)}
-        style={{
-          display:'flex', alignItems:'center', gap:8, position:'relative',
-          width:'calc(100% - 12px)', margin:'1px 6px', padding:'6px 10px',
-          border:'none', borderRadius:7,
-          background: act ? T.accentSoft : hovering ? T.bl : 'transparent',
-          color: act ? T.accent : T.ink2,
-          fontSize:11.5, fontFamily:T.ui, textAlign:'left',
-          fontWeight: act ? 600 : 400,
-          cursor:'pointer',
-          transition:'all 0.15s ease',
-        }}>
-        {act && <div style={{position:'absolute', left:0, top:'50%', transform:'translateY(-50%)', width:3, height:16, borderRadius:'0 2px 2px 0', background:T.accent, transition:'all 0.2s ease'}} />}
-        <span style={{flexShrink:0, display:'flex', opacity: act ? 1 : 0.5, transition:'opacity 0.15s'}}>{item.icon}</span>
-        <span style={{flex:1}}>{item.label}</span>
-        {item.id === 'homework' && hwOpen > 0 && <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3, background:T.bl, padding:'1px 5px', borderRadius:4, lineHeight:'14px'}}>{hwOpen}</span>}
-        {item.id === 'grades' && gpa !== '—' && <span style={{fontFamily:T.mono, fontSize:10, color:T.accent, fontWeight:600}}>{gpa}</span>}
-        {item.id === 'subjects' && subjects.length > 0 && <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3, background:T.bl, padding:'1px 5px', borderRadius:4, lineHeight:'14px'}}>{subjects.length}</span>}
+      <button key={item.id} className={`shq-nav-item${act ? ' active' : ''}`} onClick={() => { onNav(item.id); onCloseSidebar?.(); }}>
+        {item.label}
       </button>
     );
   };
+
+  const shortName = (profile?.name || 'Student').split(' ').map((p,i,a) => i === a.length-1 && a.length > 1 ? p[0]+'.' : p).join(' ');
 
   return (
     <>
     <aside
       id="shq-sidebar"
       className={`shq-sidebar${open ? ' open' : ''}`}
-      style={{
-      width:220, flexShrink:0,
-      background:T.surface,
-      borderRight:`1px solid ${T.border}`,
-      display:'flex', flexDirection:'column', overflow:'hidden',
-    }}>
+      style={{ display:'flex', flexDirection:'column', overflow:'hidden', flexShrink:0 }}>
 
-      {/* Brand */}
-      <div style={{padding:'14px 12px 12px', flexShrink:0}}>
-        <div style={{display:'flex', alignItems:'center', gap:8}}>
-          <div style={{width:28, height:28, borderRadius:7, background:`linear-gradient(135deg, ${T.accent}, #9a7828)`, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 6px rgba(184,148,58,0.18)'}}>
-            <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:'#fff', lineHeight:1}}>S</span>
-          </div>
-          <div>
-            <div style={{fontFamily:T.ui, fontSize:12, fontWeight:600, color:T.ink, lineHeight:1.2}}>Scholar</div>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.08em'}}>Student workspace</div>
-          </div>
-        </div>
+      <div className="shq-sidebar-brand">
+        <div className="shq-sidebar-wordmark">Scholar</div>
+        <div className="shq-sidebar-brand-sub">Est. Spring Term</div>
       </div>
 
-      {/* Scrollable content */}
-      <div style={{flex:1, overflowY:'auto', overflowX:'hidden'}}>
+      <nav className="shq-sidebar-nav" aria-label="Main">
+        {NAV_FLAT.map(navBtn)}
+      </nav>
 
-        {/* Grouped Navigation */}
-        {NAV_GROUPS.map(g => (
-          <div key={g.label}>
-            {SL(g.label)}
-            {g.items.map(navBtn)}
-          </div>
-        ))}
-
-        {/* Subjects */}
-        <div style={{padding:'2px 0 0'}}>
-          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 12px 4px'}}>
-            <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.16em'}}>Subjects</span>
-            <button aria-label="Add subject" onClick={() => setShowAddModal(true)} style={{width:16, height:16, display:'flex', alignItems:'center', justifyContent:'center', border:`1px solid ${T.border}`, background:'transparent', borderRadius:4, color:T.ink3, fontSize:11, cursor:'pointer', lineHeight:1, padding:0, transition:'all 0.15s'}}
-              onMouseOver={e => {e.currentTarget.style.background=T.accent; e.currentTarget.style.borderColor=T.accent; e.currentTarget.style.color='#fff'}}
-              onMouseOut={e => {e.currentTarget.style.background='transparent'; e.currentTarget.style.borderColor=T.border; e.currentTarget.style.color=T.ink3}}>+</button>
-          </div>
-          <div style={{padding:'0 6px'}}>
-            {subjects.length === 0 && (
-              <div style={{padding:'6px', fontFamily:T.mono, fontSize:10, color:T.ink3, opacity:0.6, textAlign:'center'}}>No subjects yet</div>
-            )}
-            {subjects.map(s => {
-              const g = grades[s.id];
-              const hwForSubj = homework.filter(h => h.subj === s.id && !h.done).length;
-              return (
-                <div key={s.id}
-                  onMouseOver={e => e.currentTarget.style.background=T.bl}
-                  onMouseOut={e => e.currentTarget.style.background='transparent'}
-                  onClick={() => { onNav && onNav('subjects'); onCloseSidebar?.(); }}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNav && onNav('subjects'); onCloseSidebar?.(); } }}
-                  style={{display:'flex', alignItems:'center', gap:7, padding:'4px 8px', height:32, margin:'0', borderRadius:5, background:'transparent', cursor:'pointer', transition:'background 0.12s'}}>
-                  <div style={{width:8, height:8, borderRadius:3, background:s.color, flexShrink:0}} />
-                  <span style={{flex:1, fontSize:11, fontFamily:T.ui, color:T.ink2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.short || s.name}</span>
-                  {hwForSubj > 0 && <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{hwForSubj}</span>}
-                  {g && g !== '—' && <span style={{fontFamily:T.mono, fontSize:10, color:s.color, fontWeight:600}}>{g}</span>}
-                </div>
-              );
-            })}
-          </div>
+      <div className="shq-sidebar-subjects">
+        <div className="shq-subjects-label" style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+          <span>Subjects</span>
+          <button aria-label="Add subject" onClick={() => setShowAddModal(true)} style={{border:'none', background:'transparent', color:T.ink3, fontSize:12, cursor:'pointer', padding:0, lineHeight:1}}>+</button>
         </div>
-
-        {/* Today's Focus Widget */}
-        {todayHw.length > 0 && (
-          <div style={{padding:'2px 0 0'}}>
-            {SL('Today')}
-            <div style={{padding:'0 6px'}}>
-              <div style={{background:T.bg, borderRadius:8, padding:'6px 8px'}}>
-                {todayHw.slice(0, 4).map((h, i) => (
-                  <div key={h.id||i} style={{display:'flex', alignItems:'center', gap:6, padding:'2px 0'}}>
-                    <div style={{width:13, height:13, borderRadius:3, border: h.done ? 'none' : `1.5px solid ${T.border}`, background: h.done ? T.accent : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
-                      {h.done && <svg width="7" height="7" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 6l2.5 2.5 5-5"/></svg>}
-                    </div>
-                    <span style={{fontFamily:T.ui, fontSize:10, color: h.done ? T.ink3 : T.ink, textDecoration: h.done ? 'line-through' : 'none', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', opacity: h.done ? 0.5 : 1}}>{h.title}</span>
-                  </div>
-                ))}
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginTop:3, paddingTop:3, borderTop:`1px solid ${T.border}`}}>{todayDone}/{todayHw.length} complete</div>
-              </div>
-            </div>
-          </div>
+        {subjects.length === 0 && (
+          <div style={{padding:'4px 16px', fontFamily:T.mono, fontSize:9, color:T.ink3, opacity:0.7}}>No subjects yet</div>
         )}
-
-        <div style={{height:4}} />
+        {subjects.map(s => {
+          const g = grades[s.id];
+          return (
+            <button key={s.id} type="button" className="shq-subject-row" onClick={() => { onNav && onNav('subjects'); onCloseSidebar?.(); }}>
+              <span className="shq-subject-dot" style={{background:s.color}} />
+              <span style={{flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.short || s.name}</span>
+              {g && g !== '—' && <span style={{fontFamily:T.mono, fontSize:10, color:s.color}}>{g}</span>}
+            </button>
+          );
+        })}
       </div>
 
-      {/* User Profile Footer */}
-      <div style={{borderTop:`1px solid ${T.border}`, flexShrink:0, padding:'8px 6px', position:'relative'}} ref={settingsRef}>
+      <div className="shq-sidebar-footer" ref={settingsRef} style={{position:'relative'}}>
         {showSettings && (
-          <div style={{position:'absolute', bottom:'100%', left:6, right:6, marginBottom:4, background:T.surface, border:`1px solid ${T.border}`, borderRadius:8, padding:'3px', boxShadow:'0 -8px 32px rgba(24,21,14,0.12), 0 -2px 8px rgba(24,21,14,0.06)', animation:'shq-modal-slide-up 0.18s cubic-bezier(0.16,1,0.3,1) forwards', zIndex:100}}>
+          <div style={{position:'absolute', bottom:'100%', left:8, right:8, marginBottom:4, background:T.surface, border:`1px solid ${T.border}`, borderRadius:8, padding:'3px', boxShadow:'0 -8px 32px rgba(28,25,22,0.12)', animation:'shq-modal-slide-up 0.18s cubic-bezier(0.16,1,0.3,1) forwards', zIndex:100}}>
             {[
-              { label:'Profile', icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="6" r="3"/><path d="M3 14c0-2.8 2.2-5 5-5s5 2.2 5 5"/></svg>, action: () => { setShowSettings(false); setShowProfileModal(true); } },
-              { label:'Manage Subjects', icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"/></svg>, action: () => { setShowSettings(false); setShowManageSubjects(true); } },
-              { label:'AI Connections', icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M8 1v4M8 11v4M1 8h4M11 8h4M3.5 3.5l2.8 2.8M9.7 9.7l2.8 2.8M12.5 3.5l-2.8 2.8M6.3 9.7l-2.8 2.8"/></svg>, action: () => { setShowSettings(false); setShowAIKeys(true); } },
+              { label:'Profile', action: () => { setShowSettings(false); setShowProfileModal(true); } },
+              { label:'Manage Subjects', action: () => { setShowSettings(false); setShowManageSubjects(true); } },
+              { label:'AI Connections', action: () => { setShowSettings(false); setShowAIKeys(true); } },
               { type:'divider' },
-              { label:'Sign Out', icon: <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 14H3V2h3M11 11l3-3-3-3M6 8h8"/></svg>, action: () => { setShowSettings(false); onSignOut && onSignOut(); }, danger: true },
+              { label:'Sign Out', action: () => { setShowSettings(false); onSignOut && onSignOut(); }, danger: true },
             ].map((item, i) => item.type === 'divider' ? (
               <div key={i} style={{height:1, background:T.border, margin:'3px 6px'}} />
             ) : (
               <button key={item.label} onClick={item.action} style={{
-                display:'flex', alignItems:'center', gap:7, width:'100%', padding:'5px 8px',
-                border:'none', borderRadius:6, background:'transparent',
-                fontFamily:T.ui, fontSize:11, color: item.danger ? '#b04040' : T.ink2,
-                cursor:'pointer', textAlign:'left', transition:'background 0.1s',
-              }}
-                onMouseOver={e => e.currentTarget.style.background = item.danger ? '#faf0f0' : T.bl}
-                onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-                <span style={{display:'flex', flexShrink:0, opacity:0.6}}>{item.icon}</span>
-                {item.label}
-              </button>
+                display:'block', width:'100%', padding:'5px 8px', border:'none', borderRadius:6, background:'transparent',
+                fontFamily:T.ui, fontSize:11, color: item.danger ? '#b04040' : T.ink2, cursor:'pointer', textAlign:'left',
+              }}>{item.label}</button>
             ))}
           </div>
         )}
-        <div style={{background:T.bg, borderRadius:8, padding:'8px 10px'}}>
-          <div style={{display:'flex', alignItems:'center', gap:8}}>
-            {profile?.picture ? (
-              <img src={profile.picture} alt={`${(profile?.name || 'User')} profile photo`} style={{width:24, height:24, borderRadius:6, objectFit:'cover'}} referrerPolicy="no-referrer" />
-            ) : (
-              <div style={{width:24, height:24, borderRadius:6, background:`linear-gradient(135deg, ${T.accent}, #9a7828)`, display:'flex', alignItems:'center', justifyContent:'center'}}>
-                <span style={{fontFamily:T.serif, fontSize:12, color:'#fff', fontWeight:600}}>{(profile?.name || 'U')[0]}</span>
-              </div>
-            )}
-            <div style={{flex:1, minWidth:0}}>
-              <div style={{fontFamily:T.ui, fontSize:11, fontWeight:600, color:T.ink, lineHeight:'14px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{profile?.name || 'Student'}</div>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.05em'}}>{profile ? (profile.grade.charAt(0).toUpperCase()+profile.grade.slice(1)) : 'Student'}{streak > 0 ? ` · ${streak}d streak` : ''}</div>
-            </div>
-            <button onClick={() => setShowSettings(s => !s)} style={{width:22, height:22, display:'flex', alignItems:'center', justifyContent:'center', border:`1px solid ${showSettings ? T.accent+'40' : T.border}`, background: showSettings ? T.accentSoft : 'transparent', borderRadius:5, color: showSettings ? T.accent : T.ink3, cursor:'pointer', padding:0, transition:'all 0.15s', flexShrink:0}}
-              onMouseOver={e => { if(!showSettings) { e.currentTarget.style.background=T.bl; e.currentTarget.style.borderColor=T.ink3+'40'; }}}
-              onMouseOut={e => { if(!showSettings) { e.currentTarget.style.background='transparent'; e.currentTarget.style.borderColor=T.border; }}}>
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><circle cx="8" cy="3" r="1"/><circle cx="8" cy="8" r="1"/><circle cx="8" cy="13" r="1"/></svg>
-            </button>
+        <button type="button" onClick={() => setShowSettings(s => !s)} style={{border:'none', background:'transparent', padding:0, cursor:'pointer', textAlign:'left', width:'100%'}}>
+          <div className="shq-footer-name">{shortName}</div>
+          <div className="shq-footer-meta">
+            {profile ? profile.grade.charAt(0).toUpperCase()+profile.grade.slice(1) : 'Student'}
+            {streak > 0 && <> &nbsp;·&nbsp; <span className="shq-streak-pip" />{streak}-day streak</>}
           </div>
-        </div>
+        </button>
       </div>
 
     </aside>
@@ -798,7 +685,7 @@ function TodayScreen({ profile, userData, onUpdate, onNav, onRequestSidebar, scr
   const ud       = userData || defaultUserData();
   const prefs    = ud.dashboardPrefs || DEFAULT_DASHBOARD_PREFS;
   const [showCustomize, setShowCustomize] = useState(false);
-  const [planTick, setPlanTick] = useState(0);
+  const [weekTab, setWeekTab] = useState('focus');
   const subjects = profile?.subjects || [];
   const subjectBy = makeSubjectBy(subjects);
   const homework  = ud.homework || [];
@@ -811,228 +698,221 @@ function TodayScreen({ profile, userData, onUpdate, onNav, onRequestSidebar, scr
   const now = new Date();
   const h = now.getHours();
   const timeLabel = h < 5 ? 'Up late' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 21 ? 'Good evening' : 'Late night';
-  const dayStr   = now.toLocaleDateString('en-US',{weekday:'short'}).toUpperCase();
-  const dateStr  = now.toLocaleDateString('en-US',{month:'short', day:'numeric'});
-  const timeStr  = now.toLocaleTimeString('en-US',{hour:'numeric', minute:'2-digit'});
+  const fullDate  = now.toLocaleDateString('en-US',{weekday:'long', month:'long', day:'numeric', year:'numeric'});
+  const timeStr   = now.toLocaleTimeString('en-US',{hour:'numeric', minute:'2-digit'});
+  const dayOfYear = Math.floor((now - new Date(now.getFullYear(),0,0)) / 86400000);
 
-  // Week calendar Mon–Sun
-  const dow = now.getDay(); // 0=Sun
+  const dow = now.getDay();
   const monOffset = (dow + 6) % 7;
-  const weekDays = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((n,i) => {
+  const weekDays = ['M','T','W','T','F','S','S'].map((n,i) => {
     const d = new Date(now); d.setDate(now.getDate() - monOffset + i);
     return { n, date: d.getDate(), today: d.toDateString() === now.toDateString() };
   });
 
   const open      = homework.filter(hw => !hw.done);
-  const urgent    = homework.filter(hw => hw.urgent && !hw.done);
   const tonight   = homework.filter(hw => hw.due === 'Tonight' && !hw.done);
   const curPeriod = schedule.find(p => p.current);
-
-  const Btn = ({children, gold, onClick}) => (
-    <button onClick={onClick} style={{padding:'7px 14px', border: gold ? 'none' : `1px solid ${T.border}`, background: gold ? T.accent : T.surface, color: gold ? '#fff' : T.ink3, fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', display:'flex', alignItems:'center', gap:6, borderRadius:8}}>{children}</button>
-  );
 
   useRunScreenAction(screenAction, onScreenActionHandled, (action) => {
     if (action === 'add') onNav?.('homework', 'add');
   });
 
-  const gamePlanItems = useMemo(() => open.slice(0, 4), [open, planTick]);
+  const gamePlanItems = useMemo(() => open.slice(0, 4), [open, homework]);
 
   const hasBasics = subjects.length > 0;
+  const quizSub = quizzes.length > 0 ? quizzes[0].date : 'none scheduled';
+
+  const heroStats = [
+    { label:'Tasks', val:open.length, sub:'on track' },
+    { label:'GPA', val:gpa, sub:'unwt. spring' },
+    { label:'Streak', val:String(streak), sub:'days running' },
+    { label:'Quizzes', val:quizzes.length, sub:quizzes.length > 0 ? quizSub.toLowerCase() : 'none', gold: quizzes.length > 0 },
+  ];
+
+  const glanceStats = [
+    { label:'Open Tasks', val:open.length, sub:'all on track', subClass:'green' },
+    { label:'GPA', val:gpa, sub:'Unweighted' },
+    { label:'Streak', val:String(streak), sub:'days running' },
+    { label:'Quizzes', val:quizzes.length, sub:quizzes.length > 0 ? quizSub : 'None', gold: quizzes.length > 0 },
+  ];
 
   return (
-    <div className="screen-enter" style={{flex:1, overflowY:'auto'}}>
+    <div className="screen-enter shq-today-shell">
       <DashboardCustomizeModal
         open={showCustomize}
         onClose={() => setShowCustomize(false)}
         prefs={prefs}
         onSave={(next) => onUpdate && onUpdate({ dashboardPrefs: next })}
       />
+
       {!hasBasics && (
-        <div style={{margin:'18px 52px 0', background:'rgba(184,148,58,0.15)', border:`1px solid ${T.accent}35`, borderLeft:`3px solid ${T.accent}`, padding:'14px 16px', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12}}>
-          <div>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.accent, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:4}}>Getting started</div>
-            <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink2, lineHeight:1.45}}>Add your first subject in the sidebar to unlock Homework, Notes, and Grades.</div>
-          </div>
-          <button type="button" onClick={() => onRequestSidebar?.('addSubject')} style={{padding:'7px 12px', border:`1px solid ${T.accent}55`, background:'#fff', borderRadius:10, fontFamily:T.mono, fontSize:10, color:T.accent, cursor:'pointer', whiteSpace:'nowrap'}}>Add subject →</button>
+        <div style={{margin:'12px 28px 0', background:T.accentSoft, border:`1px solid ${T.accentMid}`, borderLeft:`3px solid ${T.accent}`, padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexShrink:0}}>
+          <div style={{fontFamily:T.ui, fontSize:12, color:T.ink2, lineHeight:1.45}}>Add your first subject in the sidebar to unlock Homework, Notes, and Grades.</div>
+          <button type="button" onClick={() => onRequestSidebar?.('addSubject')} style={{padding:'6px 12px', border:`1px solid ${T.accent}`, background:T.card, fontFamily:T.mono, fontSize:9, color:T.accent, cursor:'pointer', whiteSpace:'nowrap'}}>Add subject →</button>
         </div>
       )}
-      {/* Header */}
-      <div style={{padding:'26px 52px 0', display:'flex', alignItems:'flex-start', justifyContent:'space-between'}}>
+
+      <div className="shq-masthead">
+        <span className="shq-masthead-item">Vol.&thinsp;III, No.&thinsp;{dayOfYear}</span>
+        <div style={{display:'flex', alignItems:'center', gap:18}}>
+          <div className="shq-masthead-divider" />
+          <span className="shq-masthead-item">{fullDate}</span>
+          <div className="shq-masthead-divider" />
+        </div>
+        <span className="shq-masthead-item">Spring Term &thinsp;·&thinsp; {timeStr}</span>
+      </div>
+
+      <div className="shq-hero-band">
         <div>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:5}}>
-            {dayStr} · {dateStr} · {timeStr} · Spring Term
-          </div>
-          <h1 style={{margin:'0 0 5px', lineHeight:1.1}}>
-            <span style={{fontFamily:T.ui, fontWeight:700, fontSize:29, color:T.ink}}>{timeLabel}, </span>
-            <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:31, color:T.ink}}>{firstName}.</span>
-          </h1>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.05em'}}>
-            {open.length} things to finish tonight · {quizzes.length} quizzes scheduled
+          <h1 className="shq-hero-headline">{timeLabel}, {firstName}.</h1>
+          <div className="shq-hero-sub">
+            {open.length} assignment{open.length !== 1 ? 's' : ''} due tonight &thinsp;·&thinsp; {quizzes.length} quiz{quizzes.length !== 1 ? 'zes' : ''} approaching{streak > 0 ? <> &thinsp;·&thinsp; {streak}-day study streak</> : ''}
           </div>
         </div>
-        <div style={{display:'flex', gap:8, flexShrink:0, marginTop:4}}>
-          <Btn onClick={() => setShowCustomize(true)}>✦ Customize</Btn>
-          <Btn gold onClick={() => onNav?.('homework', 'add')}>+ Add</Btn>
-        </div>
-      </div>
-
-      {prefs.stats && (
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, margin:'20px 52px 12px'}}>
-        {[
-          { label:'OPEN TASKS',    val:open.length,        sub:'all on track',                                              accent:T.accent  },
-          { label:'GPA',           val:gpa,                sub:'Unweighted · Spring',                                        accent:'#3a8a52' },
-          { label:'STUDY STREAK',  val:String(streak),     sub:'days running',                                               accent:T.accent2 },
-          { label:'QUIZZES AHEAD', val:quizzes.length,     sub:quizzes.length>0?`${quizzes[0].date} upcoming`:'none scheduled', accent:'#9254de' },
-        ].map(c => (
-          <div key={c.label} style={{background:T.surface, padding:'22px 24px 20px', borderRadius:12, minHeight:100, borderLeft:`3px solid ${c.accent}`}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:10}}>{c.label}</div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:38, color:T.ink, lineHeight:0.9, marginBottom:10}}>{c.val}</div>
-            <div style={{fontFamily:T.mono, fontSize:10, color:c.accent}}>{c.sub}</div>
-          </div>
-        ))}
-      </div>
-      )}
-
-      {prefs.week && (
-      <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:10, margin:'0 52px 12px'}}>
-        {weekDays.map(d => (
-          <div key={d.n} style={{background:d.today ? T.accentSoft : T.surface, padding:'16px 14px 14px', borderRadius:12, minHeight:72}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:d.today?T.accent:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em', marginBottom:8}}>{d.n}</div>
-            {d.today
-              ? <div style={{width:32, height:32, borderRadius:'50%', background:T.accent, display:'flex', alignItems:'center', justifyContent:'center'}}>
-                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:26, color:'#fff', lineHeight:1}}>{d.date}</div>
-                </div>
-              : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:26, color:T.ink3, lineHeight:1}}>{d.date}</div>
-            }
-          </div>
-        ))}
-      </div>
-      )}
-
-      {prefs.period && (
-      <div style={{margin:'0 52px 12px', background:T.surface, padding:'20px 26px', borderLeft:`3px solid ${T.accent}`, borderRadius:12}}>
-        <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:7}}>
-          {open.length===0 ? 'All done for today · enjoy your evening' : `${open.length} tasks remaining · stay focused`}
-        </div>
-        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:28, color:T.ink, lineHeight:1.1, marginBottom:12}}>
-          {curPeriod ? subjectBy(curPeriod.subj).name : 'Free time'}
-        </div>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-          <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3, border:`1px solid ${T.border}`, padding:'4px 10px', letterSpacing:'0.09em', textTransform:'uppercase'}}>
-            {curPeriod ? 'Class in session' : 'No class in session'}
-          </span>
-          <div style={{textAlign:'right'}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:2}}>Tomorrow</div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink3}}>Clear ahead</div>
-          </div>
-        </div>
-      </div>
-      )}
-
-      {prefs.gamePlan && (
-      <div style={{margin:'0 52px 12px', background:T.surface, padding:'17px 26px', borderRadius:12}}>
-        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:13}}>
-          <div style={{display:'flex', alignItems:'center', gap:10}}>
-            <div style={{width:22, height:22, background:T.accent, borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
-              <span style={{color:'#fff', fontSize:11}}>✦</span>
-            </div>
-            <div>
-              <div style={{fontFamily:T.ui, fontSize:13, color:T.ink, fontWeight:500}}>Game plan for today</div>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>AI · updates with your homework & schedule</div>
-            </div>
-          </div>
-          <button type="button" onClick={() => setPlanTick(t => t + 1)} style={{fontFamily:T.mono, fontSize:10, color:T.ink3, background:'none', border:`1px solid ${T.border}`, padding:'5px 11px', cursor:'pointer', transition:'border-color 0.12s', display:'flex', alignItems:'center', gap:5}}
-            onMouseOver={e=>e.currentTarget.style.borderColor=T.accent}
-            onMouseOut={e=>e.currentTarget.style.borderColor=T.border}
-          ><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2.5v4h-4"/><path d="M3 13.5v-4h4"/><path d="M12.7 6.3a5.5 5.5 0 1 0 .8-2.8"/><path d="M3.3 9.7a5.5 5.5 0 1 0-.8 2.8"/></svg> Refresh</button>
-        </div>
-        {open.length === 0
-          ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3}}>Review your notes and plan out your evening.</div>
-          : gamePlanItems.map((hw,i) => {
-              const s = subjectBy(hw.subj);
-              return (
-                <div key={i} style={{display:'flex', gap:12, marginBottom:8}}>
-                  <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3, flexShrink:0, width:12}}>{i+1}</span>
-                  <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink2, lineHeight:1.5}}>{s.short}: {hw.title} — {hw.est}</div>
-                </div>
-              );
-            })
-        }
-      </div>
-      )}
-
-      {prefs.bottomRow && (
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, margin:'0 52px 28px'}}>
-        {/* Workload */}
-        <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:11}}>Workload</div>
-          <div style={{display:'flex', justifyContent:'space-between', marginBottom:8}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>Due Today</div>
-            <button type="button" onClick={() => onNav?.('homework')} style={{fontFamily:T.mono, fontSize:10, color:T.accent, background:'none', border:'none', padding:0, cursor:'pointer'}}>All homework →</button>
-          </div>
-          {tonight.length > 0 ? tonight.map(hw => {
-            const s = subjectBy(hw.subj);
-            return (
-              <div key={hw.title} style={{display:'flex', gap:8, alignItems:'flex-start', marginBottom:6}}>
-                <div style={{width:5, height:5, borderRadius:1, background:s.color, marginTop:4, flexShrink:0}}/>
-                <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, lineHeight:1.4}}>{hw.title}</div>
+        {prefs.stats && (
+          <div className="shq-hero-stats">
+            {heroStats.map(s => (
+              <div key={s.label} className="shq-hero-stat">
+                <div className="shq-hero-stat-label">{s.label}</div>
+                <div className={`shq-hero-stat-val${s.gold ? ' gold' : ''}`}>{s.val}</div>
+                <div className={`shq-hero-stat-sub${s.gold ? ' gold' : ''}`}>{s.sub}</div>
               </div>
-            );
-          }) : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13.5, color:T.ink3, lineHeight:1.65}}>All clear today. Nothing due — you're ahead.</div>}
-          <div style={{borderTop:`1px solid ${T.bl}`, marginTop:12, paddingTop:11}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em', marginBottom:7}}>Quizzes Ahead</div>
-            {quizzes.slice(0,2).map(q => {
-              const s = subjectBy(q.subj);
-              return (
-                <div key={q.title} style={{display:'flex', gap:7, alignItems:'center', marginBottom:5}}>
-                  <div style={{width:5, height:5, borderRadius:1, background:s.color, flexShrink:0}}/>
-                  <div style={{flex:1, fontFamily:T.ui, fontSize:11.5, color:T.ink2}}>{q.title.split('—')[0].trim()}</div>
-                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, flexShrink:0}}>{q.date}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Schedule & Notes */}
-        <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:11}}>Schedule & Notes</div>
-          <div style={{display:'flex', justifyContent:'space-between', marginBottom:8}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>Schedule</div>
-            <button type="button" onClick={() => onNav?.('schedule')} style={{fontFamily:T.mono, fontSize:10, color:T.accent2, background:'none', border:'none', padding:0, cursor:'pointer'}}>Edit → {dayStr.slice(0,3)}</button>
-          </div>
-          {schedule.filter(p => p.subj).slice(0,5).map(p => {
-            const s = subjectBy(p.subj);
-            return (
-              <div key={p.period} style={{display:'flex', alignItems:'center', gap:7, marginBottom:5}}>
-                <div style={{width:4, height:4, borderRadius:1, background:s.color, flexShrink:0}}/>
-                <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1}}>{s.short}</div>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, flexShrink:0}}>{p.time.split('–')[0].trim()}</div>
-              </div>
-            );
-          })}
-          {schedule.length === 0 && <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, opacity:0.5}}>No schedule set — add classes in Schedule.</div>}
-          {schedule.filter(p=>!p.subj&&p.room==='Library').map(p => (
-            <div key="lib" style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginTop:6}}>2:45 → Study Hall</div>
-          ))}
-        </div>
-
-        {/* Progress */}
-        <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:11}}>Progress</div>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em', marginBottom:7}}>Study Streak</div>
-          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:42, color:T.accent2, lineHeight:0.9, marginBottom:4}}>{streak}</div>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginBottom:14}}>days</div>
-          <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, lineHeight:1.6, marginBottom:16}}>{streak > 0 ? `Day ${streak} — keep it going.` : 'Start your streak today.'}</div>
-          <div style={{display:'flex', gap:3, flexWrap:'wrap'}}>
-            {Array.from({length:14}).map((_,i) => (
-              <div key={i} style={{width:11, height:11, borderRadius:2, background: i < streak ? T.accent2 : T.bl}}/>
             ))}
           </div>
-        </div>
+        )}
       </div>
-      )}
+
+      <div className="shq-columns-area">
+        {prefs.stats && (
+          <div className="shq-col shq-col-glance">
+            <div className="shq-col-header">At a Glance</div>
+            {glanceStats.map(s => (
+              <div key={s.label} className="shq-stat-block">
+                <div className="shq-stat-block-label">{s.label}</div>
+                <div className={`shq-stat-block-number${s.gold ? ' gold' : ''}`}>{s.val}</div>
+                <div className={`shq-stat-block-sub${s.subClass ? ' '+s.subClass : ''}${s.gold ? ' gold' : ''}`}>{s.sub}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {prefs.week && (
+          <div className="shq-col shq-col-week">
+            <div className="shq-col-header">This Week</div>
+            <div className="shq-week-strip">
+              {weekDays.map((d,i) => (
+                <div key={i} className={`shq-day-cell${d.today ? ' today' : ''}`}>
+                  <div className="shq-day-cell-name">{d.n}</div>
+                  <div className="shq-day-cell-date">{d.date}</div>
+                </div>
+              ))}
+            </div>
+            <div className="shq-week-tabs" role="tablist">
+              {[['focus','Focus'],['deadlines','Deadlines'],['schedule','Schedule']].map(([id,label]) => (
+                <button key={id} type="button" role="tab" aria-selected={weekTab===id} className={`shq-week-tab${weekTab===id ? ' active' : ''}`} onClick={() => setWeekTab(id)}>{label}</button>
+              ))}
+            </div>
+
+            {weekTab === 'focus' && (
+              <>
+                <div className="shq-week-section">
+                  <div className="shq-week-section-label">Quizzes</div>
+                  {quizzes.length === 0
+                    ? <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>No quizzes scheduled</div>
+                    : quizzes.slice(0,3).map(q => {
+                        const s = subjectBy(q.subj);
+                        return <div key={q.title} style={{fontFamily:T.ui, fontSize:12, color:T.ink3, marginTop:2}}>{s.short} · {q.title.split('—')[0].trim()} — {q.date}</div>;
+                      })}
+                </div>
+                <hr className="shq-mini-rule" />
+                {prefs.period && (
+                  <>
+                    <div className="shq-week-section">
+                      <div className="shq-week-section-label">Now in class</div>
+                      <div className="shq-week-class-name">{curPeriod ? subjectBy(curPeriod.subj).name : 'Free time'}</div>
+                      <div className="shq-week-status">{curPeriod ? 'Class in session' : 'No class in session'}</div>
+                    </div>
+                    <hr className="shq-mini-rule" />
+                    <div className="shq-week-section">
+                      <div className="shq-week-section-label">Tomorrow</div>
+                      <div className="shq-week-clear">{open.length === 0 ? 'Clear ahead' : `${open.length} task${open.length !== 1 ? 's' : ''} on deck`}</div>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            {weekTab === 'deadlines' && (
+              <div className="shq-week-section">
+                <div className="shq-week-section-label">Due tonight</div>
+                {tonight.length === 0
+                  ? <div className="shq-week-clear">All clear</div>
+                  : tonight.map(hw => {
+                      const s = subjectBy(hw.subj);
+                      return <div key={hw.title} style={{fontFamily:T.ui, fontSize:12, color:T.ink3, marginTop:4}}>{s.short}: {hw.title}</div>;
+                    })}
+                <hr className="shq-mini-rule" />
+                <div className="shq-week-section-label" style={{marginTop:12}}>Open tasks</div>
+                {open.length === 0
+                  ? <div className="shq-week-clear">Nothing open</div>
+                  : open.slice(0,5).map(hw => {
+                      const s = subjectBy(hw.subj);
+                      return <div key={hw.title} style={{fontFamily:T.ui, fontSize:12, color:T.ink3, marginTop:4}}>{s.short}: {hw.title} — {hw.due || 'soon'}</div>;
+                    })}
+              </div>
+            )}
+
+            {weekTab === 'schedule' && (
+              <div className="shq-week-section">
+                {schedule.filter(p => p.subj).length === 0
+                  ? <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>No schedule set — add classes in Schedule.</div>
+                  : schedule.filter(p => p.subj).map(p => {
+                      const s = subjectBy(p.subj);
+                      return (
+                        <div key={p.period} style={{display:'flex', justifyContent:'space-between', marginBottom:6, fontFamily:T.ui, fontSize:12, color:T.ink2}}>
+                          <span>{s.short}</span>
+                          <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{p.time.split('–')[0].trim()}</span>
+                        </div>
+                      );
+                    })}
+                <button type="button" onClick={() => onNav?.('schedule')} style={{marginTop:12, border:'none', background:'transparent', fontFamily:T.mono, fontSize:9, color:T.accent, cursor:'pointer', padding:0}}>Edit schedule →</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {prefs.gamePlan && (
+          <div className="shq-col shq-col-plan">
+            <div className="shq-plan-header-row">
+              <span className="shq-plan-spark">✦</span>
+              <div className="shq-plan-header-label">Tonight&apos;s Game Plan</div>
+            </div>
+            <div className="shq-plan-ai-label">AI · updates with homework &amp; schedule</div>
+            {open.length === 0
+              ? <div className="shq-week-clear">Review your notes and plan out your evening.</div>
+              : gamePlanItems.map((hw, i) => {
+                  const s = subjectBy(hw.subj);
+                  return (
+                    <div key={hw.id || i} className="shq-plan-task">
+                      <span className="shq-plan-num">{i + 1}</span>
+                      <div className="shq-plan-body">
+                        <div className="shq-plan-subject">
+                          <span className="shq-plan-subject-dot" style={{background:s.color}} />
+                          {s.name}
+                        </div>
+                        <div className="shq-plan-desc">{hw.title}</div>
+                      </div>
+                      <span className="shq-plan-est">{hw.est || '—'}</span>
+                    </div>
+                  );
+                })}
+            <div style={{marginTop:16, display:'flex', gap:10}}>
+              <button type="button" onClick={() => onNav?.('homework', 'add')} style={{fontFamily:T.mono, fontSize:9, color:T.ink, background:T.card, border:`1px solid ${T.border}`, padding:'6px 12px', cursor:'pointer'}}>+ Add task</button>
+              <button type="button" onClick={() => setShowCustomize(true)} style={{fontFamily:T.mono, fontSize:9, color:T.ink3, background:'transparent', border:'none', padding:'6px 0', cursor:'pointer'}}>Customize</button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

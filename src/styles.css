@@ -79,11 +79,11 @@ button { cursor: pointer; font-family: inherit; }
 .shq-mobile-menu-btn:active { background: #e8e2d8; }
 .shq-mobile-brand { flex: 1; min-width: 0; }
 .shq-mobile-wordmark {
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: "Playfair Display", Georgia, serif;
   font-style: italic;
   font-size: 22px;
   font-weight: 400;
-  color: #18150e;
+  color: #1c1916;
   letter-spacing: -0.02em;
   line-height: 1;
 }
@@ -164,4 +164,465 @@ button { cursor: pointer; font-family: inherit; }
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ── Broadsheet layout (Scholar redesign) ─────────────── */
+.shq-sidebar {
+  width: 152px !important;
+  background: #e8e3d8 !important;
+  border-right-color: #ddd8cc !important;
+}
+.shq-sidebar-brand {
+  padding: 20px 16px 14px;
+  border-bottom: 1px solid #ddd8cc;
+  flex-shrink: 0;
+}
+.shq-sidebar-wordmark {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #1c1916;
+  line-height: 1;
+  margin-bottom: 3px;
+}
+.shq-sidebar-brand-sub {
+  font-family: "DM Mono", monospace;
+  font-size: 8px;
+  color: #8a7e6e;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.shq-sidebar-nav {
+  padding: 8px 0;
+  border-bottom: 1px solid #ddd8cc;
+  flex-shrink: 0;
+}
+.shq-nav-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 7px 16px;
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 13px;
+  color: #4a4338;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.shq-nav-item:hover { background: rgba(28,25,22,0.05); }
+.shq-nav-item.active {
+  background: #1c1916;
+  color: #fff;
+  font-weight: 500;
+}
+.shq-sidebar-subjects {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 0 10px;
+}
+.shq-subjects-label {
+  font-family: "DM Mono", monospace;
+  font-size: 7.5px;
+  color: #8a7e6e;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  padding: 0 16px 8px;
+}
+.shq-subject-row {
+  display: flex;
+  align-items: center;
+  padding: 5px 16px;
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 12.5px;
+  color: #4a4338;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+.shq-subject-row:hover { background: rgba(28,25,22,0.04); }
+.shq-subject-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 7px;
+}
+.shq-sidebar-footer {
+  padding: 12px 16px 16px;
+  border-top: 1px solid #ddd8cc;
+  flex-shrink: 0;
+}
+.shq-footer-name {
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #1c1916;
+  margin-bottom: 1px;
+}
+.shq-footer-meta {
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+  color: #8a7e6e;
+  letter-spacing: 0.06em;
+}
+.shq-streak-pip {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  background: #c49a2a;
+  vertical-align: middle;
+  margin-right: 3px;
+}
+
+/* Today — masthead & hero */
+.shq-today-shell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  background: #f5f2eb;
+}
+.shq-masthead {
+  padding: 11px 28px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 3px double #1c1916;
+  flex-shrink: 0;
+}
+.shq-masthead-item {
+  font-family: "DM Mono", monospace;
+  font-size: 8.5px;
+  color: #8a7e6e;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.shq-masthead-divider {
+  width: 1px;
+  height: 14px;
+  background: #ddd8cc;
+  opacity: 0.8;
+}
+.shq-hero-band {
+  padding: 18px 28px 14px;
+  border-bottom: 1px solid #ddd8cc;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.shq-hero-headline {
+  font-family: "Playfair Display", Georgia, serif;
+  font-style: italic;
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 400;
+  color: #1c1916;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+}
+.shq-hero-sub {
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 12px;
+  color: #8a7e6e;
+}
+.shq-hero-stats {
+  display: flex;
+  align-items: flex-end;
+  flex-shrink: 0;
+  border: 1px solid #ddd8cc;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #faf8f3;
+}
+.shq-hero-stat {
+  padding: 10px 18px;
+  border-right: 1px solid #ddd8cc;
+  min-width: 72px;
+  text-align: center;
+}
+.shq-hero-stat:last-child { border-right: none; }
+.shq-hero-stat-label {
+  font-family: "DM Mono", monospace;
+  font-size: 7px;
+  color: #8a7e6e;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  margin-bottom: 4px;
+}
+.shq-hero-stat-val {
+  font-family: "Playfair Display", Georgia, serif;
+  font-style: italic;
+  font-size: 26px;
+  font-weight: 400;
+  color: #1c1916;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+.shq-hero-stat-val.gold { color: #c49a2a; }
+.shq-hero-stat-sub {
+  font-family: "DM Mono", monospace;
+  font-size: 7.5px;
+  color: #8a7e6e;
+}
+.shq-hero-stat-sub.gold { color: #c49a2a; }
+
+/* Today — three columns */
+.shq-columns-area {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+.shq-col {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 18px 22px 24px;
+  border-right: 1px solid #ddd8cc;
+}
+.shq-col:last-child { border-right: none; }
+.shq-col-glance { width: 218px; flex-shrink: 0; }
+.shq-col-week { width: 218px; flex-shrink: 0; }
+.shq-col-plan { flex: 1; min-width: 0; }
+.shq-col-header {
+  font-family: "DM Mono", monospace;
+  font-size: 7px;
+  color: #1c1916;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  padding-bottom: 7px;
+  border-bottom: 1px solid #1c1916;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+.shq-stat-block {
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #ddd8cc;
+}
+.shq-stat-block:last-child { border-bottom: none; margin-bottom: 0; }
+.shq-stat-block-label {
+  font-family: "DM Mono", monospace;
+  font-size: 7.5px;
+  color: #8a7e6e;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 6px;
+}
+.shq-stat-block-number {
+  font-family: "Playfair Display", Georgia, serif;
+  font-style: italic;
+  font-size: 52px;
+  font-weight: 400;
+  color: #1c1916;
+  line-height: 0.88;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+.shq-stat-block-number.gold { color: #c49a2a; }
+.shq-stat-block-sub {
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 11px;
+  color: #8a7e6e;
+}
+.shq-stat-block-sub.green { color: #3a7a4a; }
+.shq-stat-block-sub.gold { color: #c49a2a; }
+
+.shq-week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 16px;
+}
+.shq-day-cell {
+  text-align: center;
+  padding: 6px 2px 5px;
+  border-radius: 7px;
+}
+.shq-day-cell.today {
+  background: rgba(196,154,42,0.11);
+  border: 1px solid rgba(196,154,42,0.25);
+}
+.shq-day-cell-name {
+  font-family: "DM Mono", monospace;
+  font-size: 7px;
+  color: #8a7e6e;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.shq-day-cell.today .shq-day-cell-name { color: #c49a2a; }
+.shq-day-cell-date {
+  font-family: "Playfair Display", Georgia, serif;
+  font-style: italic;
+  font-size: 19px;
+  color: #8a7e6e;
+  line-height: 1;
+}
+.shq-day-cell.today .shq-day-cell-date { color: #c49a2a; }
+
+.shq-week-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #ddd8cc;
+}
+.shq-week-tab {
+  font-family: "DM Mono", monospace;
+  font-size: 7.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #8a7e6e;
+  padding: 5px 10px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+}
+.shq-week-tab.active {
+  color: #1c1916;
+  border-bottom: 2px solid #1c1916;
+}
+.shq-week-tab:first-child { padding-left: 0; }
+
+.shq-week-section { margin-bottom: 14px; }
+.shq-week-section-label {
+  font-family: "DM Mono", monospace;
+  font-size: 7px;
+  color: #8a7e6e;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 6px;
+}
+.shq-week-class-name {
+  font-family: "Playfair Display", Georgia, serif;
+  font-style: italic;
+  font-size: 24px;
+  font-weight: 400;
+  color: #1c1916;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+.shq-week-status {
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 11px;
+  color: #c49a2a;
+}
+.shq-week-clear {
+  font-family: "Playfair Display", Georgia, serif;
+  font-style: italic;
+  font-size: 18px;
+  color: #8a7e6e;
+}
+.shq-mini-rule {
+  border: none;
+  border-top: 1px solid #ddd8cc;
+  margin: 12px 0;
+}
+
+.shq-plan-header-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.shq-plan-spark { color: #c49a2a; font-size: 12px; flex-shrink: 0; }
+.shq-plan-header-label {
+  font-family: "DM Mono", monospace;
+  font-size: 7px;
+  color: #1c1916;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  padding-bottom: 7px;
+  border-bottom: 1px solid #1c1916;
+  flex: 1;
+}
+.shq-plan-ai-label {
+  font-family: "DM Mono", monospace;
+  font-size: 9.5px;
+  color: #8a7e6e;
+  font-style: italic;
+  margin-bottom: 18px;
+}
+.shq-plan-task {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 13px 0;
+  border-bottom: 1px solid #ddd8cc;
+}
+.shq-plan-task:last-child { border-bottom: none; }
+.shq-plan-num {
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+  color: #8a7e6e;
+  min-width: 14px;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+.shq-plan-body { flex: 1; min-width: 0; }
+.shq-plan-subject {
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1c1916;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.shq-plan-subject-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.shq-plan-desc {
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 12px;
+  color: #8a7e6e;
+}
+.shq-plan-est {
+  font-family: "DM Mono", monospace;
+  font-size: 10.5px;
+  color: #8a7e6e;
+  flex-shrink: 0;
+  padding-top: 3px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.shq-mobile-wordmark {
+  font-family: "Playfair Display", Georgia, serif;
+  font-style: italic;
+  font-size: 22px;
+  font-weight: 400;
+  color: #1c1916;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.shq-mobile-header {
+  background: #f5f2eb !important;
+  border-bottom-color: #ddd8cc !important;
+}
+
+@media (max-width: 767px) {
+  .shq-columns-area { flex-direction: column; overflow-y: auto; }
+  .shq-col { width: 100% !important; border-right: none; border-bottom: 1px solid #ddd8cc; }
+  .shq-col-plan { flex: none; }
+  .shq-hero-band { flex-direction: column; align-items: flex-start; }
+  .shq-hero-stats { width: 100%; }
+  .shq-hero-stat { flex: 1; min-width: 0; }
+  .shq-masthead { flex-wrap: wrap; gap: 8px; padding: 10px 16px; }
 }
