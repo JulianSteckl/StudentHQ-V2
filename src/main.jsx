@@ -2875,15 +2875,17 @@ function WelcomeScreen({ onSignIn, onSetup }) {
           </div>
         </div>
 
-        {/* Colophon */}
-        <div style={{position:'absolute', bottom:52, left:0, right:0, textAlign:'center', fontFamily:T.mono, fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:T.ink3, animation:'shq-up 0.5s 1.5s both'}}>
-          2026 School Year
-        </div>
-
-        {/* Scroll hint */}
-        <div style={{position:'absolute', bottom:24, left:0, right:0, ...MONO_LABEL, fontSize:10, color:T.ink3, display:'flex', flexDirection:'column', alignItems:'center', gap:4, animation:'shq-up 0.6s 1.65s both'}}>
-          <span>What's inside</span>
-          <span style={{fontSize:13, lineHeight:1}}>↓</span>
+        {/* Footer — kept inside frame (hairlines inset 44–52px) */}
+        <div style={{
+          position:'absolute', bottom:70, left:0, right:0,
+          display:'flex', flexDirection:'column', alignItems:'center', gap:12,
+          animation:'shq-up 0.6s 1.5s both',
+        }}>
+          <div style={{...MONO_LABEL, fontSize:10, color:T.ink3}}>2026 School Year</div>
+          <div style={{...MONO_LABEL, fontSize:10, color:T.ink3, display:'flex', flexDirection:'column', alignItems:'center', gap:4}}>
+            <span>What's inside</span>
+            <span style={{fontSize:13, lineHeight:1}}>↓</span>
+          </div>
         </div>
       </div>
 
