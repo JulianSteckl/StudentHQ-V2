@@ -39,11 +39,16 @@ button { cursor: pointer; font-family: inherit; }
 .shq-hw-stats { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
 .shq-sched-stats { display:grid; grid-template-columns:repeat(4,1fr) minmax(140px,1fr); gap:12px; }
 .shq-sched-week { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
-.shq-tools-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
-.shq-tools-mid { display:grid; grid-template-columns:1fr 0.58fr 0.42fr; gap:12px; }
+.shq-tools-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.shq-subjects-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+.shq-grades-stats { display:grid; grid-template-columns:240px 1fr 1fr 1fr; gap:12px; }
+.shq-grades-insights { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.shq-grades-mix { display:grid; grid-template-columns:1fr 280px; gap:12px; }
+.shq-subjects-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,360px)); gap:12px; align-content:start; }
+.shq-tools-mid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.shq-tools-rec { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .shq-tools-bottom { display:flex; gap:12px; align-items:flex-start; }
-.shq-tools-side { width:216px; display:flex; flex-direction:column; justify-content:space-between; flex-shrink:0; align-self:stretch; gap:12px; }
-.shq-tools-filters { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+.shq-tools-side { width:240px; display:flex; flex-direction:column; flex-shrink:0; align-self:stretch; gap:12px; }
 .shq-notes-panels { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .shq-fc-modes { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
 .shq-fc-rating { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
@@ -117,11 +122,16 @@ button { cursor: pointer; font-family: inherit; }
   .shq-setup-progress { padding:0 16px!important; }
   .shq-setup-progress .shq-step-label { display:none!important; }
   .shq-grades-stats { grid-template-columns:1fr 1fr!important; }
+  .shq-grades-insights { grid-template-columns:1fr!important; }
+  .shq-grades-mix { grid-template-columns:1fr!important; }
   .shq-hw-stats { grid-template-columns:repeat(2,1fr)!important; }
   .shq-sched-stats { grid-template-columns:repeat(2,1fr)!important; }
   .shq-sched-week { grid-template-columns:1fr!important; }
   .shq-tools-stats { grid-template-columns:repeat(2,1fr)!important; }
+  .shq-subjects-stats { grid-template-columns:repeat(2,1fr)!important; }
+  .shq-subjects-grid { grid-template-columns:1fr!important; }
   .shq-tools-mid { grid-template-columns:1fr!important; }
+  .shq-tools-rec { grid-template-columns:1fr!important; }
   .shq-tools-bottom { flex-direction:column!important; }
   .shq-tools-side { width:100%!important; }
   .shq-notes-panels { grid-template-columns:1fr!important; }
@@ -133,6 +143,7 @@ button { cursor: pointer; font-family: inherit; }
 }
 @media (min-width: 768px) and (max-width: 1023px) {
   .shq-hw-stats { grid-template-columns:repeat(3,1fr)!important; }
+  .shq-subjects-stats { grid-template-columns:repeat(2,1fr)!important; }
   .shq-sched-week { grid-template-columns:repeat(2,1fr)!important; }
   .shq-tools-mid { grid-template-columns:1fr 1fr!important; }
   .shq-fc-modes { grid-template-columns:repeat(2,1fr)!important; }

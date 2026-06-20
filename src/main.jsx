@@ -6,7 +6,7 @@ import { T } from './theme.js';
 import { GOOGLE_CLIENT_ID, authHeaders, setGoogleAccessToken, restoreGoogleToken, PROFILE_KEY, loadProfile, loadProfileByEmail, saveProfile, loadUserData, saveUserData, defaultUserData, fetchServerUserData, saveServerUserData, saveServerProfile, clearSensitiveLocalData, getSyncStatus, onSyncStatus, setSyncStatus } from './storage.js';
 import { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, GPA_MAP, TOOLS_DATA, calcGPA, pickBestGradedSubject, makeSubjectBy } from './data.js';
 import { ICO, NAV } from './icons.jsx';
-import { appendGradeHistory, gradeSparklinePoints, appendToolOpen, toolOpensThisWeek, toolOpenCounts, toolById, formatToolWhen, buildToolUsageInsight, normalizeUserData, normalizeToolOpens, normalizeDashboardPrefs, DEFAULT_DASHBOARD_PREFS, exportGradesCsv } from './user-data-helpers.js';
+import { appendGradeHistory, gradeSparklinePoints, appendToolOpen, toolOpensThisWeek, toolOpenCounts, toolById, formatToolWhen, buildToolUsageInsight, normalizeUserData, normalizeToolOpens, normalizeDashboardPrefs, DEFAULT_DASHBOARD_PREFS, exportGradesCsv, normalizeGradeHistory, gpaStandingLabel, buildGradeInsights, gradeDistribution } from './user-data-helpers.js';
 
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
@@ -2692,7 +2692,7 @@ function ScheduleScreen({ profile, userData, screenAction, onScreenActionHandled
 }
 
 /* ── 7. Grades ──────────────────────────────────────────── */
-function GradesScreen({ profile, userData, onUpdate, onRequestSidebar }) {
+function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) {
   const subjects   = profile?.subjects || [];
   const homework   = userData?.homework || [];
   const grades     = userData?.grades   || {};
@@ -2714,58 +2714,82 @@ function GradesScreen({ profile, userData, onUpdate, onRequestSidebar }) {
 
   const gpaStr  = calcGPA(subjects, grades);
   const gpaNum  = parseFloat(gpaStr) || 0;
+  const openHw  = homework.filter(h => !h.done);
 
   const graded  = subjects.filter(s => grades[s.id] != null);
   const bestPerf  = graded.length ? graded.reduce((a,b) => (GPA_MAP[grades[b.id]]||0) > (GPA_MAP[grades[a.id]]||0) ? b : a) : null;
-  const needsAttn = graded.length ? graded.reduce((a,b) => (GPA_MAP[grades[b.id]]||0) < (GPA_MAP[grades[a.id]]||0) ? b : a) : null;
-  const totalHW   = homework.length;
+  const needsAttn = graded.length >= 2
+    ? graded.reduce((a,b) => (GPA_MAP[grades[b.id]]||0) < (GPA_MAP[grades[a.id]]||0) ? b : a)
+    : null;
+  const showNeedsAttn = needsAttn && bestPerf && needsAttn.id !== bestPerf.id;
 
-  // GPA ring
+  const month = new Date().getMonth();
+  const termLabel = month <= 4 ? 'Spring' : month <= 7 ? 'Summer' : 'Fall';
+
   const R = 30, circ = 2 * Math.PI * R;
+  const makeSubjectById = makeSubjectBy(subjects);
 
-  // Recent grades per subject
-  const recentScores = subjects.map(s => ({
-    subj: s,
-    grade: grades[s.id] || null,
-  })).filter(x => x.grade).sort((a,b) => (GPA_MAP[b.grade]||0) - (GPA_MAP[a.grade]||0));
+  const recentUpdates = normalizeGradeHistory(gradeHistory)
+    .slice(0, 5)
+    .map(h => ({ ...h, subj: makeSubjectById(h.subjectId) }))
+    .filter(h => h.subj?.id);
+
+  const insights = buildGradeInsights(subjects, grades);
+  const { buckets: gradeMix, total: gradedCount } = gradeDistribution(subjects, grades);
+  const gradeMixColors = { A: '#3a8a52', B: T.accent, C: '#b07020', D: '#bf4a30', F: '#8a3030' };
+
+  const headerSub = subjects.length === 0
+    ? 'Add your classes to start tracking grades.'
+    : graded.length === 0
+      ? 'Set grades in the table below — your GPA updates automatically.'
+      : `GPA ${gpaStr} across ${graded.length} of ${subjects.length} ${subjects.length === 1 ? 'class' : 'classes'}.`;
+
+  const scrollToGradeRow = (id) => {
+    document.getElementById(`grade-row-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const row = document.getElementById(`grade-row-${id}`);
+    if (row) {
+      row.style.background = T.accentSoft;
+      setTimeout(() => { row.style.background = T.surface; }, 1200);
+    }
+  };
 
   return (
     <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
 
         {/* Header */}
-        <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:22}}>
+        <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:22, flexWrap:'wrap', gap:16}}>
           <div>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:7}}>Spring Term</div>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:7}}>{termLabel} Term · {CY}</div>
             <h1 style={{margin:'0 0 5px', lineHeight:1.1}}>
               <span style={{fontFamily:T.ui, fontWeight:700, fontSize:29, color:T.ink}}>Academic </span>
               <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:31, color:T.ink}}>performance.</span>
             </h1>
-            <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>Click any subject to view grade detail.</div>
+            <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>{headerSub}</div>
           </div>
           <div style={{display:'flex', gap:8, flexShrink:0}}>
             <button type="button" onClick={() => onRequestSidebar?.('addSubject')} style={{
               display:'flex', alignItems:'center', gap:6, padding:'7px 13px',
               border:'none', background:T.accent, color:'#fff',
-              fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer',
+              fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8,
             }}>+ Add Subject</button>
-            {['Export CSV'].map((label) => (
-              <button key={label} type="button" onClick={() => exportGradesCsv(profile, userData)} style={{
+            {subjects.length > 0 && (
+              <button type="button" onClick={() => exportGradesCsv(profile, userData)} style={{
                 display:'flex', alignItems:'center', gap:6, padding:'7px 13px',
                 border:`1px solid ${T.border}`, background:T.surface, color:T.ink3,
-                fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', transition:'border-color 0.12s',
+                fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8, transition:'border-color 0.12s',
               }}
                 onMouseOver={e => e.currentTarget.style.borderColor = T.accent}
                 onMouseOut={e => e.currentTarget.style.borderColor = T.border}
               >
                 <svg width="10" height="11" viewBox="0 0 10 11" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"><rect x="1" y="1.5" width="8" height="9" rx="0.8"/><path d="M3 4.5h4M3 6.5h4M3 8.5h2.5"/></svg>
-                {label}
+                Export CSV
               </button>
-            ))}
+            )}
           </div>
         </div>
 
         {/* 4 stat cards */}
-        <div style={{display:'grid', gridTemplateColumns:'240px 1fr 1fr 1fr', gap:12, marginBottom:12}}>
+        <div className="shq-grades-stats" style={{marginBottom:12}}>
 
           {/* GPA ring */}
           <div style={{background:T.surface, padding:'16px 20px', display:'flex', alignItems:'center', gap:18, borderRadius:12}}>
@@ -2782,8 +2806,8 @@ function GradesScreen({ profile, userData, onUpdate, onRequestSidebar }) {
             </div>
             <div>
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:6}}>GPA This Term</div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:19, color:T.ink, lineHeight:1.2, marginBottom:4}}>Ready to <em>track.</em></div>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>Unweighted · Spring 2025</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:19, color:T.ink, lineHeight:1.2, marginBottom:4}}>{gpaStandingLabel(gpaNum)}</div>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>Unweighted · {termLabel} {CY}{graded.length ? ` · ${graded.length} graded` : ''}</div>
             </div>
           </div>
 
@@ -2795,56 +2819,97 @@ function GradesScreen({ profile, userData, onUpdate, onRequestSidebar }) {
                 <div style={{width:7, height:7, borderRadius:2, background:bestPerf.color}}/>
                 <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, lineHeight:1}}>{bestPerf.short}</div>
               </div>
-              <div style={{fontFamily:T.mono, fontSize:9.5, color:T.accent}}>{grades[bestPerf.id]}</div>
+              <div style={{fontFamily:T.mono, fontSize:9.5, color:T.accent}}>{grades[bestPerf.id]} · {(GPA_MAP[grades[bestPerf.id]] ?? 0).toFixed(1)}</div>
             </>) : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3}}>Log a grade to see.</div>}
           </div>
 
           {/* Needs attention */}
           <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
             <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>Needs Attention</div>
-            {needsAttn ? (<>
+            {showNeedsAttn ? (<>
               <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:5}}>
                 <div style={{width:7, height:7, borderRadius:2, background:needsAttn.color}}/>
                 <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, lineHeight:1}}>{needsAttn.short}</div>
               </div>
-              <div style={{fontFamily:T.mono, fontSize:9.5, color:'#bf4a30'}}>{grades[needsAttn.id]}</div>
-            </>) : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3}}>Log grades to compare.</div>}
+              <div style={{fontFamily:T.mono, fontSize:9.5, color:'#bf4a30'}}>{grades[needsAttn.id]} · {(GPA_MAP[grades[needsAttn.id]] ?? 0).toFixed(1)}</div>
+            </>) : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3}}>{graded.length < 2 ? 'Log 2+ grades to compare.' : 'All classes on par.'}</div>}
           </div>
 
-          {/* Total assignments */}
+          {/* Open homework */}
           <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>Total Assignments</div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:38, color:T.ink, lineHeight:0.95, marginBottom:5}}>{totalHW}</div>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>Click a subject to start</div>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>Open Homework</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:38, color:T.ink, lineHeight:0.95, marginBottom:5}}>{openHw.length}</div>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{openHw.length === 1 ? 'assignment due' : 'assignments due'}</div>
           </div>
         </div>
 
+        {/* Grade mix — shown once at least one grade is logged */}
+        {gradedCount >= 1 && (
+          <div className="shq-grades-mix" style={{marginBottom:12}}>
+            <div style={{background:T.surface, borderRadius:12, padding:'18px 22px'}}>
+              <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:4}}>
+                <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
+                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Overview</div>
+              </div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink, marginBottom:4}}>
+                {gradedCount} of {subjects.length} {subjects.length === 1 ? 'class' : 'classes'} graded
+              </div>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>
+                {subjects.length - gradedCount > 0
+                  ? `${subjects.length - gradedCount} still waiting on a grade`
+                  : 'Every class has a grade logged'}
+              </div>
+            </div>
+            <div style={{background:T.surface, borderRadius:12, padding:'18px 22px'}}>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:12}}>Grade Mix</div>
+              {['A','B','C','D','F'].map(letter => (
+                <div key={letter} style={{display:'flex', alignItems:'center', gap:10, marginBottom:9}}>
+                  <div style={{width:16, fontFamily:T.mono, fontSize:11, color:T.ink2, fontWeight:500}}>{letter}</div>
+                  <div style={{flex:1, height:8, background:T.bl, borderRadius:4, overflow:'hidden'}}>
+                    <div style={{height:'100%', width:`${gradedCount ? (gradeMix[letter] / gradedCount) * 100 : 0}%`, background:gradeMixColors[letter], borderRadius:4, transition:'width 0.3s'}}/>
+                  </div>
+                  <div style={{width:16, textAlign:'right', fontFamily:T.mono, fontSize:10, color:T.ink3}}>{gradeMix[letter]}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {subjects.length === 0 ? (
+          <div style={{background:T.surface, padding:'48px 32px', borderRadius:12, textAlign:'center', maxWidth:480, margin:'0 auto'}}>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, marginBottom:8}}>No subjects yet.</div>
+            <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink3, lineHeight:1.6, marginBottom:20}}>Add your classes to track letter grades, GPA, and trends in one place.</div>
+            <button type="button" onClick={() => onRequestSidebar?.('addSubject')} style={{padding:'9px 22px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>+ Add your first subject</button>
+          </div>
+        ) : (
+        <div className="shq-grades-table" style={{borderRadius:12, overflow:'hidden'}}>
         {/* Table header */}
         <div style={{display:'grid', gridTemplateColumns:'1fr 120px 72px 80px 100px', gap:8, padding:'7px 0 7px 16px', background:T.surface, borderBottom:`1px solid ${T.border}`}}>
-          {['SUBJECT','TASKS','SCORE','GRADE','TARGET'].map((h,i) => (
+          {['SUBJECT','TREND','GPA','GRADE','SET'].map((h,i) => (
             <div key={h} style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', textAlign: i>0 ? 'center' : 'left'}}>{h}</div>
           ))}
         </div>
 
         {/* Subject rows */}
-        <div style={{display:'flex', flexDirection:'column', gap:12}}>
-          {subjects.length === 0 && (
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink3, padding:'20px 0'}}>No subjects yet — complete setup to add your classes.</div>
-          )}
+        <div style={{display:'flex', flexDirection:'column', gap:12, padding:'12px 0'}}>
           {subjects.map(s => {
             const hw      = homework.filter(h => h.subj === s.id);
+            const openCount = hw.filter(h => !h.done).length;
             const myGrade = grades[s.id] || '';
             const hasGrade = !!myGrade;
             return (
               <div key={s.id} id={`grade-row-${s.id}`}
-                style={{display:'grid', gridTemplateColumns:'1fr 120px 72px 80px 100px', gap:8, background:T.surface, alignItems:'center', cursor:'pointer', transition:'background 0.1s', borderRadius:8, borderLeft:`3px solid ${s.color}`}}
+                style={{display:'grid', gridTemplateColumns:'1fr 120px 72px 80px 100px', gap:8, background:T.surface, alignItems:'center', cursor:'pointer', transition:'background 0.15s', borderRadius:8, borderLeft:`3px solid ${s.color}`}}
+                onClick={() => onNav?.('subjects')}
                 onMouseOver={e => e.currentTarget.style.background = T.bl}
                 onMouseOut={e => e.currentTarget.style.background = T.surface}
               >
                 {/* Subject */}
                 <div style={{padding:'13px 12px'}}>
                   <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16.5, color:T.ink, marginBottom:2}}>{s.name}</div>
-                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{hw.length} assignments</div>
+                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>
+                    {openCount > 0 ? `${openCount} open` : `${hw.length} total`} · {hw.length === 1 ? 'assignment' : 'assignments'}
+                  </div>
                 </div>
                 {/* Sparkline from grade history */}
                 <div style={{display:'flex', justifyContent:'center', alignItems:'center', minHeight:18}}>
@@ -2859,7 +2924,7 @@ function GradesScreen({ profile, userData, onUpdate, onRequestSidebar }) {
                   })()}
                 </div>
                 {/* GPA points */}
-                <div style={{fontFamily:T.mono, fontSize:11, color:T.ink2, textAlign:'center'}}>{hasGrade ? (GPA_MAP[myGrade] ?? '—') : '—'}</div>
+                <div style={{fontFamily:T.mono, fontSize:11, color:T.ink2, textAlign:'center'}}>{hasGrade ? (GPA_MAP[myGrade] ?? '—').toFixed(1) : '—'}</div>
                 {/* Grade badge */}
                 <div style={{display:'flex', justifyContent:'center'}}>
                   <div style={{background: hasGrade ? `${s.color}18` : T.bl, border:`1px solid ${hasGrade ? s.color+'40' : T.border}`, padding:'3px 9px', fontFamily:T.mono, fontSize:10, color: hasGrade ? s.color : T.ink3, fontWeight:600}}>{myGrade || '—'}</div>
@@ -2869,7 +2934,8 @@ function GradesScreen({ profile, userData, onUpdate, onRequestSidebar }) {
                   <select
                     value={myGrade}
                     onChange={e => setGrade(s.id, e.target.value)}
-                    style={{background: hasGrade ? T.bl : T.accentSoft, border:`1px solid ${hasGrade ? T.border : T.accent}`, padding:'4px 8px', fontFamily:T.mono, fontSize:10, color: hasGrade ? T.ink3 : T.accent, cursor:'pointer', appearance:'none', textAlign:'center', width:66}}
+                    aria-label={`Set grade for ${s.name}`}
+                    style={{background: hasGrade ? T.bl : T.accentSoft, border:`1px solid ${hasGrade ? T.border : T.accent}`, padding:'4px 8px', fontFamily:T.mono, fontSize:10, color: hasGrade ? T.ink3 : T.accent, cursor:'pointer', appearance:'none', textAlign:'center', width:66, borderRadius:6}}
                   >
                     <option value="">Set</option>
                     {GRADE_OPTS.map(g => <option key={g} value={g}>{g}</option>)}
@@ -2882,15 +2948,17 @@ function GradesScreen({ profile, userData, onUpdate, onRequestSidebar }) {
 
         {/* Footer */}
         <div style={{display:'flex', justifyContent:'space-between', padding:'7px 16px', background:T.surface, borderTop:`1px solid ${T.border}`}}>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{subjects.length} subjects · select a grade in the SET column</div>
+          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{subjects.length} {subjects.length === 1 ? 'subject' : 'subjects'} · use SET to log grades</div>
           <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{graded.length} of {subjects.length} graded</div>
         </div>
+        </div>
+        )}
 
         {/* Subject Balance Radar Chart */}
         {(() => {
-          const radarSubjs = subjects.length > 0 ? subjects.slice(0, 8) : SUBJECTS.slice(0, 6);
+          if (subjects.length < 3) return null;
+          const radarSubjs = subjects.slice(0, 8);
           const n = radarSubjs.length;
-          if (n < 3) return null;
           const CX = 120, CY2 = 120, RAD = 85;
           const levels = 4;
           const angleStep = (2 * Math.PI) / n;
@@ -2911,7 +2979,7 @@ function GradesScreen({ profile, userData, onUpdate, onRequestSidebar }) {
                 <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
                 <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Subject Balance</div>
               </div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink, marginBottom:12}}>Subject balance</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink, marginBottom:12}}>How your grades compare across classes</div>
               <div style={{display:'flex', justifyContent:'center'}}>
                 <svg width={240} height={240} viewBox="0 0 240 240">
                   {gridLines.map((pts, l) => (
@@ -2940,35 +3008,36 @@ function GradesScreen({ profile, userData, onUpdate, onRequestSidebar }) {
           );
         })()}
 
-        {/* Floating cards — Recent Scores · Grade Targets · Grade Insights */}
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, marginTop:12}}>
+        {/* Insight cards */}
+        {subjects.length > 0 && (
+        <div className="shq-grades-insights" style={{marginTop:12}}>
           <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
             <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:13}}>
               <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Recent Scores</div>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Recent Updates</div>
             </div>
-            {recentScores.length === 0
-              ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3}}>Set grades above to see top performers.</div>
-              : recentScores.map((item,i) => (
-                <div key={item.subj.id} style={{display:'flex', alignItems:'center', gap:9, padding:'6px 0', borderBottom: i < recentScores.length-1 ? `1px solid ${T.bl}` : 'none'}}>
+            {recentUpdates.length === 0
+              ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3}}>Grade changes will appear here as you log them.</div>
+              : recentUpdates.map((item, i) => (
+                <div key={item.id} style={{display:'flex', alignItems:'center', gap:9, padding:'6px 0', borderBottom: i < recentUpdates.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
                   <div style={{width:5, height:5, borderRadius:1, background:item.subj.color, flexShrink:0}}/>
                   <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.subj.short}</div>
                   <div style={{fontFamily:T.mono, fontSize:10, flexShrink:0, color: (GPA_MAP[item.grade]||0) >= 3.7 ? '#3a8a52' : (GPA_MAP[item.grade]||0) >= 3.0 ? T.ink3 : '#bf4a30'}}>{item.grade}</div>
+                  <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, flexShrink:0}}>{formatToolWhen(item.at)}</div>
                 </div>
               ))}
           </div>
           <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
             <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
               <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52'}}/>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Grade Targets</div>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>By Subject</div>
             </div>
-            {subjects.length === 0 && <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3}}>No subjects yet.</div>}
             {subjects.map(s => (
               <div key={s.id} style={{display:'flex', alignItems:'center', gap:8, padding:'4px 0'}}>
                 <div style={{width:5, height:5, borderRadius:1, background:s.color, flexShrink:0}}/>
                 <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1}}>{s.short}</div>
                 <div style={{fontFamily:T.mono, fontSize:10, color: grades[s.id] ? T.ink3 : T.accent}}>{grades[s.id] || '—'}</div>
-                <button type="button" onClick={() => document.getElementById(`grade-row-${s.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })} style={{fontFamily:T.mono, fontSize:10, color:T.ink3, background:'none', border:'none', padding:0, cursor:'pointer'}}>→</button>
+                <button type="button" aria-label={`Jump to ${s.short}`} onClick={() => scrollToGradeRow(s.id)} style={{fontFamily:T.mono, fontSize:10, color:T.ink3, background:'none', border:'none', padding:0, cursor:'pointer'}}>→</button>
               </div>
             ))}
           </div>
@@ -2978,11 +3047,13 @@ function GradesScreen({ profile, userData, onUpdate, onRequestSidebar }) {
                 <div style={{width:6, height:6, borderRadius:'50%', background:'#4285f4'}}/>
                 <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Grade Insights</div>
               </div>
-              <span style={{fontFamily:T.mono, fontSize:10, background:'rgba(66,133,244,0.1)', color:'#4285f4', padding:'2px 6px', letterSpacing:'0.07em'}}>AI</span>
             </div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.7}}>Insights appear once you log your first grade.</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.7}}>
+              {insights || 'Insights appear once you log your first grade.'}
+            </div>
           </div>
         </div>
+        )}
     </div>
   );
 }
@@ -3004,16 +3075,27 @@ function ToolsScreen({ userData, onUpdate }) {
     .sort((a, b) => b.sessions - a.sessions);
   const maxSessions = trackedTools[0]?.sessions || 1;
   const usageInsight = buildToolUsageInsight(toolOpens);
+  const hasUsage = recentOpens.length > 0;
+  const notesCount = userData?.notes?.length || 0;
+  const uniqueCats = [...new Set(TOOLS_DATA.map(t => t.cat))].length;
 
   const openTool = (tool) => {
     if (tool?.id) onUpdate && onUpdate({ toolOpens: appendToolOpen(toolOpens, tool.id) });
     if (tool?.url) window.open(tool.url, '_blank', 'noopener,noreferrer');
   };
 
-  const SUGGESTIONS = [
-    { tool: TOOLS_DATA.find(t => t.id==='claude'),     priority:'TIP', msg:'Opens Claude in a new tab.', action:'Open' },
-    { tool: TOOLS_DATA.find(t => t.id==='notebooklm'), priority:'TIP', msg:'Try NotebookLM for note-based study.', action:'Open' },
-  ];
+  const buildSuggestions = () => {
+    const picks = [];
+    if (notesCount > 0) {
+      picks.push({ tool: toolById('notebooklm'), msg: `Study from your ${notesCount} note${notesCount === 1 ? '' : 's'}.` });
+    } else {
+      picks.push({ tool: toolById('notebooklm'), msg: 'Upload lecture slides and ask AI anything about them.' });
+    }
+    picks.push({ tool: toolById('claude'), msg: 'Research, write, and debug — your AI co-pilot.' });
+    if (picks.length < 2) picks.push({ tool: toolById('notion'), msg: 'Organise notes and projects in one place.' });
+    return picks.slice(0, 2);
+  };
+  const SUGGESTIONS = buildSuggestions();
 
   const QUICK_LAUNCH = [
     { tool: TOOLS_DATA.find(t => t.id==='claude'),     label:'Ask Claude a question', sub:'Start new conversation', key:'⌘1' },
@@ -3037,169 +3119,177 @@ function ToolsScreen({ userData, onUpdate }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [toolOpens, onUpdate]);
 
+  const statCards = hasUsage ? [
+    { label:'THIS WEEK', val:String(weekOpens), sub: weekOpens === 1 ? 'open this week' : 'opens this week', accent:T.accent },
+    { label:'MOST USED', val:trackedTools[0]?.name || '—', sub: trackedTools[0] ? `${trackedTools[0].sessions} open${trackedTools[0].sessions === 1 ? '' : 's'} total` : '—', accent:trackedTools[0]?.color || T.ink3 },
+    { label:'LAST OPENED', val:lastTool?.name || '—', sub: lastOpen ? formatToolWhen(lastOpen.at) : '—', accent:'#4285f4' },
+  ] : [
+    { label:'AVAILABLE', val:String(TOOLS_DATA.length), sub:'apps · one click away', accent:T.accent },
+    { label:'CATEGORIES', val:String(uniqueCats), sub:'AI · design · productivity', accent:'#9254de' },
+    { label:'SHORTCUTS', val:'⌘1–4', sub:'quick launch keys', accent:'#2a60a0' },
+  ];
+
   const ToolIcon = ({ tool, size=28 }) => (
     <div style={{width:size, height:size, borderRadius:Math.round(size*0.2), background:`${tool.color}18`, border:`1px solid ${tool.color}38`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
       <span style={{fontFamily:T.mono, fontSize:size*0.38, color:tool.color, fontWeight:600}}>{tool.name[0]}</span>
     </div>
   );
 
+  const ExternalArrow = () => (
+    <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke={T.ink3} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0, opacity:0.45}}>
+      <path d="M3.5 7.5L7.5 3.5M7.5 3.5H4.5M7.5 3.5V6.5"/>
+    </svg>
+  );
+
   return (
     <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
 
         {/* Header */}
-        <div style={{marginBottom:28}}>
-          <h1 style={{margin:'0 0 5px', lineHeight:1.15, fontSize:26}}>
-            <span style={{fontFamily:T.ui, fontWeight:600, color:T.ink}}>Your </span>
-            <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:28, color:T.ink}}>command center.</span>
-          </h1>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.1em'}}>{TOOLS_DATA.length} tools · click to open in a new tab</div>
+        <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:20, flexWrap:'wrap', gap:12}}>
+          <div>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:6}}>External Apps</div>
+            <h1 style={{margin:'0 0 5px', lineHeight:1.1}}>
+              <span style={{fontFamily:T.ui, fontWeight:700, fontSize:28, color:T.ink}}>Your </span>
+              <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:30, color:T.ink}}>command center.</span>
+            </h1>
+            <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>Opens in a new tab · ⌘1–4 for quick launch</div>
+          </div>
         </div>
 
         {/* Stat cards */}
         <div className="shq-tools-stats" style={{marginBottom:12}}>
-          {[
-            { label:'THIS WEEK',   val:String(weekOpens),                    sub: weekOpens === 1 ? 'open this week' : 'opens this week' },
-            { label:'TOOLS',       val:String(TOOLS_DATA.length),            sub:'available to open' },
-            { label:'CATEGORIES',  val:'3',                                  sub:'AI · design · productivity' },
-            { label:'LAST OPENED', val:lastTool?.name || '—',                sub: lastOpen ? formatToolWhen(lastOpen.at) : 'Open a tool to start' },
-          ].map(c => (
-            <div key={c.label} style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:8}}>{c.label}</div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, lineHeight:1.1, marginBottom:4}}>{c.val}</div>
+          {statCards.map(c => (
+            <div key={c.label} style={{background:T.surface, padding:'18px 20px', borderRadius:12, borderBottom:`2px solid ${c.accent}28`}}>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:10}}>{c.label}</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, lineHeight:1.1, marginBottom:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{c.val}</div>
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{c.sub}</div>
             </div>
           ))}
         </div>
 
-        {/* Middle row */}
-        <div className="shq-tools-mid" style={{marginBottom:12, background:'transparent'}}>
-
-          {/* Intelligent suggestions */}
-          <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
-            <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:14}}>
-              <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52', flexShrink:0}} />
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', flex:1}}>Intelligent Suggestions</div>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{SUGGESTIONS.length} active</div>
-            </div>
-            {SUGGESTIONS.map((sg,i) => (
-              <div key={i} style={{display:'flex', alignItems:'center', gap:10, padding:'11px 0', borderBottom: i < SUGGESTIONS.length-1 ? `1px solid ${T.bl}` : 'none'}}>
-                <ToolIcon tool={sg.tool} size={26} />
-                <div style={{flex:1, minWidth:0}}>
-                  <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:2}}>
-                    <span style={{fontFamily:T.ui, fontSize:12, color:T.ink, fontWeight:500}}>{sg.tool.name}</span>
-                    <span style={{fontFamily:T.mono, fontSize:10, padding:'1px 5px', background: sg.priority==='HIGH' ? 'rgba(191,74,48,0.1)' : T.bl, color: sg.priority==='HIGH' ? '#bf4a30' : T.ink3, letterSpacing:'0.07em'}}>{sg.priority}</span>
-                  </div>
-                  <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink3}}>{sg.msg}</div>
-                </div>
-                <button type="button" onClick={() => openTool(sg.tool)} style={{fontFamily:T.mono, fontSize:10, color:T.accent, background:'none', border:'none', padding:0, flexShrink:0, cursor:'pointer'}}>{sg.action} →</button>
-              </div>
-            ))}
-          </div>
-
-          {/* Usage breakdown */}
-          <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
-            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Breakdown</div>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>All time</div>
-            </div>
-            {trackedTools.length === 0
-              ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.6}}>Open a tool to start tracking.</div>
-              : trackedTools.map(tool => (
-              <div key={tool.id} style={{marginBottom:11}}>
-                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5}}>
-                  <div style={{display:'flex', alignItems:'center', gap:7}}>
-                    <div style={{width:6, height:6, borderRadius:'50%', background:tool.color}} />
-                    <span style={{fontFamily:T.ui, fontSize:12, color:T.ink}}>{tool.name}</span>
-                  </div>
-                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{tool.sessions}</div>
-                </div>
-                <div style={{height:2, background:T.bl, borderRadius:1, overflow:'hidden'}}>
-                  <div style={{width:`${(tool.sessions / maxSessions) * 100}%`, height:'100%', background:tool.color, opacity:0.65}} />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Usage insight */}
-          <div style={{background:T.surface, padding:'16px 20px', display:'flex', flexDirection:'column', borderRadius:12}}>
-            <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
-              <span style={{color:T.accent, fontSize:11, lineHeight:1}}>★</span>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Insight</div>
-            </div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink3, lineHeight:1.65}}>{usageInsight || 'Open tools from this page to generate insights.'}</div>
-          </div>
-        </div>
-
-        {/* Bottom: filter + table + side cards */}
-        <div className="shq-tools-bottom">
-
-          {/* Left: filter tabs + touching tool list */}
-          <div style={{flex:1, minWidth:0}}>
-            {/* Filter tabs */}
-            <div className="shq-tools-filters">
-              {cats.map(c => {
-                const count = c === 'ALL' ? TOOLS_DATA.length : TOOLS_DATA.filter(t => t.cat===c).length;
-                const act = filter === c;
-                return (
-                  <button key={c} onClick={() => setFilter(c)} style={{
-                    padding:'7px 18px', borderRadius:20,
-                    border: act ? `1.5px solid ${T.accent}` : '1.5px solid transparent',
-                    background: act ? T.accentSoft : T.bl,
-                    color: act ? T.accent : T.ink3,
-                    fontFamily:T.mono, fontSize:10, letterSpacing:'0.09em',
-                    cursor:'pointer', transition:'all 0.12s', whiteSpace:'nowrap',
-                  }}>
-                    {c} <span style={{opacity:0.55}}>{count}</span>
-                  </button>
-                );
-              })}
-              <div style={{flex:1, background:T.surface, display:'flex', alignItems:'center', justifyContent:'flex-end', padding:'0 14px'}}>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{filtered.length} tools</div>
-              </div>
-            </div>
-
-            {/* Table header */}
-            <div style={{display:'grid', gridTemplateColumns:'1fr', gap:10, padding:'7px 14px', background:T.surface, borderRadius:'12px 12px 0 0', borderBottom:`1px solid ${T.border}`}}>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em'}}>Tool</div>
-            </div>
-
-            {/* Tool rows — touching */}
-            <div style={{display:'flex', flexDirection:'column', background:T.surface, borderRadius:'0 0 12px 12px', overflow:'hidden'}}>
-              {filtered.map((tool, idx) => (
-                <div key={tool.id}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTool(tool); } }}
-                  onClick={() => openTool(tool)}
-                  style={{display:'flex', alignItems:'center', gap:11, padding:'11px 14px', background:T.surface, cursor:'pointer', transition:'background 0.1s', borderBottom: idx < filtered.length-1 ? `1px solid ${T.bl}` : 'none'}}
-                  onMouseOver={e => e.currentTarget.style.background = T.bl}
-                  onMouseOut={e => e.currentTarget.style.background = T.surface}
+        {/* Recommended — only when no usage yet */}
+        {!hasUsage && (
+          <div style={{background:T.surface, padding:'16px 20px', borderRadius:12, marginBottom:12}}>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:12}}>Recommended</div>
+            <div className="shq-tools-rec">
+              {SUGGESTIONS.map((sg, i) => (
+                <button key={i} type="button" onClick={() => openTool(sg.tool)}
+                  style={{display:'flex', alignItems:'center', gap:10, padding:'12px 14px', background:T.bl, border:`1px solid ${T.border}`, borderRadius:10, cursor:'pointer', textAlign:'left', width:'100%', transition:'border-color 0.12s, background 0.12s'}}
+                  onMouseOver={e => { e.currentTarget.style.borderColor = sg.tool.color + '60'; e.currentTarget.style.background = T.surface; }}
+                  onMouseOut={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = T.bl; }}
                 >
-                  <ToolIcon tool={tool} size={26} />
-                  <div style={{minWidth:0, flex:1}}>
-                    <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:2}}>
-                      <span style={{fontFamily:T.ui, fontSize:13, color:T.ink, fontWeight:500}}>{tool.name}</span>
-                      <span style={{fontFamily:T.mono, fontSize:10, padding:'1.5px 5px', background:T.bl, color:T.ink3, letterSpacing:'0.07em'}}>{tool.cat}</span>
+                  <ToolIcon tool={sg.tool} size={28} />
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{fontFamily:T.ui, fontSize:13, color:T.ink, fontWeight:500, marginBottom:2}}>{sg.tool.name}</div>
+                    <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink3, lineHeight:1.4}}>{sg.msg}</div>
+                  </div>
+                  <ExternalArrow />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Usage analytics — only when there's data */}
+        {hasUsage && (
+          <div className="shq-tools-mid" style={{marginBottom:12, background:'transparent'}}>
+            <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
+                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Breakdown</div>
+                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>All time</div>
+              </div>
+              {trackedTools.map((tool, i) => (
+                <div key={tool.id} style={{marginBottom: i < trackedTools.length - 1 ? 11 : 0}}>
+                  <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5}}>
+                    <div style={{display:'flex', alignItems:'center', gap:7}}>
+                      <div style={{width:6, height:6, borderRadius:'50%', background:tool.color}} />
+                      <span style={{fontFamily:T.ui, fontSize:12, color:T.ink}}>{tool.name}</span>
                     </div>
-                    <div style={{fontFamily:T.ui, fontSize:11, color:T.ink3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tool.desc}</div>
+                    <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{tool.sessions}</div>
+                  </div>
+                  <div style={{height:2, background:T.bl, borderRadius:1, overflow:'hidden'}}>
+                    <div style={{width:`${(tool.sessions / maxSessions) * 100}%`, height:'100%', background:tool.color, opacity:0.65}} />
                   </div>
                 </div>
               ))}
             </div>
+            <div style={{background:T.surface, padding:'16px 20px', display:'flex', flexDirection:'column', borderRadius:12}}>
+              <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
+                <span style={{color:T.accent, fontSize:11, lineHeight:1}}>★</span>
+                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Insight</div>
+              </div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink2, lineHeight:1.65}}>{usageInsight}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom: tool list + sidebar */}
+        <div className="shq-tools-bottom">
+
+          {/* Left: unified tool card with filters */}
+          <div style={{flex:1, minWidth:0}}>
+            <div style={{background:T.surface, borderRadius:12, overflow:'hidden'}}>
+              <div style={{display:'flex', alignItems:'center', gap:6, padding:'12px 14px', borderBottom:`1px solid ${T.bl}`, flexWrap:'wrap'}}>
+                {cats.map(c => {
+                  const count = c === 'ALL' ? TOOLS_DATA.length : TOOLS_DATA.filter(t => t.cat === c).length;
+                  const act = filter === c;
+                  return (
+                    <button key={c} onClick={() => setFilter(c)} style={{
+                      padding:'6px 14px', borderRadius:20,
+                      border: act ? `1.5px solid ${T.accent}` : '1.5px solid transparent',
+                      background: act ? T.accentSoft : T.bl,
+                      color: act ? T.accent : T.ink3,
+                      fontFamily:T.mono, fontSize:10, letterSpacing:'0.09em',
+                      cursor:'pointer', transition:'all 0.12s', whiteSpace:'nowrap',
+                    }}>
+                      {c} <span style={{opacity:0.55}}>{count}</span>
+                    </button>
+                  );
+                })}
+                <div style={{marginLeft:'auto', fontFamily:T.mono, fontSize:10, color:T.ink3}}>{filtered.length} shown</div>
+              </div>
+
+              {filtered.map((tool, idx) => {
+                const sessions = counts[tool.id] || 0;
+                return (
+                  <div key={tool.id}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTool(tool); } }}
+                    onClick={() => openTool(tool)}
+                    style={{display:'flex', alignItems:'center', gap:12, padding:'13px 16px', background:T.surface, cursor:'pointer', transition:'background 0.1s', borderBottom: idx < filtered.length - 1 ? `1px solid ${T.bl}` : 'none'}}
+                    onMouseOver={e => e.currentTarget.style.background = T.bl}
+                    onMouseOut={e => e.currentTarget.style.background = T.surface}
+                  >
+                    <ToolIcon tool={tool} size={30} />
+                    <div style={{minWidth:0, flex:1}}>
+                      <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:3}}>
+                        <span style={{fontFamily:T.ui, fontSize:13.5, color:T.ink, fontWeight:500}}>{tool.name}</span>
+                        <span style={{fontFamily:T.mono, fontSize:10, padding:'1.5px 6px', background:T.bl, color:T.ink3, letterSpacing:'0.07em', borderRadius:3}}>{tool.cat}</span>
+                        {sessions > 0 && (
+                          <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3, opacity:0.7}}>{sessions}×</span>
+                        )}
+                      </div>
+                      <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tool.desc}</div>
+                    </div>
+                    <ExternalArrow />
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Right: floating side cards */}
+          {/* Right sidebar */}
           <div className="shq-tools-side">
 
-            {/* Quick Launch */}
             <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
                 <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Quick Launch</div>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>⌘1-4</div>
+                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>⌘1–4</div>
               </div>
-              {QUICK_LAUNCH.map((ql,i) => (
+              {QUICK_LAUNCH.map((ql, i) => (
                 <button key={i} type="button" onClick={() => openTool(ql.tool)}
-                  style={{display:'flex', alignItems:'center', gap:9, padding:'8px 0', borderBottom: i < QUICK_LAUNCH.length-1 ? `1px solid ${T.bl}` : 'none', cursor:'pointer', width:'100%', background:'none', borderLeft:'none', borderRight:'none', borderTop:'none', textAlign:'left'}}
+                  style={{display:'flex', alignItems:'center', gap:9, padding:'8px 0', borderBottom: i < QUICK_LAUNCH.length - 1 ? `1px solid ${T.bl}` : 'none', cursor:'pointer', width:'100%', background:'none', borderLeft:'none', borderRight:'none', borderTop:'none', textAlign:'left'}}
                   onMouseOver={e => e.currentTarget.style.background = T.bl}
                   onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                 >
@@ -3213,20 +3303,23 @@ function ToolsScreen({ userData, onUpdate }) {
               ))}
             </div>
 
-            {/* Activity */}
             <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:12}}>Activity</div>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:12}}>Recent Activity</div>
               {recentOpens.length === 0
-                ? <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, lineHeight:1.7}}>No activity yet. Open a tool to start tracking.</div>
+                ? <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, lineHeight:1.7}}>Your opens will appear here.</div>
                 : recentOpens.slice(0, 5).map((entry, i, arr) => {
                   const tool = toolById(entry.toolId);
                   if (!tool) return null;
                   return (
-                    <div key={entry.id} style={{display:'flex', alignItems:'center', gap:8, padding:'6px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
+                    <button key={entry.id} type="button" onClick={() => openTool(tool)}
+                      style={{display:'flex', alignItems:'center', gap:8, padding:'6px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.bl}` : 'none', width:'100%', background:'none', border:'none', borderTop:'none', borderLeft:'none', borderRight:'none', cursor:'pointer', textAlign:'left'}}
+                      onMouseOver={e => e.currentTarget.style.opacity = '0.7'}
+                      onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                    >
                       <div style={{width:5, height:5, borderRadius:1, background:tool.color, flexShrink:0}} />
                       <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tool.name}</div>
                       <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, flexShrink:0}}>{formatToolWhen(entry.at)}</div>
-                    </div>
+                    </button>
                   );
                 })}
             </div>
@@ -3238,65 +3331,188 @@ function ToolsScreen({ userData, onUpdate }) {
 }
 
 /* ── 9. Subjects ────────────────────────────────────────── */
-function SubjectsScreen({ profile, userData }) {
+function SubjectsScreen({ profile, userData, onNav, onRequestSidebar }) {
   const subjects = profile?.subjects || [];
   const homework = userData?.homework || [];
   const quizzes  = userData?.quizzes  || [];
+  const notes    = userData?.notes    || [];
   const grades   = userData?.grades   || {};
   const gradeHistory = userData?.gradeHistory || [];
+
+  const openHw    = homework.filter(h => !h.done);
+  const gpaStr    = calcGPA(subjects, grades);
+  const graded    = subjects.filter(s => grades[s.id] && grades[s.id] !== '—');
+  const busiest   = subjects.length
+    ? subjects.reduce((a, b) => (
+        homework.filter(h => h.subj === b.id && !h.done).length >
+        homework.filter(h => h.subj === a.id && !h.done).length ? b : a
+      ))
+    : null;
+  const busiestOpen = busiest ? homework.filter(h => h.subj === busiest.id && !h.done).length : 0;
+
+  const headerBtn = (label, gold, onClick) => (
+    <button type="button" onClick={onClick} style={{
+      display:'flex', alignItems:'center', gap:6, padding:'7px 13px',
+      border: gold ? 'none' : `1px solid ${T.border}`, background: gold ? T.accent : T.surface,
+      color: gold ? '#fff' : T.ink3, fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em',
+      cursor:'pointer', borderRadius:8, transition:'border-color 0.12s',
+    }}
+      onMouseOver={e => { if (!gold) e.currentTarget.style.borderColor = T.accent; }}
+      onMouseOut={e => { if (!gold) e.currentTarget.style.borderColor = T.border; }}
+    >{label}</button>
+  );
+
   return (
     <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
-      <PageHeader eyebrow={`${subjects.length} subjects`} title="Subjects" />
-      <Hr />
+      <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:22, flexWrap:'wrap', gap:16}}>
+        <div>
+          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:7}}>
+            {subjects.length} {subjects.length === 1 ? 'class' : 'classes'} · Spring Term
+          </div>
+          <h1 style={{margin:'0 0 5px', lineHeight:1.1}}>
+            <span style={{fontFamily:T.ui, fontWeight:700, fontSize:29, color:T.ink}}>Your </span>
+            <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:31, color:T.ink}}>subjects.</span>
+          </h1>
+          <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>
+            {subjects.length === 0
+              ? 'Add your classes to track homework, grades, and quizzes.'
+              : `${openHw.length} open assignments · ${quizzes.length} quizzes across all classes`}
+          </div>
+        </div>
+        <div style={{display:'flex', gap:8, flexShrink:0}}>
+          {headerBtn('+ Add Subject', true, () => onRequestSidebar?.('addSubject'))}
+          {subjects.length > 0 && headerBtn('Manage', false, () => onRequestSidebar?.('manageSubjects'))}
+        </div>
+      </div>
+
+      {subjects.length > 0 && (
+        <div className="shq-subjects-stats" style={{marginBottom:12}}>
+          {[
+            { label:'ENROLLED', val:String(subjects.length), sub:`${graded.length} graded`, accent:T.accent },
+            { label:'OPEN HW', val:String(openHw.length), sub: openHw.length === 1 ? 'assignment' : 'assignments', accent: openHw.length > 0 ? '#b07020' : T.ink3 },
+            { label:'QUIZZES', val:String(quizzes.length), sub:'scheduled', accent:'#2a60a0' },
+            { label:'TERM GPA', val:gpaStr, sub: graded.length ? `${graded.length} of ${subjects.length} logged` : 'log grades to calculate', accent:'#3a8a52' },
+          ].map(c => (
+            <div key={c.label} style={{background:T.surface, padding:'16px 20px', borderRadius:12, borderBottom:`2px solid ${c.accent}28`}}>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:8}}>{c.label}</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:28, color:T.ink, lineHeight:1, marginBottom:5}}>{c.val}</div>
+              <div style={{fontFamily:T.mono, fontSize:10, color:c.accent}}>{c.sub}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {subjects.length === 0 ? (
-        <div style={{background:T.surface, padding:'40px 32px', borderRadius:12, textAlign:'center'}}>
-          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, marginBottom:8}}>No subjects yet.</div>
-          <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink3, lineHeight:1.6}}>Add classes from the sidebar + button or Settings → Manage Subjects.</div>
+        <div style={{background:T.surface, padding:'48px 32px', borderRadius:12, textAlign:'center', maxWidth:480, margin:'0 auto'}}>
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, marginBottom:8}}>No subjects yet.</div>
+          <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink3, lineHeight:1.6, marginBottom:20}}>Add your classes to start tracking homework, grades, and quizzes in one place.</div>
+          <button type="button" onClick={() => onRequestSidebar?.('addSubject')} style={{padding:'9px 22px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>+ Add your first subject</button>
         </div>
       ) : (
-      <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:12}}>
-        {subjects.map(s => {
-          const hw = homework.filter(h => h.subj === s.id && !h.done);
-          const qz = quizzes.filter(q => q.subj === s.id);
-          const myGrade = grades[s.id] || s.grade || '—';
-          const sparkPts = gradeSparklinePoints(gradeHistory, s.id, 140, 28);
-          return (
-            <div key={s.id} style={{background:T.surface, padding:'26px 28px'}}>
-              <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:18}}>
-                <div>
-                  <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:7}}>
-                    <div style={{width:7, height:7, borderRadius:2, background:s.color}} />
-                    <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase'}}>{s.id}</div>
-                  </div>
-                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, lineHeight:1.2}}>{s.name}</div>
-                </div>
-                <div style={{textAlign:'right'}}>
-                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:36, color:T.accent, lineHeight:0.92, letterSpacing:'-0.02em'}}>{myGrade}</div>
-                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginTop:4}}>{GPA_MAP[myGrade] != null ? GPA_MAP[myGrade].toFixed(1) + ' GPA' : '—'}</div>
-                </div>
-              </div>
-              <div style={{height:2, background:T.border, marginBottom: sparkPts ? 14 : 16, borderRadius:1, overflow:'hidden'}}>
-                <div style={{width:`${Math.min(((GPA_MAP[myGrade]||0)/4)*100, 100)}%`, height:'100%', background:s.color, borderRadius:1}} />
-              </div>
-              {sparkPts && (
-                <div style={{marginBottom:16}}>
-                  <svg width="100%" height={28} viewBox="0 0 140 28" preserveAspectRatio="none" style={{display:'block'}}>
-                    <polyline points={sparkPts} fill="none" stroke={s.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-              )}
-              <div style={{display:'flex', gap:14, borderTop:`1px solid ${T.bl}`, paddingTop:14}}>
-                {[['GPA', GPA_MAP[myGrade] != null ? GPA_MAP[myGrade].toFixed(1) : '—', false], ['HW open', hw.length, hw.length > 0], ['Quizzes', qz.length, false]].map(([label, val, warn]) => (
-                  <div key={label}>
-                    <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:3}}>{label}</div>
-                    <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color: warn ? T.accent : T.ink}}>{val}</div>
-                  </div>
-                ))}
-              </div>
+        <>
+          {busiestOpen > 0 && (
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', padding:'4px 0 10px'}}>
+              {busiest.short} has the most open work · {busiestOpen} assignment{busiestOpen !== 1 ? 's' : ''}
             </div>
-          );
-        })}
-      </div>
+          )}
+          <div className="shq-subjects-grid">
+            {subjects.map(s => {
+              const hw = homework.filter(h => h.subj === s.id && !h.done);
+              const qz = quizzes.filter(q => q.subj === s.id);
+              const noteCount = notes.filter(n => n.subj === s.id).length;
+              const myGrade = grades[s.id] || (s.grade && s.grade !== '—' ? s.grade : null);
+              const hasGrade = !!myGrade;
+              const gpaVal = hasGrade ? GPA_MAP[myGrade] : null;
+              const sparkPts = gradeSparklinePoints(gradeHistory, s.id, 140, 28);
+              const gradeColor = hasGrade
+                ? (gpaVal >= 3.7 ? '#3a8a52' : gpaVal >= 3.0 ? T.accent : '#bf4a30')
+                : T.ink3;
+
+              return (
+                <div
+                  key={s.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onNav?.('grades')}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNav?.('grades'); } }}
+                  style={{
+                    background:T.surface, padding:'22px 24px', borderRadius:12,
+                    borderLeft:`3px solid ${s.color}`, cursor:'pointer',
+                    transition:'box-shadow 0.15s, transform 0.15s',
+                  }}
+                  onMouseOver={e => { e.currentTarget.style.boxShadow = '0 8px 28px -12px rgba(24,21,14,0.14)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseOut={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}
+                >
+                  <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:16}}>
+                    <div style={{minWidth:0}}>
+                      <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:8}}>
+                        <div style={{width:28, height:28, borderRadius:8, background:`${s.color}18`, border:`1.5px solid ${s.color}40`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+                          <div style={{width:8, height:8, borderRadius:2, background:s.color}} />
+                        </div>
+                        <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.1em', textTransform:'uppercase'}}>{s.short || s.name}</div>
+                      </div>
+                      <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, lineHeight:1.15}}>{s.name}</div>
+                    </div>
+                    <div style={{textAlign:'right', flexShrink:0}}>
+                      <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:hasGrade ? 34 : 28, color:gradeColor, lineHeight:0.95, letterSpacing:'-0.02em'}}>
+                        {hasGrade ? myGrade : '—'}
+                      </div>
+                      <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginTop:4}}>
+                        {gpaVal != null ? `${gpaVal.toFixed(1)} GPA` : 'No grade'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {hasGrade && (
+                    <div style={{height:3, background:T.border, marginBottom: sparkPts ? 12 : 14, borderRadius:2, overflow:'hidden'}}>
+                      <div style={{width:`${Math.min((gpaVal / 4) * 100, 100)}%`, height:'100%', background:s.color, borderRadius:2, transition:'width 0.3s ease'}} />
+                    </div>
+                  )}
+
+                  {sparkPts && (
+                    <div style={{marginBottom:14}}>
+                      <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:6}}>Grade trend</div>
+                      <svg width="100%" height={28} viewBox="0 0 140 28" preserveAspectRatio="none" style={{display:'block'}}>
+                        <polyline points={sparkPts} fill="none" stroke={s.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                  )}
+
+                  <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:0, borderTop:`1px solid ${T.bl}`, paddingTop:14}}>
+                    {[
+                      ['HW open', hw.length, hw.length > 0],
+                      ['Quizzes', qz.length, false],
+                      ['Notes', noteCount, false],
+                    ].map(([label, val, warn], i) => (
+                      <div key={label} style={{textAlign:'center', borderLeft: i > 0 ? `1px solid ${T.bl}` : 'none', padding:'0 8px'}}>
+                        <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4}}>{label}</div>
+                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color: warn ? '#b07020' : T.ink, lineHeight:1}}>{val}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {subjects.length < 10 && (
+              <button
+                type="button"
+                onClick={() => onRequestSidebar?.('addSubject')}
+                style={{
+                  background:'transparent', padding:'22px 24px', borderRadius:12,
+                  border:`1.5px dashed ${T.border}`, cursor:'pointer',
+                  display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                  gap:8, minHeight:180, transition:'border-color 0.15s, background 0.15s',
+                }}
+                onMouseOver={e => { e.currentTarget.style.borderColor = T.accent; e.currentTarget.style.background = `${T.accent}08`; }}
+                onMouseOut={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = 'transparent'; }}
+              >
+                <div style={{width:32, height:32, borderRadius:8, border:`1px solid ${T.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:T.mono, fontSize:18, color:T.ink3}}>+</div>
+                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.1em', textTransform:'uppercase'}}>Add subject</div>
+              </button>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

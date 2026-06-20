@@ -125,6 +125,52 @@ const normalizeDashboardPrefs = (prefs) => {
 
 const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
+const gpaStandingLabel = (gpaNum) => {
+  if (!gpaNum || gpaNum <= 0) return 'Ready to track.';
+  if (gpaNum >= 3.7) return 'Honor roll';
+  if (gpaNum >= 3.5) return "Dean's list";
+  if (gpaNum >= 3.0) return 'Solid standing';
+  if (gpaNum >= 2.0) return 'On track';
+  return 'Needs focus';
+};
+
+const buildGradeInsights = (subjects, grades) => {
+  const graded = (subjects || []).filter(s => grades?.[s.id] && GPA_MAP[grades[s.id]] != null);
+  if (!graded.length) return null;
+  const gpas = graded.map(s => GPA_MAP[grades[s.id]] || 0);
+  const avg = gpas.reduce((a, b) => a + b, 0) / gpas.length;
+  const ungraded = (subjects || []).length - graded.length;
+  const parts = [];
+  if (avg >= 3.5) parts.push(`Your ${graded.length}-class average puts you on honor roll pace.`);
+  else if (avg >= 3.0) parts.push(`You're holding a ${avg.toFixed(2)} GPA across ${graded.length} ${graded.length === 1 ? 'class' : 'classes'}.`);
+  else parts.push(`Your current average is ${avg.toFixed(2)} — focus on your lowest grades to lift your GPA.`);
+  if (ungraded > 0) parts.push(`${ungraded} ${ungraded === 1 ? 'class still needs' : 'classes still need'} a grade logged.`);
+  if (graded.length >= 2) {
+    const spread = Math.max(...gpas) - Math.min(...gpas);
+    if (spread >= 0.7) {
+      const low = graded.reduce((a, b) => (GPA_MAP[grades[a.id]] || 0) < (GPA_MAP[grades[b.id]] || 0) ? a : b);
+      parts.push(`${low.short || low.name} is your lowest — closing that gap would lift your term GPA.`);
+    }
+  }
+  return parts.join(' ');
+};
+
+const gradeLetterBucket = (grade) => {
+  if (!grade) return null;
+  const letter = String(grade)[0];
+  return ['A', 'B', 'C', 'D', 'F'].includes(letter) ? letter : null;
+};
+
+const gradeDistribution = (subjects, grades) => {
+  const buckets = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+  (subjects || []).forEach(s => {
+    const b = gradeLetterBucket(grades?.[s.id]);
+    if (b) buckets[b]++;
+  });
+  const total = Object.values(buckets).reduce((a, b) => a + b, 0);
+  return { buckets, total };
+};
+
 const exportGradesCsv = (profile, userData) => {
   const subjects = profile?.subjects || [];
   const grades = userData?.grades || {};
@@ -175,6 +221,9 @@ export {
   normalizeGradeHistory,
   appendGradeHistory,
   gradeSparklinePoints,
+  gpaStandingLabel,
+  buildGradeInsights,
+  gradeDistribution,
   normalizeToolOpens,
   appendToolOpen,
   toolOpensThisWeek,
