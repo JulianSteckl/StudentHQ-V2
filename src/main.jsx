@@ -1037,6 +1037,7 @@ function TodayScreen({ profile, userData, onUpdate, onNav, onRequestSidebar, scr
   const ud       = userData || defaultUserData();
   const prefs    = ud.dashboardPrefs || DEFAULT_DASHBOARD_PREFS;
   const [showCustomize, setShowCustomize] = useState(false);
+  const [showAddHomework, setShowAddHomework] = useState(false);
   const [planTick, setPlanTick] = useState(0);
   const subjects = profile?.subjects || [];
   const subjectBy = makeSubjectBy(subjects);
@@ -1072,7 +1073,7 @@ function TodayScreen({ profile, userData, onUpdate, onNav, onRequestSidebar, scr
   );
 
   useRunScreenAction(screenAction, onScreenActionHandled, (action) => {
-    if (action === 'add') onNav?.('homework', 'add');
+    if (action === 'add') setShowAddHomework(true);
   });
 
   const gamePlanItems = useMemo(() => open.slice(0, 4), [open, planTick]);
@@ -1086,6 +1087,12 @@ function TodayScreen({ profile, userData, onUpdate, onNav, onRequestSidebar, scr
         onClose={() => setShowCustomize(false)}
         prefs={prefs}
         onSave={(next) => onUpdate && onUpdate({ dashboardPrefs: next })}
+      />
+      <AddHomeworkModal
+        open={showAddHomework}
+        onClose={() => setShowAddHomework(false)}
+        onSave={(item) => onUpdate && onUpdate({ homework: [...homework, item] })}
+        subjects={subjects}
       />
       {!hasBasics && (
         <div style={{margin:'18px 52px 0', background:'rgba(184,148,58,0.15)', border:`1px solid ${T.accent}35`, borderLeft:`3px solid ${T.accent}`, padding:'14px 16px', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12}}>
@@ -1112,7 +1119,7 @@ function TodayScreen({ profile, userData, onUpdate, onNav, onRequestSidebar, scr
         </div>
         <div style={{display:'flex', gap:8, flexShrink:0, marginTop:4}}>
           <Btn onClick={() => setShowCustomize(true)}>✦ Customize</Btn>
-          <Btn gold onClick={() => onNav?.('homework', 'add')}>+ Add</Btn>
+          <Btn gold onClick={() => setShowAddHomework(true)}>+ Add</Btn>
         </div>
       </div>
 
