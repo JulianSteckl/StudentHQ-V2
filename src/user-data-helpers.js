@@ -75,10 +75,35 @@ const startOfWeekMs = () => {
 
 const toolOpensThisWeek = (opens) => normalizeToolOpens(opens).filter(o => o.at >= startOfWeekMs()).length;
 
+const startOfDayMs = (d = new Date()) => {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x.getTime();
+};
+
+const toolOpensInPeriod = (opens, period = 'all') => {
+  const list = normalizeToolOpens(opens);
+  if (period === 'week') return list.filter(o => o.at >= startOfWeekMs());
+  return list;
+};
+
+const toolOpenCountsInPeriod = (opens, period = 'all') => {
+  const counts = {};
+  toolOpensInPeriod(opens, period).forEach(o => { counts[o.toolId] = (counts[o.toolId] || 0) + 1; });
+  return counts;
+};
+
 const toolOpenCounts = (opens) => {
   const counts = {};
   normalizeToolOpens(opens).forEach(o => { counts[o.toolId] = (counts[o.toolId] || 0) + 1; });
   return counts;
+};
+
+const connectedToolsCount = (opens) => Object.keys(toolOpenCounts(opens)).length;
+
+const toolLastUsedAt = (toolId, opens) => {
+  const entry = normalizeToolOpens(opens).find(o => o.toolId === toolId);
+  return entry?.at || 0;
 };
 
 const toolById = (id) => TOOLS_DATA.find(t => t.id === id) || null;
@@ -93,15 +118,110 @@ const formatToolWhen = (at) => {
   return new Date(at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
-const buildToolUsageInsight = (opens) => {
+const formatToolLastUsed = (at) => (!at ? 'Never' : formatToolWhen(at));
+
+const toolDailyOpens = (toolId, opens, days = 7) => {
+  const todayStart = startOfDayMs();
+  const buckets = Array(days).fill(0);
+  normalizeToolOpens(opens)
+    .filter(o => o.toolId === toolId)
+    .forEach(o => {
+      const dayStart = startOfDayMs(new Date(o.at));
+      const diffDays = Math.floor((todayStart - dayStart) / 86400000);
+      if (diffDays >= 0 && diffDays < days) buckets[days - 1 - diffDays] += 1;
+    });
+  return buckets;
+};
+
+const toolActivitySparkline = (toolId, opens, width = 56, height = 18) => {
+  const buckets = toolDailyOpens(toolId, opens, 7);
+  if (!buckets.some(v => v > 0)) return null;
+  const max = Math.max(...buckets, 1);
+  if (buckets.length === 1) {
+    const y = height - 2 - (buckets[0] / max) * (height - 4);
+    return `2,${y} ${width - 2},${y}`;
+  }
+  return buckets.map((v, i) => {
+    const x = 2 + (i / (buckets.length - 1)) * (width - 4);
+    const y = height - 2 - (v / max) * (height - 4);
+    return `${x},${y}`;
+  }).join(' ');
+};
+
+const toolTrend = (toolId, opens) => {
+  const now = Date.now();
+  const week = 7 * 86400000;
+  const list = normalizeToolOpens(opens).filter(o => o.toolId === toolId);
+  const recent = list.filter(o => o.at >= now - week).length;
+  const prior = list.filter(o => o.at >= now - 2 * week && o.at < now - week).length;
+  if (recent === 0 && prior === 0) return 'none';
+  if (recent > prior) return 'up';
+  if (recent < prior) return 'down';
+  return 'flat';
+};
+
+const buildToolSuggestions = (opens, { notesCount = 0 } = {}) => {
   const counts = toolOpenCounts(opens);
+  const untried = TOOLS_DATA.filter(t => !counts[t.id]);
+  if (!untried.length) {
+    const ranked = TOOLS_DATA
+      .map(t => ({ tool: t, sessions: counts[t.id] || 0 }))
+      .sort((a, b) => a.sessions - b.sessions);
+    const pick = ranked[0];
+    if (!pick || pick.sessions === 0) return [];
+    return [{
+      tool: pick.tool,
+      msg: `${pick.tool.name} hasn't been opened in a while — worth revisiting.`,
+      action: 'Open',
+    }];
+  }
+  const priority = (t) => {
+    if (notesCount > 0 && t.id === 'notebooklm') return 0;
+    if (t.id === 'claude') return 1;
+    if (t.cat === 'AI') return 2;
+    return 3;
+  };
+  return untried.sort((a, b) => priority(a) - priority(b)).slice(0, 2).map(tool => ({
+    tool,
+    msg: notesCount > 0 && tool.id === 'notebooklm'
+      ? `You have ${notesCount} note${notesCount === 1 ? '' : 's'} — try ${tool.name} to study from them.`
+      : `You haven't tried ${tool.name} yet. ${tool.desc}`,
+    action: 'Try',
+  }));
+};
+
+const buildToolUsageInsight = (opens, period = 'all', totalTools = TOOLS_DATA.length) => {
+  const list = toolOpensInPeriod(opens, period);
+  if (!list.length) return null;
+  const counts = toolOpenCountsInPeriod(opens, period);
   const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  if (!ranked.length) return null;
   const [topId, topCount] = ranked[0];
   const tool = toolById(topId);
   if (!tool) return null;
-  if (ranked.length === 1 && topCount === 1) return `${tool.name} was your first tracked open.`;
-  return `${tool.name} is your most-used tool (${topCount} open${topCount === 1 ? '' : 's'}).`;
+
+  const connected = connectedToolsCount(opens);
+  const periodLabel = period === 'week' ? 'this week' : 'all time';
+  const parts = [];
+
+  if (ranked.length === 1 && topCount === 1 && period === 'all') {
+    parts.push(`${tool.name} was your first tracked open.`);
+  } else {
+    parts.push(`${tool.name} leads ${periodLabel} with ${topCount} session${topCount === 1 ? '' : 's'}.`);
+  }
+
+  if (period === 'all' && connected < totalTools) {
+    const remaining = totalTools - connected;
+    parts.push(`${remaining} more tool${remaining === 1 ? '' : 's'} to explore.`);
+  }
+
+  const weekCount = toolOpensThisWeek(opens);
+  if (period === 'all' && weekCount >= 3) {
+    parts.push(`${weekCount} opens this week — strong momentum.`);
+  } else if (period === 'all' && weekCount === 0 && list.length > 0) {
+    parts.push('No opens yet this week — pick up where you left off.');
+  }
+
+  return parts.join(' ');
 };
 
 const DEFAULT_DASHBOARD_PREFS = {
@@ -227,7 +347,15 @@ export {
   normalizeToolOpens,
   appendToolOpen,
   toolOpensThisWeek,
+  toolOpensInPeriod,
   toolOpenCounts,
+  toolOpenCountsInPeriod,
+  connectedToolsCount,
+  toolLastUsedAt,
+  formatToolLastUsed,
+  toolActivitySparkline,
+  toolTrend,
+  buildToolSuggestions,
   toolById,
   formatToolWhen,
   buildToolUsageInsight,

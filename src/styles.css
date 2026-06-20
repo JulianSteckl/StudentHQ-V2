@@ -41,14 +41,16 @@ button { cursor: pointer; font-family: inherit; }
 .shq-sched-week { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
 .shq-sched-weekend { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .shq-sched-focus { display:grid; grid-template-columns:1fr auto; gap:12px; }
-.shq-tools-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.shq-tools-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
 .shq-subjects-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
 .shq-grades-stats { display:grid; grid-template-columns:240px 1fr 1fr 1fr; gap:12px; }
 .shq-grades-insights { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
 .shq-grades-mix { display:grid; grid-template-columns:1fr 280px; gap:12px; }
 .shq-subjects-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,360px)); gap:12px; align-content:start; }
-.shq-tools-mid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.shq-tools-mid { display:grid; grid-template-columns:1fr 0.58fr 0.42fr; gap:12px; }
 .shq-tools-rec { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.shq-tools-table { overflow-x:auto; }
+.shq-tools-table > div { min-width:560px; }
 .shq-tools-bottom { display:flex; gap:12px; align-items:flex-start; }
 .shq-tools-side { width:240px; display:flex; flex-direction:column; flex-shrink:0; align-self:stretch; gap:12px; }
 .shq-notes-panels { display:grid; grid-template-columns:1fr 1fr; gap:12px; }

@@ -6,7 +6,7 @@ import { T } from './theme.js';
 import { GOOGLE_CLIENT_ID, authHeaders, setGoogleAccessToken, restoreGoogleToken, PROFILE_KEY, loadProfile, loadProfileByEmail, saveProfile, loadUserData, saveUserData, defaultUserData, fetchServerUserData, saveServerUserData, saveServerProfile, clearSensitiveLocalData, getSyncStatus, onSyncStatus, setSyncStatus } from './storage.js';
 import { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, GPA_MAP, TOOLS_DATA, calcGPA, pickBestGradedSubject, makeSubjectBy } from './data.js';
 import { ICO, NAV } from './icons.jsx';
-import { appendGradeHistory, gradeSparklinePoints, appendToolOpen, toolOpensThisWeek, toolOpenCounts, toolById, formatToolWhen, buildToolUsageInsight, normalizeUserData, normalizeToolOpens, normalizeDashboardPrefs, DEFAULT_DASHBOARD_PREFS, exportGradesCsv, normalizeGradeHistory, gpaStandingLabel, buildGradeInsights, gradeDistribution } from './user-data-helpers.js';
+import { appendGradeHistory, gradeSparklinePoints, appendToolOpen, toolOpensThisWeek, toolOpenCounts, toolOpenCountsInPeriod, connectedToolsCount, toolLastUsedAt, formatToolLastUsed, toolActivitySparkline, toolTrend, buildToolSuggestions, toolById, formatToolWhen, buildToolUsageInsight, normalizeUserData, normalizeToolOpens, normalizeDashboardPrefs, DEFAULT_DASHBOARD_PREFS, exportGradesCsv, normalizeGradeHistory, gpaStandingLabel, buildGradeInsights, gradeDistribution } from './user-data-helpers.js';
 
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
@@ -3325,6 +3325,7 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
 /* ── 8. Tools ───────────────────────────────────────────── */
 function ToolsScreen({ userData, onUpdate }) {
   const [filter, setFilter] = useState('ALL');
+  const [breakdownPeriod, setBreakdownPeriod] = useState('all');
   const cats = ['ALL','AI','DESIGN','PRODUCTIVITY'];
   const filtered = filter === 'ALL' ? TOOLS_DATA : TOOLS_DATA.filter(t => t.cat === filter);
   const toolOpens = userData?.toolOpens || [];
@@ -3333,33 +3334,26 @@ function ToolsScreen({ userData, onUpdate }) {
   const lastOpen = recentOpens[0] || null;
   const lastTool = lastOpen ? toolById(lastOpen.toolId) : null;
   const counts = toolOpenCounts(toolOpens);
+  const periodKey = breakdownPeriod === 'week' ? 'week' : 'all';
+  const periodCounts = toolOpenCountsInPeriod(toolOpens, periodKey);
   const trackedTools = TOOLS_DATA
-    .filter(t => counts[t.id] > 0)
-    .map(t => ({ ...t, sessions: counts[t.id] }))
+    .filter(t => periodCounts[t.id] > 0)
+    .map(t => ({ ...t, sessions: periodCounts[t.id] }))
     .sort((a, b) => b.sessions - a.sessions);
   const maxSessions = trackedTools[0]?.sessions || 1;
-  const usageInsight = buildToolUsageInsight(toolOpens);
-  const hasUsage = recentOpens.length > 0;
+  const connectedCount = connectedToolsCount(toolOpens);
+  const topTool = TOOLS_DATA
+    .map(t => ({ ...t, sessions: counts[t.id] || 0 }))
+    .sort((a, b) => b.sessions - a.sessions)[0];
+  const topToolEntry = topTool?.sessions > 0 ? topTool : null;
   const notesCount = userData?.notes?.length || 0;
-  const uniqueCats = [...new Set(TOOLS_DATA.map(t => t.cat))].length;
+  const suggestions = buildToolSuggestions(toolOpens, { notesCount });
+  const usageInsight = buildToolUsageInsight(toolOpens, periodKey, TOOLS_DATA.length);
 
   const openTool = (tool) => {
     if (tool?.id) onUpdate && onUpdate({ toolOpens: appendToolOpen(toolOpens, tool.id) });
     if (tool?.url) window.open(tool.url, '_blank', 'noopener,noreferrer');
   };
-
-  const buildSuggestions = () => {
-    const picks = [];
-    if (notesCount > 0) {
-      picks.push({ tool: toolById('notebooklm'), msg: `Study from your ${notesCount} note${notesCount === 1 ? '' : 's'}.` });
-    } else {
-      picks.push({ tool: toolById('notebooklm'), msg: 'Upload lecture slides and ask AI anything about them.' });
-    }
-    picks.push({ tool: toolById('claude'), msg: 'Research, write, and debug — your AI co-pilot.' });
-    if (picks.length < 2) picks.push({ tool: toolById('notion'), msg: 'Organise notes and projects in one place.' });
-    return picks.slice(0, 2);
-  };
-  const SUGGESTIONS = buildSuggestions();
 
   const QUICK_LAUNCH = [
     { tool: TOOLS_DATA.find(t => t.id==='claude'),     label:'Ask Claude a question', sub:'Start new conversation', key:'⌘1' },
@@ -3383,14 +3377,11 @@ function ToolsScreen({ userData, onUpdate }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [toolOpens, onUpdate]);
 
-  const statCards = hasUsage ? [
-    { label:'THIS WEEK', val:String(weekOpens), sub: weekOpens === 1 ? 'open this week' : 'opens this week', accent:T.accent },
-    { label:'MOST USED', val:trackedTools[0]?.name || '—', sub: trackedTools[0] ? `${trackedTools[0].sessions} open${trackedTools[0].sessions === 1 ? '' : 's'} total` : '—', accent:trackedTools[0]?.color || T.ink3 },
-    { label:'LAST OPENED', val:lastTool?.name || '—', sub: lastOpen ? formatToolWhen(lastOpen.at) : '—', accent:'#4285f4' },
-  ] : [
-    { label:'AVAILABLE', val:String(TOOLS_DATA.length), sub:'apps · one click away', accent:T.accent },
-    { label:'CATEGORIES', val:String(uniqueCats), sub:'AI · design · productivity', accent:'#9254de' },
-    { label:'SHORTCUTS', val:'⌘1–4', sub:'quick launch keys', accent:'#2a60a0' },
+  const statCards = [
+    { label:'THIS WEEK', val:String(weekOpens), sub: weekOpens > 0 ? (weekOpens === 1 ? 'open this week' : 'opens this week') : 'Open any tool to start', accent:T.accent },
+    { label:'TOP TOOL', val:topToolEntry?.name || '—', sub: topToolEntry ? `${topToolEntry.sessions} session${topToolEntry.sessions === 1 ? '' : 's'}` : 'No sessions yet', accent:topToolEntry?.color || T.ink3 },
+    { label:'CONNECTED', val:`${connectedCount}/${TOOLS_DATA.length}`, sub: connectedCount > 0 ? `${connectedCount} tool${connectedCount === 1 ? '' : 's'} tracked` : 'Use a tool to track it', accent:'#3a8a52' },
+    { label:'LAST OPENED', val:lastTool?.name || '—', sub: lastOpen ? formatToolWhen(lastOpen.at) : 'No activity yet', accent:'#4285f4' },
   ];
 
   const ToolIcon = ({ tool, size=28 }) => (
@@ -3399,11 +3390,14 @@ function ToolsScreen({ userData, onUpdate }) {
     </div>
   );
 
-  const ExternalArrow = () => (
-    <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke={T.ink3} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0, opacity:0.45}}>
-      <path d="M3.5 7.5L7.5 3.5M7.5 3.5H4.5M7.5 3.5V6.5"/>
-    </svg>
-  );
+  const TrendBadge = ({ trend }) => {
+    if (trend === 'up') return <span style={{fontFamily:T.mono, fontSize:10, color:'#3a8a52'}}>↑ Up</span>;
+    if (trend === 'down') return <span style={{fontFamily:T.mono, fontSize:10, color:'#bf4a30'}}>↓ Down</span>;
+    if (trend === 'flat') return <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>→ Flat</span>;
+    return <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>—</span>;
+  };
+
+  const TOOL_ROW_COLS = 'minmax(180px,1fr) 88px 64px 80px 56px';
 
   return (
     <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
@@ -3431,63 +3425,77 @@ function ToolsScreen({ userData, onUpdate }) {
           ))}
         </div>
 
-        {/* Recommended — only when no usage yet */}
-        {!hasUsage && (
-          <div style={{background:T.surface, padding:'16px 20px', borderRadius:12, marginBottom:12}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:12}}>Recommended</div>
-            <div className="shq-tools-rec">
-              {SUGGESTIONS.map((sg, i) => (
-                <button key={i} type="button" onClick={() => openTool(sg.tool)}
-                  style={{display:'flex', alignItems:'center', gap:10, padding:'12px 14px', background:T.bl, border:`1px solid ${T.border}`, borderRadius:10, cursor:'pointer', textAlign:'left', width:'100%', transition:'border-color 0.12s, background 0.12s'}}
-                  onMouseOver={e => { e.currentTarget.style.borderColor = sg.tool.color + '60'; e.currentTarget.style.background = T.surface; }}
-                  onMouseOut={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = T.bl; }}
-                >
-                  <ToolIcon tool={sg.tool} size={28} />
-                  <div style={{flex:1, minWidth:0}}>
-                    <div style={{fontFamily:T.ui, fontSize:13, color:T.ink, fontWeight:500, marginBottom:2}}>{sg.tool.name}</div>
-                    <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink3, lineHeight:1.4}}>{sg.msg}</div>
-                  </div>
-                  <ExternalArrow />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Insights row */}
+        <div className="shq-tools-mid" style={{marginBottom:12, background:'transparent'}}>
 
-        {/* Usage analytics — only when there's data */}
-        {hasUsage && (
-          <div className="shq-tools-mid" style={{marginBottom:12, background:'transparent'}}>
-            <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Breakdown</div>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>All time</div>
-              </div>
-              {trackedTools.map((tool, i) => (
-                <div key={tool.id} style={{marginBottom: i < trackedTools.length - 1 ? 11 : 0}}>
-                  <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5}}>
-                    <div style={{display:'flex', alignItems:'center', gap:7}}>
-                      <div style={{width:6, height:6, borderRadius:'50%', background:tool.color}} />
-                      <span style={{fontFamily:T.ui, fontSize:12, color:T.ink}}>{tool.name}</span>
-                    </div>
-                    <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{tool.sessions}</div>
+          {/* Intelligent suggestions */}
+          <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
+            <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:14}}>
+              <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52', flexShrink:0}} />
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', flex:1}}>Intelligent Suggestions</div>
+              {suggestions.length > 0 && <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{suggestions.length} active</div>}
+            </div>
+            {suggestions.length === 0
+              ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.6}}>You've tried every tool — keep exploring.</div>
+              : suggestions.map((sg, i) => (
+              <div key={i} style={{display:'flex', alignItems:'center', gap:10, padding:'11px 0', borderBottom: i < suggestions.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
+                <ToolIcon tool={sg.tool} size={26} />
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:2}}>
+                    <span style={{fontFamily:T.ui, fontSize:12, color:T.ink, fontWeight:500}}>{sg.tool.name}</span>
+                    <span style={{fontFamily:T.mono, fontSize:10, padding:'1px 5px', background:T.bl, color:T.ink3, letterSpacing:'0.07em'}}>TIP</span>
                   </div>
-                  <div style={{height:2, background:T.bl, borderRadius:1, overflow:'hidden'}}>
-                    <div style={{width:`${(tool.sessions / maxSessions) * 100}%`, height:'100%', background:tool.color, opacity:0.65}} />
-                  </div>
+                  <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink3, lineHeight:1.45}}>{sg.msg}</div>
                 </div>
-              ))}
-            </div>
-            <div style={{background:T.surface, padding:'16px 20px', display:'flex', flexDirection:'column', borderRadius:12}}>
-              <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
-                <span style={{color:T.accent, fontSize:11, lineHeight:1}}>★</span>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Insight</div>
+                <button type="button" onClick={() => openTool(sg.tool)} style={{fontFamily:T.mono, fontSize:10, color:T.accent, background:'none', border:'none', padding:0, flexShrink:0, cursor:'pointer'}}>{sg.action} →</button>
               </div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink2, lineHeight:1.65}}>{usageInsight}</div>
+            ))}
+          </div>
+
+          {/* Usage breakdown */}
+          <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Breakdown</div>
+              <select
+                value={breakdownPeriod}
+                onChange={e => setBreakdownPeriod(e.target.value)}
+                style={{background:T.bl, border:`1px solid ${T.border}`, borderRadius:6, padding:'3px 8px', fontFamily:T.mono, fontSize:10, color:T.ink3, cursor:'pointer'}}
+              >
+                <option value="all">All Time</option>
+                <option value="week">This Week</option>
+              </select>
+            </div>
+            {trackedTools.length === 0
+              ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.6}}>No usage data yet.</div>
+              : trackedTools.map((tool, i) => (
+              <div key={tool.id} style={{marginBottom: i < trackedTools.length - 1 ? 11 : 0}}>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5}}>
+                  <div style={{display:'flex', alignItems:'center', gap:7, minWidth:0}}>
+                    <div style={{width:6, height:6, borderRadius:'50%', background:tool.color, flexShrink:0}} />
+                    <span style={{fontFamily:T.ui, fontSize:12, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tool.name}</span>
+                  </div>
+                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, flexShrink:0}}>{tool.sessions}</div>
+                </div>
+                <div style={{height:2, background:T.bl, borderRadius:1, overflow:'hidden'}}>
+                  <div style={{width:`${(tool.sessions / maxSessions) * 100}%`, height:'100%', background:tool.color, opacity:0.65}} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Usage insight */}
+          <div style={{background:T.surface, padding:'16px 20px', display:'flex', flexDirection:'column', borderRadius:12}}>
+            <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
+              <span style={{color:T.accent, fontSize:11, lineHeight:1}}>★</span>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Insight</div>
+            </div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color: usageInsight ? T.ink2 : T.ink3, lineHeight:1.65}}>
+              {usageInsight || 'Use your tools to generate insights.'}
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Bottom: tool list + sidebar */}
+        {/* Bottom: tool table + sidebar */}
         <div className="shq-tools-bottom">
 
           {/* Left: unified tool card with filters */}
@@ -3513,33 +3521,53 @@ function ToolsScreen({ userData, onUpdate }) {
                 <div style={{marginLeft:'auto', fontFamily:T.mono, fontSize:10, color:T.ink3}}>{filtered.length} shown</div>
               </div>
 
-              {filtered.map((tool, idx) => {
-                const sessions = counts[tool.id] || 0;
-                return (
-                  <div key={tool.id}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTool(tool); } }}
-                    onClick={() => openTool(tool)}
-                    style={{display:'flex', alignItems:'center', gap:12, padding:'13px 16px', background:T.surface, cursor:'pointer', transition:'background 0.1s', borderBottom: idx < filtered.length - 1 ? `1px solid ${T.bl}` : 'none'}}
-                    onMouseOver={e => e.currentTarget.style.background = T.bl}
-                    onMouseOut={e => e.currentTarget.style.background = T.surface}
-                  >
-                    <ToolIcon tool={tool} size={30} />
-                    <div style={{minWidth:0, flex:1}}>
-                      <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:3}}>
-                        <span style={{fontFamily:T.ui, fontSize:13.5, color:T.ink, fontWeight:500}}>{tool.name}</span>
-                        <span style={{fontFamily:T.mono, fontSize:10, padding:'1.5px 6px', background:T.bl, color:T.ink3, letterSpacing:'0.07em', borderRadius:3}}>{tool.cat}</span>
-                        {sessions > 0 && (
-                          <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3, opacity:0.7}}>{sessions}×</span>
-                        )}
+              <div className="shq-tools-table">
+                <div style={{display:'grid', gridTemplateColumns:TOOL_ROW_COLS, gap:8, padding:'7px 16px', borderBottom:`1px solid ${T.border}`, background:T.surface}}>
+                  {['TOOL','7D ACTIVITY','SESSIONS','LAST USED','TREND'].map((h, i) => (
+                    <div key={h} style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', textAlign: i > 0 ? 'center' : 'left'}}>{h}</div>
+                  ))}
+                </div>
+
+                {filtered.map((tool, idx) => {
+                  const sessions = counts[tool.id] || 0;
+                  const lastAt = toolLastUsedAt(tool.id, toolOpens);
+                  const sparkPts = toolActivitySparkline(tool.id, toolOpens);
+                  const trend = toolTrend(tool.id, toolOpens);
+                  return (
+                    <div key={tool.id}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTool(tool); } }}
+                      onClick={() => openTool(tool)}
+                      style={{display:'grid', gridTemplateColumns:TOOL_ROW_COLS, gap:8, alignItems:'center', padding:'12px 16px', background:T.surface, cursor:'pointer', transition:'background 0.1s', borderBottom: idx < filtered.length - 1 ? `1px solid ${T.bl}` : 'none'}}
+                      onMouseOver={e => e.currentTarget.style.background = T.bl}
+                      onMouseOut={e => e.currentTarget.style.background = T.surface}
+                    >
+                      <div style={{display:'flex', alignItems:'center', gap:11, minWidth:0}}>
+                        <ToolIcon tool={tool} size={28} />
+                        <div style={{minWidth:0}}>
+                          <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:2}}>
+                            <span style={{fontFamily:T.ui, fontSize:13, color:T.ink, fontWeight:500}}>{tool.name}</span>
+                            <span style={{fontFamily:T.mono, fontSize:10, padding:'1.5px 5px', background:T.bl, color:T.ink3, letterSpacing:'0.07em', borderRadius:3}}>{tool.cat}</span>
+                          </div>
+                          <div style={{fontFamily:T.ui, fontSize:11, color:T.ink3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tool.desc}</div>
+                        </div>
                       </div>
-                      <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tool.desc}</div>
+                      <div style={{display:'flex', justifyContent:'center', alignItems:'center'}}>
+                        {sparkPts
+                          ? <svg width={56} height={18} viewBox="0 0 56 18" style={{display:'block'}}><polyline points={sparkPts} fill="none" stroke={tool.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          : <svg width={56} height={18} viewBox="0 0 56 18" style={{display:'block'}}><line x1={2} y1={9} x2={54} y2={9} stroke={T.border} strokeWidth={1} strokeDasharray="2 2"/></svg>
+                        }
+                      </div>
+                      <div style={{fontFamily:T.mono, fontSize:11, color:T.ink2, textAlign:'center'}}>{sessions}</div>
+                      <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textAlign:'center'}}>{formatToolLastUsed(lastAt)}</div>
+                      <div style={{display:'flex', justifyContent:'center'}} onClick={e => e.stopPropagation()}>
+                        <TrendBadge trend={trend} />
+                      </div>
                     </div>
-                    <ExternalArrow />
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -3568,9 +3596,12 @@ function ToolsScreen({ userData, onUpdate }) {
             </div>
 
             <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:12}}>Recent Activity</div>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
+                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Activity</div>
+                <div style={{fontFamily:T.mono, fontSize:10, color:'#3a8a52', letterSpacing:'0.08em'}}>Live</div>
+              </div>
               {recentOpens.length === 0
-                ? <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, lineHeight:1.7}}>Your opens will appear here.</div>
+                ? <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, lineHeight:1.7}}>No activity yet. Open a tool to start tracking.</div>
                 : recentOpens.slice(0, 5).map((entry, i, arr) => {
                   const tool = toolById(entry.toolId);
                   if (!tool) return null;
