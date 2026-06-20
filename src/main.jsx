@@ -710,6 +710,66 @@ function AddQuizModal({ open, onClose, onSave, subjects }) {
   );
 }
 
+const QUICK_ADD_OPTIONS = [
+  { id: 'homework',  label: 'Homework',  sub: 'Assignment · due date · time estimate', icon: '□' },
+  { id: 'quiz',      label: 'Quiz',      sub: 'Date · readiness · topics to review',   icon: '◇' },
+  { id: 'note',      label: 'Note',      sub: 'Study notes organized by subject',        icon: '✎' },
+  { id: 'flashcard', label: 'Flashcard', sub: 'Question & answer for review',            icon: '⊞' },
+  { id: 'subject',   label: 'Subject',   sub: 'Add a new class to your workspace',       icon: '+' },
+];
+
+function QuickAddModal({ open, onClose, onPick }) {
+  const [closing, setClosing] = useState(false);
+  const panelRef = useRef(null);
+  const dismiss = useCallback(() => { setClosing(true); setTimeout(onClose, 320); }, [onClose]);
+
+  useEffect(() => { if (open) setClosing(false); }, [open]);
+  useModalA11y(open, dismiss, panelRef);
+  if (!open) return null;
+
+  const pick = (id) => {
+    onPick(id);
+    dismiss();
+  };
+
+  return ReactDOM.createPortal(
+    <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Add new item" tabIndex={-1} className="shq-modal-box" style={{
+        width:440, maxWidth:'92vw', background:T.surface, border:`1px solid ${T.border}`, borderRadius:16,
+        padding:'36px 32px 28px', position:'relative', opacity:0, outline:'none',
+        boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)',
+        animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`,
+      }}>
+        <button aria-label="Close dialog" onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
+
+        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, marginBottom:4}}>Add <span style={{color:T.accent}}>something</span></div>
+        <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:20}}>Homework · quizzes · notes · flashcards · subjects</div>
+
+        <div style={{display:'flex', flexDirection:'column', gap:8, marginBottom:8}}>
+          {QUICK_ADD_OPTIONS.map(opt => (
+            <button key={opt.id} type="button" onClick={() => pick(opt.id)} style={{
+              display:'flex', alignItems:'center', gap:14, width:'100%', textAlign:'left',
+              padding:'12px 14px', border:`1px solid ${T.border}`, borderRadius:12, background:T.bg,
+              cursor:'pointer', transition:'border-color 0.15s, background 0.15s',
+            }}
+              onMouseOver={e => { e.currentTarget.style.borderColor = T.accent + '55'; e.currentTarget.style.background = T.accentSoft; }}
+              onMouseOut={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = T.bg; }}
+            >
+              <span style={{width:32, height:32, borderRadius:8, background:T.accentSoft, border:`1px solid ${T.accent}30`, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:T.mono, fontSize:14, color:T.accent, flexShrink:0}}>{opt.icon}</span>
+              <div style={{minWidth:0}}>
+                <div style={{fontFamily:T.ui, fontSize:13, fontWeight:500, color:T.ink, marginBottom:2}}>{opt.label}</div>
+                <div style={{fontFamily:T.ui, fontSize:11, color:T.ink3, lineHeight:1.4}}>{opt.sub}</div>
+              </div>
+              <span style={{marginLeft:'auto', fontFamily:T.mono, fontSize:11, color:T.ink3, flexShrink:0}}>→</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function MobileHeader({ onMenuOpen, sidebarOpen }) {
   return (
     <header className="shq-mobile-header" role="banner">
@@ -1037,12 +1097,18 @@ function TodayScreen({ profile, userData, onUpdate, onNav, onRequestSidebar, scr
   const ud       = userData || defaultUserData();
   const prefs    = ud.dashboardPrefs || DEFAULT_DASHBOARD_PREFS;
   const [showCustomize, setShowCustomize] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showAddHomework, setShowAddHomework] = useState(false);
+  const [showAddQuiz, setShowAddQuiz] = useState(false);
+  const [showAddNote, setShowAddNote] = useState(false);
+  const [showAddFlashcard, setShowAddFlashcard] = useState(false);
   const [planTick, setPlanTick] = useState(0);
   const subjects = profile?.subjects || [];
   const subjectBy = makeSubjectBy(subjects);
   const homework  = ud.homework || [];
   const quizzes   = ud.quizzes  || [];
+  const notes     = ud.notes    || [];
+  const flashcards = ud.flashcards || [];
   const schedule  = ud.schedule || [];
   const gpa       = calcGPA(subjects, ud.grades);
   const streak    = ud.streak || 0;
@@ -1073,8 +1139,45 @@ function TodayScreen({ profile, userData, onUpdate, onNav, onRequestSidebar, scr
   );
 
   useRunScreenAction(screenAction, onScreenActionHandled, (action) => {
-    if (action === 'add') setShowAddHomework(true);
+    if (action === 'add') setShowQuickAdd(true);
   });
+
+  const handleQuickAddPick = (type) => {
+    if (type === 'homework') setShowAddHomework(true);
+    else if (type === 'quiz') setShowAddQuiz(true);
+    else if (type === 'note') setShowAddNote(true);
+    else if (type === 'flashcard') setShowAddFlashcard(true);
+    else if (type === 'subject') onRequestSidebar?.('addSubject');
+  };
+
+  const saveNote = ({ title, subj, body }) => {
+    const now = Date.now();
+    const preview = (body || '').replace(/\s+/g, ' ').trim().slice(0, 160);
+    const newNote = {
+      id: 'n-' + now.toString(36) + Math.random().toString(36).slice(2, 5),
+      subj: subj || subjects[0]?.id || '',
+      title,
+      body,
+      preview,
+      date: new Date(now).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      createdAt: now,
+      updatedAt: now,
+    };
+    onUpdate && onUpdate({ notes: [newNote, ...notes] });
+  };
+
+  const saveFlashcard = ({ q, a, subj }) => {
+    const now = Date.now();
+    const newCard = {
+      id: 'f-' + now.toString(36) + Math.random().toString(36).slice(2, 5),
+      q,
+      a,
+      subj: subj || subjects[0]?.id || '',
+      createdAt: now,
+      updatedAt: now,
+    };
+    onUpdate && onUpdate({ flashcards: [...flashcards, newCard] });
+  };
 
   const gamePlanItems = useMemo(() => open.slice(0, 4), [open, planTick]);
 
@@ -1088,11 +1191,32 @@ function TodayScreen({ profile, userData, onUpdate, onNav, onRequestSidebar, scr
         prefs={prefs}
         onSave={(next) => onUpdate && onUpdate({ dashboardPrefs: next })}
       />
+      <QuickAddModal open={showQuickAdd} onClose={() => setShowQuickAdd(false)} onPick={handleQuickAddPick} />
       <AddHomeworkModal
         open={showAddHomework}
         onClose={() => setShowAddHomework(false)}
         onSave={(item) => onUpdate && onUpdate({ homework: [...homework, item] })}
         subjects={subjects}
+      />
+      <AddQuizModal
+        open={showAddQuiz}
+        onClose={() => setShowAddQuiz(false)}
+        onSave={(item) => onUpdate && onUpdate({ quizzes: [...quizzes, item] })}
+        subjects={subjects}
+      />
+      <NoteEditorModal
+        open={showAddNote}
+        onClose={() => setShowAddNote(false)}
+        onSave={saveNote}
+        subjects={subjects}
+        initial={null}
+      />
+      <FlashcardEditorModal
+        open={showAddFlashcard}
+        onClose={() => setShowAddFlashcard(false)}
+        onSave={saveFlashcard}
+        subjects={subjects}
+        initial={null}
       />
       {!hasBasics && (
         <div style={{margin:'18px 52px 0', background:'rgba(184,148,58,0.15)', border:`1px solid ${T.accent}35`, borderLeft:`3px solid ${T.accent}`, padding:'14px 16px', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12}}>
@@ -1119,7 +1243,7 @@ function TodayScreen({ profile, userData, onUpdate, onNav, onRequestSidebar, scr
         </div>
         <div style={{display:'flex', gap:8, flexShrink:0, marginTop:4}}>
           <Btn onClick={() => setShowCustomize(true)}>✦ Customize</Btn>
-          <Btn gold onClick={() => setShowAddHomework(true)}>+ Add</Btn>
+          <Btn gold onClick={() => setShowQuickAdd(true)}>+ Add</Btn>
         </div>
       </div>
 
