@@ -4,9 +4,10 @@ import { createPortal } from 'react-dom';
 import './styles.css';
 import { T } from './theme.js';
 import { GOOGLE_CLIENT_ID, authHeaders, setGoogleAccessToken, restoreGoogleToken, PROFILE_KEY, loadProfile, loadProfileByEmail, saveProfile, loadUserData, saveUserData, defaultUserData, fetchServerUserData, saveServerUserData, saveServerProfile, clearSensitiveLocalData, getSyncStatus, onSyncStatus, setSyncStatus } from './storage.js';
-import { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, GPA_MAP, TOOLS_DATA, calcGPA, pickBestGradedSubject, makeSubjectBy } from './data.js';
+import { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, GPA_MAP, TOOLS_DATA, TOOL_CATS, calcGPA, pickBestGradedSubject, makeSubjectBy } from './data.js';
 import { ICO, NAV } from './icons.jsx';
-import { appendGradeHistory, gradeSparklinePoints, appendToolOpen, toolOpensThisWeek, toolOpenCounts, toolOpenCountsInPeriod, connectedToolsCount, toolLastUsedAt, formatToolLastUsed, toolActivitySparkline, toolTrend, buildToolSuggestions, toolById, formatToolWhen, buildToolUsageInsight, normalizeUserData, normalizeToolOpens, normalizeDashboardPrefs, DEFAULT_DASHBOARD_PREFS, exportGradesCsv, normalizeGradeHistory, gpaStandingLabel, buildGradeInsights, gradeDistribution } from './user-data-helpers.js';
+import { ToolBrandIcon } from './tool-icons.jsx';
+import { appendGradeHistory, gradeSparklinePoints, appendToolOpen, toolOpensThisWeek, toolOpenCounts, toolOpenCountsInPeriod, connectedToolsCount, toolLastUsedAt, formatToolLastUsed, toolActivitySparkline, toolTrend, buildToolSuggestions, toolById, formatToolWhen, buildToolUsageInsight, normalizeUserData, normalizeToolOpens, normalizeDashboardPrefs, DEFAULT_DASHBOARD_PREFS, exportGradesCsv, normalizeGradeHistory, gpaStandingLabel, buildGradeInsights, gradeDistribution, getAllTools, toolIdSet, makeCustomToolId } from './user-data-helpers.js';
 
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
@@ -3322,45 +3323,160 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
   );
 }
 
+}
+
+function AddToolModal({ open, onClose, onSave }) {
+  const [name, setName] = useState('');
+  const [url, setUrl] = useState('');
+  const [desc, setDesc] = useState('');
+  const [cat, setCat] = useState('PRODUCTIVITY');
+  const [color, setColor] = useState(PRESET_COLORS[0]);
+  const [closing, setClosing] = useState(false);
+  const panelRef = useRef(null);
+  const dismiss = useCallback(() => { setClosing(true); setTimeout(onClose, 320); }, [onClose]);
+
+  useEffect(() => {
+    if (open) {
+      setName('');
+      setUrl('');
+      setDesc('');
+      setCat('PRODUCTIVITY');
+      setColor(PRESET_COLORS[0]);
+      setClosing(false);
+    }
+  }, [open]);
+
+  useModalA11y(open, dismiss, panelRef);
+  if (!open) return null;
+
+  const submit = () => {
+    if (!name.trim() || !url.trim()) return;
+    onSave({
+      id: makeCustomToolId(name.trim()),
+      name: name.trim(),
+      url: url.trim(),
+      desc: desc.trim() || `Open ${name.trim()} in a new tab.`,
+      cat,
+      color,
+      custom: true,
+    });
+    dismiss();
+  };
+
+  return ReactDOM.createPortal(
+    <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
+      <div ref={panelRef} role="dialog" aria-modal="true" tabIndex={-1} className="shq-modal-box" style={{
+        width:420, maxWidth:'92vw', background:T.surface, border:`1px solid ${T.border}`, borderRadius:16,
+        padding:'36px 32px 28px', position:'relative', opacity:0, outline:'none',
+        boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)',
+        animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`,
+      }}>
+        <button aria-label="Close dialog" onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
+
+        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, marginBottom:4}}>Add a <span style={{color:T.accent}}>tool</span></div>
+        <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:22}}>Name · URL · category</div>
+
+        <div style={{marginBottom:14}}>
+          <label htmlFor="tool-modal-name" style={MODAL_LABEL}>Name</label>
+          <input id="tool-modal-name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. ChatGPT" autoFocus
+            style={MODAL_FIELD} {...focusBorder} />
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <label htmlFor="tool-modal-url" style={MODAL_LABEL}>URL</label>
+          <input id="tool-modal-url" value={url} onChange={e => setUrl(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} placeholder="https://chat.openai.com"
+            style={MODAL_FIELD} {...focusBorder} />
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <label htmlFor="tool-modal-desc" style={MODAL_LABEL}>Description <span style={{opacity:0.6, textTransform:'none', letterSpacing:0}}>(optional)</span></label>
+          <input id="tool-modal-desc" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Short description for the tools list"
+            style={MODAL_FIELD} {...focusBorder} />
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <div style={MODAL_LABEL}>Category</div>
+          <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
+            {TOOL_CATS.map(c => (
+              <button key={c} type="button" onClick={() => setCat(c)} style={{
+                padding:'7px 12px', border:`1px solid ${cat===c ? T.accent : T.border}`,
+                background: cat===c ? T.accentSoft : 'transparent', borderRadius:8,
+                fontFamily:T.mono, fontSize:10, color: cat===c ? T.accent : T.ink3,
+                fontWeight: cat===c ? 600 : 400, cursor:'pointer',
+              }}>{c}</button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{marginBottom:22}}>
+          <div style={MODAL_LABEL}>Color</div>
+          <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
+            {PRESET_COLORS.map(c => (
+              <button key={c} type="button" aria-label={`Color ${c}`} onClick={() => setColor(c)} style={{
+                width:22, height:22, borderRadius:6, background:c, border: color===c ? `2px solid ${T.ink}` : '2px solid transparent', cursor:'pointer', padding:0,
+              }} />
+            ))}
+          </div>
+        </div>
+
+        <div style={{display:'flex', gap:10, justifyContent:'flex-end'}}>
+          <button type="button" onClick={dismiss} style={{padding:'9px 20px', border:`1px solid ${T.border}`, background:'transparent', borderRadius:10, fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.06em', cursor:'pointer'}}
+            onMouseOver={e => e.currentTarget.style.background=T.bl} onMouseOut={e => e.currentTarget.style.background='transparent'}>Cancel</button>
+          <button type="button" onClick={submit} disabled={!name.trim() || !url.trim()} style={{padding:'9px 24px', border:'none', background: name.trim() && url.trim() ? T.accent : T.border, borderRadius:10, fontFamily:T.mono, fontSize:10, color:'#fff', letterSpacing:'0.06em', cursor: name.trim() && url.trim() ? 'pointer' : 'default', fontWeight:600}}>Add Tool</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 /* ── 8. Tools ───────────────────────────────────────────── */
 function ToolsScreen({ userData, onUpdate }) {
   const [filter, setFilter] = useState('ALL');
   const [breakdownPeriod, setBreakdownPeriod] = useState('all');
+  const [showAddTool, setShowAddTool] = useState(false);
   const cats = ['ALL','AI','DESIGN','PRODUCTIVITY'];
-  const filtered = filter === 'ALL' ? TOOLS_DATA : TOOLS_DATA.filter(t => t.cat === filter);
+  const customTools = userData?.customTools || [];
+  const allTools = useMemo(() => getAllTools(customTools), [customTools]);
+  const validToolIds = useMemo(() => toolIdSet(allTools), [allTools]);
+  const filtered = filter === 'ALL' ? allTools : allTools.filter(t => t.cat === filter);
   const toolOpens = userData?.toolOpens || [];
   const weekOpens = toolOpensThisWeek(toolOpens);
-  const recentOpens = normalizeToolOpens(toolOpens);
+  const recentOpens = normalizeToolOpens(toolOpens, validToolIds);
   const lastOpen = recentOpens[0] || null;
-  const lastTool = lastOpen ? toolById(lastOpen.toolId) : null;
+  const lastTool = lastOpen ? toolById(lastOpen.toolId, allTools) : null;
   const counts = toolOpenCounts(toolOpens);
   const periodKey = breakdownPeriod === 'week' ? 'week' : 'all';
   const periodCounts = toolOpenCountsInPeriod(toolOpens, periodKey);
-  const trackedTools = TOOLS_DATA
+  const trackedTools = allTools
     .filter(t => periodCounts[t.id] > 0)
     .map(t => ({ ...t, sessions: periodCounts[t.id] }))
     .sort((a, b) => b.sessions - a.sessions);
   const maxSessions = trackedTools[0]?.sessions || 1;
   const connectedCount = connectedToolsCount(toolOpens);
-  const topTool = TOOLS_DATA
+  const topTool = allTools
     .map(t => ({ ...t, sessions: counts[t.id] || 0 }))
     .sort((a, b) => b.sessions - a.sessions)[0];
   const topToolEntry = topTool?.sessions > 0 ? topTool : null;
   const notesCount = userData?.notes?.length || 0;
-  const suggestions = buildToolSuggestions(toolOpens, { notesCount });
-  const usageInsight = buildToolUsageInsight(toolOpens, periodKey, TOOLS_DATA.length);
+  const suggestions = buildToolSuggestions(toolOpens, { notesCount, tools: allTools });
+  const usageInsight = buildToolUsageInsight(toolOpens, periodKey, allTools.length);
 
   const openTool = (tool) => {
-    if (tool?.id) onUpdate && onUpdate({ toolOpens: appendToolOpen(toolOpens, tool.id) });
+    if (tool?.id) onUpdate && onUpdate({ toolOpens: appendToolOpen(toolOpens, tool.id, validToolIds) });
     if (tool?.url) window.open(tool.url, '_blank', 'noopener,noreferrer');
   };
 
+  const addCustomTool = (tool) => {
+    onUpdate && onUpdate({ customTools: [...customTools, tool] });
+  };
+
   const QUICK_LAUNCH = [
-    { tool: TOOLS_DATA.find(t => t.id==='claude'),     label:'Ask Claude a question', sub:'Start new conversation', key:'⌘1' },
-    { tool: TOOLS_DATA.find(t => t.id==='figma'),      label:'New Figma file',        sub:'Open design canvas',     key:'⌘2' },
-    { tool: TOOLS_DATA.find(t => t.id==='notebooklm'), label:'Open NotebookLM',       sub:'Study from your notes',  key:'⌘3' },
-    { tool: TOOLS_DATA.find(t => t.id==='notion'),     label:'New Notion page',       sub:'Capture & organise',     key:'⌘4' },
-  ];
+    { tool: allTools.find(t => t.id==='claude'),     label:'Ask Claude a question', sub:'Start new conversation', key:'⌘1' },
+    { tool: allTools.find(t => t.id==='figma'),      label:'New Figma file',        sub:'Open design canvas',     key:'⌘2' },
+    { tool: allTools.find(t => t.id==='notebooklm'), label:'Open NotebookLM',       sub:'Study from your notes',  key:'⌘3' },
+    { tool: allTools.find(t => t.id==='notion'),     label:'New Notion page',       sub:'Capture & organise',     key:'⌘4' },
+  ].filter(ql => ql.tool?.id);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -3370,25 +3486,21 @@ function ToolsScreen({ userData, onUpdate }) {
       e.preventDefault();
       const tool = QUICK_LAUNCH[n - 1]?.tool;
       if (!tool?.id) return;
-      onUpdate && onUpdate({ toolOpens: appendToolOpen(toolOpens, tool.id) });
+      onUpdate && onUpdate({ toolOpens: appendToolOpen(toolOpens, tool.id, validToolIds) });
       if (tool.url) window.open(tool.url, '_blank', 'noopener,noreferrer');
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [toolOpens, onUpdate]);
+  }, [toolOpens, onUpdate, validToolIds]);
 
   const statCards = [
     { label:'THIS WEEK', val:String(weekOpens), sub: weekOpens > 0 ? (weekOpens === 1 ? 'open this week' : 'opens this week') : 'Open any tool to start', accent:T.accent },
     { label:'TOP TOOL', val:topToolEntry?.name || '—', sub: topToolEntry ? `${topToolEntry.sessions} session${topToolEntry.sessions === 1 ? '' : 's'}` : 'No sessions yet', accent:topToolEntry?.color || T.ink3 },
-    { label:'CONNECTED', val:`${connectedCount}/${TOOLS_DATA.length}`, sub: connectedCount > 0 ? `${connectedCount} tool${connectedCount === 1 ? '' : 's'} tracked` : 'Use a tool to track it', accent:'#3a8a52' },
+    { label:'CONNECTED', val:`${connectedCount}/${allTools.length}`, sub: connectedCount > 0 ? `${connectedCount} tool${connectedCount === 1 ? '' : 's'} tracked` : 'Use a tool to track it', accent:'#3a8a52' },
     { label:'LAST OPENED', val:lastTool?.name || '—', sub: lastOpen ? formatToolWhen(lastOpen.at) : 'No activity yet', accent:'#4285f4' },
   ];
 
-  const ToolIcon = ({ tool, size=28 }) => (
-    <div style={{width:size, height:size, borderRadius:Math.round(size*0.2), background:`${tool.color}18`, border:`1px solid ${tool.color}38`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
-      <span style={{fontFamily:T.mono, fontSize:size*0.38, color:tool.color, fontWeight:600}}>{tool.name[0]}</span>
-    </div>
-  );
+  const TOOL_ROW_COLS = 'minmax(180px,1fr) 88px 64px 80px 56px';
 
   const TrendBadge = ({ trend }) => {
     if (trend === 'up') return <span style={{fontFamily:T.mono, fontSize:10, color:'#3a8a52'}}>↑ Up</span>;
@@ -3397,10 +3509,9 @@ function ToolsScreen({ userData, onUpdate }) {
     return <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>—</span>;
   };
 
-  const TOOL_ROW_COLS = 'minmax(180px,1fr) 88px 64px 80px 56px';
-
   return (
     <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
+        <AddToolModal open={showAddTool} onClose={() => setShowAddTool(false)} onSave={addCustomTool} />
 
         {/* Header */}
         <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:20, flexWrap:'wrap', gap:12}}>
@@ -3412,6 +3523,10 @@ function ToolsScreen({ userData, onUpdate }) {
             </h1>
             <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>Opens in a new tab · ⌘1–4 for quick launch</div>
           </div>
+          <button type="button" onClick={() => setShowAddTool(true)} style={{
+            padding:'7px 18px', border:'none', background:T.accent, color:'#fff',
+            fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8, flexShrink:0,
+          }}>+ Add Tool</button>
         </div>
 
         {/* Stat cards */}
@@ -3439,7 +3554,7 @@ function ToolsScreen({ userData, onUpdate }) {
               ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.6}}>You've tried every tool — keep exploring.</div>
               : suggestions.map((sg, i) => (
               <div key={i} style={{display:'flex', alignItems:'center', gap:10, padding:'11px 0', borderBottom: i < suggestions.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
-                <ToolIcon tool={sg.tool} size={26} />
+                <ToolBrandIcon tool={sg.tool} size={26} />
                 <div style={{flex:1, minWidth:0}}>
                   <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:2}}>
                     <span style={{fontFamily:T.ui, fontSize:12, color:T.ink, fontWeight:500}}>{sg.tool.name}</span>
@@ -3499,11 +3614,11 @@ function ToolsScreen({ userData, onUpdate }) {
         <div className="shq-tools-bottom">
 
           {/* Left: unified tool card with filters */}
-          <div style={{flex:1, minWidth:0}}>
+          <div className="shq-tools-main">
             <div style={{background:T.surface, borderRadius:12, overflow:'hidden'}}>
               <div style={{display:'flex', alignItems:'center', gap:6, padding:'12px 14px', borderBottom:`1px solid ${T.bl}`, flexWrap:'wrap'}}>
                 {cats.map(c => {
-                  const count = c === 'ALL' ? TOOLS_DATA.length : TOOLS_DATA.filter(t => t.cat === c).length;
+                  const count = c === 'ALL' ? allTools.length : allTools.filter(t => t.cat === c).length;
                   const act = filter === c;
                   return (
                     <button key={c} onClick={() => setFilter(c)} style={{
@@ -3544,7 +3659,7 @@ function ToolsScreen({ userData, onUpdate }) {
                       onMouseOut={e => e.currentTarget.style.background = T.surface}
                     >
                       <div style={{display:'flex', alignItems:'center', gap:11, minWidth:0}}>
-                        <ToolIcon tool={tool} size={28} />
+                        <ToolBrandIcon tool={tool} size={28} />
                         <div style={{minWidth:0}}>
                           <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:2}}>
                             <span style={{fontFamily:T.ui, fontSize:13, color:T.ink, fontWeight:500}}>{tool.name}</span>
@@ -3574,7 +3689,7 @@ function ToolsScreen({ userData, onUpdate }) {
           {/* Right sidebar */}
           <div className="shq-tools-side">
 
-            <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
+            <div style={{background:T.surface, borderRadius:12, padding:'18px 20px', flexShrink:0}}>
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
                 <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Quick Launch</div>
                 <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>⌘1–4</div>
@@ -3585,7 +3700,7 @@ function ToolsScreen({ userData, onUpdate }) {
                   onMouseOver={e => e.currentTarget.style.background = T.bl}
                   onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <ToolIcon tool={ql.tool} size={22} />
+                  <ToolBrandIcon tool={ql.tool} size={22} />
                   <div style={{flex:1, minWidth:0}}>
                     <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink, fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:1}}>{ql.label}</div>
                     <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{ql.sub}</div>
@@ -3595,7 +3710,9 @@ function ToolsScreen({ userData, onUpdate }) {
               ))}
             </div>
 
-            <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
+            <div className="shq-tools-side-fill" />
+
+            <div className="shq-tools-activity" style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
                 <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Activity</div>
                 <div style={{fontFamily:T.mono, fontSize:10, color:'#3a8a52', letterSpacing:'0.08em'}}>Live</div>
@@ -3603,7 +3720,7 @@ function ToolsScreen({ userData, onUpdate }) {
               {recentOpens.length === 0
                 ? <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, lineHeight:1.7}}>No activity yet. Open a tool to start tracking.</div>
                 : recentOpens.slice(0, 5).map((entry, i, arr) => {
-                  const tool = toolById(entry.toolId);
+                  const tool = toolById(entry.toolId, allTools);
                   if (!tool) return null;
                   return (
                     <button key={entry.id} type="button" onClick={() => openTool(tool)}

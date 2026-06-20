@@ -145,6 +145,29 @@ function sanitizeToolOpens(list) {
   });
 }
 
+const VALID_TOOL_CATS = new Set(['AI', 'DESIGN', 'PRODUCTIVITY']);
+
+function sanitizeCustomTools(list) {
+  return capArray(list, 50).map(item => {
+    if (!item || typeof item !== 'object') return null;
+    const name = str(item.name, 48);
+    let url = str(item.url, 512);
+    if (!name || !url) return null;
+    if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+    try { new URL(url); } catch { return null; }
+    const cat = VALID_TOOL_CATS.has(item.cat) ? item.cat : 'PRODUCTIVITY';
+    return {
+      id: str(item.id, 64),
+      name,
+      cat,
+      color: str(item.color, 16) || '#9a9080',
+      url,
+      desc: str(item.desc, 160) || `Open ${name} in a new tab.`,
+      custom: true,
+    };
+  });
+}
+
 function sanitizeDashboardPrefs(prefs) {
   if (!prefs || typeof prefs !== 'object' || Array.isArray(prefs)) {
     return { stats: true, week: true, period: true, gamePlan: true, bottomRow: true };
@@ -181,6 +204,7 @@ function sanitizeUserData(body, email) {
     grades: sanitizeGrades(body.grades),
     gradeHistory: sanitizeGradeHistory(body.gradeHistory),
     toolOpens: sanitizeToolOpens(body.toolOpens),
+    customTools: sanitizeCustomTools(body.customTools),
     focusSessions: Number.isFinite(body.focusSessions) ? Math.max(0, body.focusSessions) : 0,
     dashboardPrefs: sanitizeDashboardPrefs(body.dashboardPrefs),
     streak: Number.isFinite(body.streak) ? body.streak : 0,

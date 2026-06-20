@@ -1,9 +1,58 @@
-import { GPA_MAP, TOOLS_DATA } from './data.js';
+import { GPA_MAP, TOOLS_DATA, TOOL_CATS } from './data.js';
 
-const TOOL_IDS = new Set(TOOLS_DATA.map(t => t.id));
+const BUILTIN_TOOL_IDS = new Set(TOOLS_DATA.map(t => t.id));
+const VALID_TOOL_CATS = new Set(TOOL_CATS);
 
 const newGradeHistoryId = () => 'gh-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const newToolOpenId = () => 'to-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+const makeCustomToolId = (name) => {
+  const slug = String(name || 'tool').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24);
+  return `custom-${slug || 'tool'}-${Math.random().toString(36).slice(2, 6)}`;
+};
+
+const normalizeUrl = (url) => {
+  const s = String(url || '').trim();
+  if (!s) return '';
+  if (/^https?:\/\//i.test(s)) return s;
+  return `https://${s}`;
+};
+
+const normalizeCustomTools = (list) => {
+  if (!Array.isArray(list)) return [];
+  const seen = new Set(BUILTIN_TOOL_IDS);
+  const out = [];
+  list.forEach((item, i) => {
+    if (!item || typeof item !== 'object') return;
+    const name = String(item.name || '').trim().slice(0, 48);
+    const url = normalizeUrl(item.url);
+    if (!name || !url) return;
+    let id = String(item.id || '').trim().slice(0, 64);
+    if (!id || seen.has(id) || BUILTIN_TOOL_IDS.has(id)) {
+      id = makeCustomToolId(name);
+      while (seen.has(id)) id = makeCustomToolId(name);
+    }
+    seen.add(id);
+    const cat = VALID_TOOL_CATS.has(item.cat) ? item.cat : 'PRODUCTIVITY';
+    const color = String(item.color || PRESET_TOOL_COLOR(i)).slice(0, 16);
+    out.push({
+      id,
+      name,
+      cat,
+      color,
+      url,
+      desc: String(item.desc || `Open ${name} in a new tab.`).trim().slice(0, 160),
+      custom: true,
+    });
+  });
+  return out.slice(0, 50);
+};
+
+const PRESET_TOOL_COLOR = (i) => ['#bf4a30','#3a8a52','#2a60a0','#b07020','#7a44a0','#208490','#b8943a','#9a9080'][i % 8];
+
+const getAllTools = (customTools) => [...TOOLS_DATA, ...normalizeCustomTools(customTools)];
+
+const toolIdSet = (tools) => new Set((tools || TOOLS_DATA).map(t => t.id));
 
 const normalizeGradeHistory = (list) => {
   if (!Array.isArray(list)) return [];
@@ -49,20 +98,22 @@ const gradeSparklinePoints = (history, subjectId, width = 108, height = 18) => {
   }).join(' ');
 };
 
-const normalizeToolOpens = (list) => {
+const normalizeToolOpens = (list, validIds = null) => {
   if (!Array.isArray(list)) return [];
+  const ids = validIds || BUILTIN_TOOL_IDS;
   return list.map((item, i) => ({
     id: item?.id ? String(item.id) : `to-${i}`,
     toolId: String(item?.toolId || ''),
     at: Number(item?.at) || 0,
-  })).filter(x => x.toolId && TOOL_IDS.has(x.toolId) && x.at > 0)
+  })).filter(x => x.toolId && ids.has(x.toolId) && x.at > 0)
     .sort((a, b) => b.at - a.at)
     .slice(0, 200);
 };
 
-const appendToolOpen = (opens, toolId) => {
-  if (!toolId || !TOOL_IDS.has(toolId)) return normalizeToolOpens(opens);
-  return [{ id: newToolOpenId(), toolId, at: Date.now() }, ...normalizeToolOpens(opens)].slice(0, 200);
+const appendToolOpen = (opens, toolId, validIds = null) => {
+  const ids = validIds || BUILTIN_TOOL_IDS;
+  if (!toolId || !ids.has(toolId)) return normalizeToolOpens(opens, ids);
+  return [{ id: newToolOpenId(), toolId, at: Date.now() }, ...normalizeToolOpens(opens, ids)].slice(0, 200);
 };
 
 const startOfWeekMs = () => {
@@ -106,7 +157,7 @@ const toolLastUsedAt = (toolId, opens) => {
   return entry?.at || 0;
 };
 
-const toolById = (id) => TOOLS_DATA.find(t => t.id === id) || null;
+const toolById = (id, tools) => (tools || TOOLS_DATA).find(t => t.id === id) || null;
 
 const formatToolWhen = (at) => {
   if (!at) return '—';
@@ -160,11 +211,11 @@ const toolTrend = (toolId, opens) => {
   return 'flat';
 };
 
-const buildToolSuggestions = (opens, { notesCount = 0 } = {}) => {
+const buildToolSuggestions = (opens, { notesCount = 0, tools = TOOLS_DATA } = {}) => {
   const counts = toolOpenCounts(opens);
-  const untried = TOOLS_DATA.filter(t => !counts[t.id]);
+  const untried = tools.filter(t => !counts[t.id]);
   if (!untried.length) {
-    const ranked = TOOLS_DATA
+    const ranked = tools
       .map(t => ({ tool: t, sessions: counts[t.id] || 0 }))
       .sort((a, b) => a.sessions - b.sessions);
     const pick = ranked[0];
@@ -317,6 +368,8 @@ const exportGradesCsv = (profile, userData) => {
 const normalizeUserData = (raw) => {
   const d = raw || {};
   const grades = d.grades && typeof d.grades === 'object' ? d.grades : {};
+  const customTools = normalizeCustomTools(d.customTools);
+  const allToolIds = toolIdSet(getAllTools(customTools));
   return {
     homework: Array.isArray(d.homework) ? d.homework : [],
     grades,
@@ -327,7 +380,8 @@ const normalizeUserData = (raw) => {
     schedule: Array.isArray(d.schedule) ? d.schedule : [],
     flashcards: Array.isArray(d.flashcards) ? d.flashcards : [],
     focusSessions: Number(d.focusSessions) || 0,
-    toolOpens: normalizeToolOpens(d.toolOpens),
+    customTools,
+    toolOpens: normalizeToolOpens(d.toolOpens, allToolIds),
     dashboardPrefs: normalizeDashboardPrefs(d.dashboardPrefs),
     updatedAt: Number(d.updatedAt) || 0,
   };
@@ -344,6 +398,10 @@ export {
   gpaStandingLabel,
   buildGradeInsights,
   gradeDistribution,
+  normalizeCustomTools,
+  getAllTools,
+  toolIdSet,
+  makeCustomToolId,
   normalizeToolOpens,
   appendToolOpen,
   toolOpensThisWeek,

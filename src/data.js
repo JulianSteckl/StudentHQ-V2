@@ -27,14 +27,16 @@ const SUBJECTS = [
 const GPA_MAP = { 'A+':4.0,'A':4.0,'A−':3.7,'B+':3.3,'B':3.0,'B−':2.7,'C+':2.3,'C':2.0,'C−':1.7,'D':1.0,'F':0 };
 
 const TOOLS_DATA = [
-  { id:'claude',     name:'Claude',     cat:'AI',           color:'#c65030', url:'https://claude.ai',          desc:'Write, code, analyse, and reason — Anthropic\'s frontier AI.' },
-  { id:'notion',     name:'Notion',     cat:'PRODUCTIVITY', color:'#555555', url:'https://www.notion.so',      desc:'All-in-one workspace for notes, wikis, and project management.' },
-  { id:'figma',      name:'Figma',      cat:'DESIGN',       color:'#9254de', url:'https://www.figma.com',      desc:'Design and prototype interfaces collaboratively in real time.' },
-  { id:'notebooklm', name:'NotebookLM', cat:'AI',           color:'#4285f4', url:'https://notebooklm.google.com', desc:'Upload your notes and lecture slides — ask AI anything about them.' },
-  { id:'zapier',     name:'Zapier',     cat:'PRODUCTIVITY', color:'#ff4a00', url:'https://zapier.com',         desc:'Automate repetitive tasks by connecting your apps and workflows.' },
-  { id:'canva',      name:'Canva',      cat:'DESIGN',       color:'#00b4bc', url:'https://www.canva.com',      desc:'Create posters, presentations, and graphics with drag-and-drop.' },
-  { id:'gemini',     name:'Gemini',     cat:'AI',           color:'#4285f4', url:'https://gemini.google.com',  desc:'Google\'s multimodal AI for research, writing, and complex tasks.' },
+  { id:'claude',     name:'Claude',     icon:'claude',     cat:'AI',           color:'#c65030', url:'https://claude.ai',          desc:'Write, code, analyse, and reason — Anthropic\'s frontier AI.' },
+  { id:'notion',     name:'Notion',     icon:'notion',     cat:'PRODUCTIVITY', color:'#555555', url:'https://www.notion.so',      desc:'All-in-one workspace for notes, wikis, and project management.' },
+  { id:'figma',      name:'Figma',      icon:'figma',      cat:'DESIGN',       color:'#9254de', url:'https://www.figma.com',      desc:'Design and prototype interfaces collaboratively in real time.' },
+  { id:'notebooklm', name:'NotebookLM', icon:'notebooklm', cat:'AI',           color:'#4285f4', url:'https://notebooklm.google.com', desc:'Upload your notes and lecture slides — ask AI anything about them.' },
+  { id:'zapier',     name:'Zapier',     icon:'zapier',     cat:'PRODUCTIVITY', color:'#ff4a00', url:'https://zapier.com',         desc:'Automate repetitive tasks by connecting your apps and workflows.' },
+  { id:'canva',      name:'Canva',      icon:'canva',      cat:'DESIGN',       color:'#00b4bc', url:'https://www.canva.com',      desc:'Create posters, presentations, and graphics with drag-and-drop.' },
+  { id:'gemini',     name:'Gemini',     icon:'gemini',     cat:'AI',           color:'#4285f4', url:'https://gemini.google.com',  desc:'Google\'s multimodal AI for research, writing, and complex tasks.' },
 ];
+
+const TOOL_CATS = ['AI', 'DESIGN', 'PRODUCTIVITY'];
 
 const pickBestGradedSubject = (subjects, grades) => {
   const graded = (subjects || []).filter(s => grades?.[s.id] && GPA_MAP[grades[s.id]] != null);
@@ -50,4 +52,4 @@ const calcGPA = (subjects, grades) => {
 const makeSubjectBy = (subjects) => (id) =>
   (subjects || []).find(s => s.id === id) || { id: id||'?', name: id||'Unknown', short: id||'?', color: T.border, grade: '—', gpa: 0, pct: 0 };
 
-export { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, GPA_MAP, TOOLS_DATA, calcGPA, pickBestGradedSubject, makeSubjectBy };
+export { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, GPA_MAP, TOOLS_DATA, TOOL_CATS, calcGPA, pickBestGradedSubject, makeSubjectBy };
