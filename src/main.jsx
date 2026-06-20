@@ -2790,6 +2790,8 @@ function WelcomeScreen({ onSignIn, onSetup }) {
   ];
 
   const WORD = 'Scholar.';
+  const MODULES = ['Homework', 'Notes', 'Flashcards', 'Schedule', 'Grades', 'AI Tools'];
+  const MONO_LABEL = { fontFamily:T.mono, fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink2 };
 
   return (
     <div onMouseMove={e => setMouse({x:e.clientX, y:e.clientY})}
@@ -2799,10 +2801,10 @@ function WelcomeScreen({ onSignIn, onSetup }) {
         @keyframes shq-up     { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
         @keyframes shq-drawh  { from{transform:scaleX(0)} to{transform:scaleX(1)} }
         @keyframes shq-drawv  { from{transform:scaleY(0)} to{transform:scaleY(1)} }
-        .shq-primary { transition:transform 0.18s ease,box-shadow 0.18s ease; }
-        .shq-primary:hover { transform:translateY(-2px); box-shadow:0 8px 24px -6px rgba(184,148,58,0.38); }
-        .shq-ghost { transition:transform 0.18s ease; }
-        .shq-ghost:hover { transform:translateY(-2px); }
+        .shq-google { transition:transform 0.18s ease,box-shadow 0.18s ease,border-color 0.18s ease; }
+        .shq-google:hover { transform:translateY(-2px); box-shadow:0 6px 20px -8px rgba(24,21,14,0.12); border-color:${T.accent} !important; }
+        .shq-ghost { transition:transform 0.18s ease,box-shadow 0.18s ease,border-color 0.18s ease; }
+        .shq-ghost:hover { transform:translateY(-2px); box-shadow:0 4px 16px -10px rgba(24,21,14,0.08); border-color:${T.ink2} !important; }
         .shq-feat { transition:transform 0.2s ease,box-shadow 0.2s ease,border-color 0.2s ease; cursor:default; }
         .shq-feat:hover { transform:translateY(-3px); box-shadow:0 10px 28px -10px rgba(24,21,14,0.12); border-color:${T.accent} !important; }
         .shq-input { transition:border-color 0.12s; }
@@ -2826,13 +2828,8 @@ function WelcomeScreen({ onSignIn, onSetup }) {
           </div>
         ))}
 
-        {/* Vol. corner */}
-        <div style={{position:'absolute', top:72, right:80, fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.22em', textTransform:'uppercase', color:T.ink3, animation:'shq-up 0.5s 0.9s both'}}>
-          Vol. I · MMXXVI
-        </div>
-
         {/* Eyebrow */}
-        <div style={{position:'absolute', top:96, left:0, right:0, textAlign:'center', fontFamily:T.mono, fontSize:10, letterSpacing:'0.3em', textTransform:'uppercase', color:T.ink3, animation:'shq-up 0.5s 0.28s both'}}>
+        <div style={{position:'absolute', top:80, left:0, right:0, textAlign:'center', ...MONO_LABEL, animation:'shq-up 0.5s 0.28s both'}}>
           — A Student Dashboard —
         </div>
 
@@ -2850,47 +2847,50 @@ function WelcomeScreen({ onSignIn, onSetup }) {
             A second brain for serious students.
           </div>
 
-          {/* Rules */}
-          <div style={{marginTop:26, display:'flex', alignItems:'center', gap:20, fontFamily:T.mono, fontSize:10, letterSpacing:'0.2em', textTransform:'uppercase', color:T.ink3, animation:'shq-up 0.6s 1.22s both'}}>
-            <span style={{width:52, height:1, background:T.border, display:'block'}} />
-            Anno MMXXVI
-            <span style={{width:52, height:1, background:T.border, display:'block'}} />
+          {/* Module glimpse */}
+          <div style={{marginTop:28, display:'flex', gap:8, flexWrap:'wrap', justifyContent:'center', maxWidth:520, animation:'shq-up 0.6s 1.22s both'}}>
+            {MODULES.map(label => (
+              <span key={label} style={{
+                ...MONO_LABEL, fontSize:10, letterSpacing:'0.1em', color:T.ink2,
+                padding:'6px 12px', border:`1px solid ${T.border}`, borderRadius:6, background:T.surface,
+              }}>{label}</span>
+            ))}
           </div>
 
           {/* CTAs */}
-          <div style={{marginTop:42, display:'flex', gap:12, flexWrap:'wrap', justifyContent:'center', animation:'shq-up 0.6s 1.38s both'}}>
-            <button className="shq-primary" onClick={() => setOverlay(true)} style={{
+          <div style={{marginTop:40, display:'flex', gap:12, flexWrap:'wrap', justifyContent:'center', animation:'shq-up 0.6s 1.38s both'}}>
+            <button className="shq-google" onClick={() => setOverlay(true)} style={{
               display:'flex', alignItems:'center', gap:10, padding:'14px 26px',
-              border:`1px solid ${T.accent}`, background:T.accent,
-              fontFamily:T.ui, fontSize:14, color:T.surface, fontWeight:500, cursor:'pointer', borderRadius:2,
+              border:`1px solid ${T.border}`, background:T.surface,
+              fontFamily:T.ui, fontSize:14, color:T.ink, fontWeight:500, cursor:'pointer', borderRadius:8,
             }}>
-              <GoogleG size={16} /> Sign in with Google
+              <GoogleG size={16} colored /> Sign in with Google
             </button>
             <button className="shq-ghost" onClick={onSetup} style={{
-              padding:'14px 26px', border:`1px solid ${T.ink}`, background:'transparent',
-              fontFamily:T.ui, fontSize:14, color:T.ink, cursor:'pointer', borderRadius:2,
+              padding:'14px 26px', border:`1px solid ${T.border}`, background:T.bl,
+              fontFamily:T.ui, fontSize:14, color:T.ink, cursor:'pointer', borderRadius:8,
             }}>
-              Open fresh notebook →
+              Begin without signing in
             </button>
-          </div>
-
-          {/* Scroll hint */}
-          <div style={{marginTop:42, fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase', color:T.ink3, display:'flex', flexDirection:'column', alignItems:'center', gap:5, animation:'shq-up 0.6s 1.65s both'}}>
-            <span>What's inside</span>
-            <span style={{fontSize:14}}>↓</span>
           </div>
         </div>
 
         {/* Colophon */}
-        <div style={{position:'absolute', bottom:70, left:0, right:0, textAlign:'center', fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase', color:T.ink3, animation:'shq-up 0.5s 1.5s both'}}>
-          2026 School Year · built for one reader
+        <div style={{position:'absolute', bottom:52, left:0, right:0, textAlign:'center', fontFamily:T.mono, fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:T.ink3, animation:'shq-up 0.5s 1.5s both'}}>
+          2026 School Year
+        </div>
+
+        {/* Scroll hint */}
+        <div style={{position:'absolute', bottom:24, left:0, right:0, ...MONO_LABEL, fontSize:10, color:T.ink3, display:'flex', flexDirection:'column', alignItems:'center', gap:4, animation:'shq-up 0.6s 1.65s both'}}>
+          <span>What's inside</span>
+          <span style={{fontSize:13, lineHeight:1}}>↓</span>
         </div>
       </div>
 
       {/* ── Feature showcase ── */}
       <div style={{borderTop:`1px solid ${T.border}`, padding:'68px min(68px,8vw) 84px', background:T.bg}}>
         <div style={{textAlign:'center', marginBottom:50}}>
-          <div style={{fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.28em', textTransform:'uppercase', color:T.ink3, marginBottom:14}}>Everything you need</div>
+          <div style={{...MONO_LABEL, letterSpacing:'0.2em', marginBottom:14}}>Everything you need</div>
           <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:'clamp(32px,4.8vw,50px)', lineHeight:1.05, color:T.ink, letterSpacing:'-0.02em'}}>
             One dashboard for every class.
           </div>
@@ -2910,24 +2910,24 @@ function WelcomeScreen({ onSignIn, onSetup }) {
         <div style={{textAlign:'center', marginTop:60}}>
           <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink2, marginBottom:18}}>Ready to begin?</div>
           <div style={{display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap'}}>
-            <button className="shq-primary" onClick={() => setOverlay(true)} style={{
+            <button className="shq-google" onClick={() => setOverlay(true)} style={{
               display:'flex', alignItems:'center', gap:10, padding:'13px 24px',
-              border:`1px solid ${T.accent}`, background:T.accent,
-              fontFamily:T.ui, fontSize:14, color:T.surface, fontWeight:500, cursor:'pointer', borderRadius:2,
+              border:`1px solid ${T.border}`, background:T.surface,
+              fontFamily:T.ui, fontSize:14, color:T.ink, fontWeight:500, cursor:'pointer', borderRadius:8,
             }}>
-              <GoogleG size={15} /> Sign in with Google
+              <GoogleG size={15} colored /> Sign in with Google
             </button>
             <button className="shq-ghost" onClick={onSetup} style={{
-              padding:'13px 24px', border:`1px solid ${T.ink}`, background:'transparent',
-              fontFamily:T.ui, fontSize:14, color:T.ink, cursor:'pointer', borderRadius:2,
+              padding:'13px 24px', border:`1px solid ${T.border}`, background:T.bl,
+              fontFamily:T.ui, fontSize:14, color:T.ink, cursor:'pointer', borderRadius:8,
             }}>
-              Open fresh notebook →
+              Begin without signing in
             </button>
           </div>
         </div>
 
-        <div style={{marginTop:60, textAlign:'center', fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.18em', textTransform:'uppercase', color:T.ink3}}>
-          — Scholar · Vol. I · Anno MMXXVI —
+        <div style={{marginTop:60, textAlign:'center', ...MONO_LABEL, fontSize:10, color:T.ink3}}>
+          — Scholar · 2026 School Year —
         </div>
       </div>
 
