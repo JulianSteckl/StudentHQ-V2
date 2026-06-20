@@ -3008,7 +3008,7 @@ function WelcomeScreen({ onSignIn, onSetup }) {
           <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:'clamp(8px, 1.5vh, 12px)', animation:'shq-up 0.6s 1.5s both'}}>
             <div className="shq-welcome-footer-label">2026 School Year</div>
             <div className="shq-welcome-footer-label shq-welcome-scroll">
-              <span>What's inside</span>
+              <span>See the dashboard</span>
               <span className="shq-welcome-scroll-arrow">↓</span>
             </div>
           </div>
@@ -3199,12 +3199,6 @@ function SetupFlow({ onComplete, onBack, initialData }) {
 
   const STEP_LABELS = ['About You', 'Your School', 'Your Classes'];
 
-  const FEATURES = [
-    { ic:'✦', label:'Track homework', desc:'Kanban board with due dates and priorities' },
-    { ic:'◈', label:'Monitor grades', desc:'Live GPA calculator across all subjects' },
-    { ic:'⊞', label:'Study smarter', desc:'Flashcards, quizzes, and spaced repetition' },
-  ];
-
   const FLOAT_ICONS = [
     { emoji:'📚', x:8,  y:52 },
     { emoji:'✏️', x:72, y:58 },
@@ -3293,7 +3287,7 @@ function SetupFlow({ onComplete, onBack, initialData }) {
           const done = item.check();
           const current = step === item.step && !done;
           return (
-            <div key={i} style={{display:'flex', alignItems:'center', gap:8, padding:'6px 0', transition:'opacity 0.3s', opacity: done ? 1 : current ? 0.7 : 0.35}}>
+            <div key={i} style={{display:'flex', alignItems:'center', gap:8, padding:'6px 0', transition:'opacity 0.3s', opacity: done ? 1 : current ? 0.85 : 0.55}}>
               <div style={{width:16, height:16, borderRadius:4, border: done ? 'none' : `1.5px solid ${current ? T.accent+'60' : T.border}`, background: done ? T.accent : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.3s'}}>
                 {done && <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 6l2.5 2.5 5-5"/></svg>}
               </div>
@@ -3396,7 +3390,7 @@ function SetupFlow({ onComplete, onBack, initialData }) {
                     onFocus={e => e.target.style.borderColor=T.accent}
                     onBlur={e => e.target.style.borderColor=T.border} />
                 </div>
-                <div style={{marginBottom:36}}>
+                <div style={{marginBottom:0}}>
                   <div style={{fontFamily:T.mono, fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink3, marginBottom:10}}>What year are you in?</div>
                   <div style={{display:'flex', gap:8}}>
                     {[['freshman','Freshman'],['sophomore','Sophomore'],['junior','Junior'],['senior','Senior']].map(([k,l]) => (
@@ -3408,31 +3402,6 @@ function SetupFlow({ onComplete, onBack, initialData }) {
                         fontFamily:T.ui, fontWeight: grade===k ? 500 : 400, transition:'all 0.12s',
                       }}>{l}</button>
                     ))}
-                  </div>
-                </div>
-
-                {/* Ornamental rule */}
-                <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:28}}>
-                  <div style={{flex:1, height:1, background:T.border}} />
-                  <div style={{width:4, height:4, borderRadius:'50%', background:T.accent, opacity:0.5}} />
-                  <div style={{flex:1, height:1, background:T.border}} />
-                </div>
-
-                {/* Feature preview cards */}
-                <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12}}>
-                  {FEATURES.map(f => (
-                    <div key={f.label} style={{padding:'18px 16px', border:`1px solid ${T.border}`, background:T.bg, borderRadius:8}}>
-                      <div style={{fontSize:18, marginBottom:10, lineHeight:1}}>{f.ic}</div>
-                      <div style={{fontFamily:T.ui, fontSize:12, fontWeight:500, color:T.ink, marginBottom:5}}>{f.label}</div>
-                      <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, lineHeight:1.5, letterSpacing:'0.02em'}}>{f.desc}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Pull quote */}
-                <div style={{marginTop:28, padding:'20px 0', borderTop:`1px solid ${T.border}`}}>
-                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink3, lineHeight:1.6, textAlign:'center', letterSpacing:'-0.01em'}}>
-                    "A place for every assignment, every grade, every goal."
                   </div>
                 </div>
               </>
