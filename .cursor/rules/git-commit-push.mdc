@@ -1,11 +1,15 @@
 ---
-description: Commit and push completed work to GitHub master
+description: Commit, push to master, and deploy via Vercel after every code change
 alwaysApply: true
 ---
 
-# Commit and push after changes
+# Always deploy through Vercel
 
-When you finish implementing requested code changes in this project, **always commit and push** unless the user explicitly says not to.
+This project deploys to production via **Vercel + GitHub**. The only deploy path is:
+
+**commit → push to `origin master` → Vercel auto-deploys**
+
+When you finish implementing requested code changes, **always commit and push** unless the user explicitly says not to. Do not leave completed work only on disk — if it isn't pushed, it isn't live.
 
 ## Workflow
 
@@ -16,16 +20,19 @@ When you finish implementing requested code changes in this project, **always co
    ```bash
    git push origin master
    ```
-5. Run `git status` after push to confirm success.
+5. Run `git status` after push to confirm the branch is up to date with `origin/master`.
+6. Tell the user the push succeeded and that Vercel will deploy from `master`.
 
 ## Constraints
 
 - Do not force-push to `master`.
 - Do not skip hooks (`--no-verify`) unless the user asks.
+- Do not use `vercel deploy` CLI unless the user explicitly asks — GitHub push is the standard deploy path.
 - If push fails (auth/network), report the error and give the user the exact command to run.
 - If there are no changes to commit, skip commit/push.
 - Question-only or review-only tasks with no file edits: do not commit.
 
-## Deploy
+## Vercel
 
-This repo is connected to Vercel via GitHub. Pushing to `master` triggers production deploy.
+- Production deploys are triggered automatically when `master` is pushed to GitHub.
+- Never consider implementation work "done" until the push to `master` succeeds.
