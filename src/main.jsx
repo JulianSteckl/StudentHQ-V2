@@ -3169,13 +3169,13 @@ function SetupFlow({ onComplete, onBack, initialData }) {
           const done = item.check();
           const current = step === item.step && !done;
           return (
-            <div key={i} style={{display:'flex', alignItems:'center', gap:8, padding:'6px 0', transition:'opacity 0.3s', opacity: done ? 1 : current ? 0.85 : 0.55}}>
+            <div key={i} style={{display:'flex', alignItems:'center', gap:8, padding:'6px 0'}}>
               <div style={{width:16, height:16, borderRadius:4, border: done ? 'none' : `1.5px solid ${current ? T.accent+'60' : T.border}`, background: done ? T.accent : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.3s'}}>
                 {done && <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 6l2.5 2.5 5-5"/></svg>}
               </div>
               <div style={{flex:1, minWidth:0}}>
-                <div style={{fontFamily:T.ui, fontSize:10.5, color: done ? T.ink : T.ink2, fontWeight: done ? 500 : 400}}>{item.label}</div>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{item.desc}</div>
+                <div style={{fontFamily:T.ui, fontSize:10.5, color: done || current ? T.ink : T.ink2, fontWeight: done || current ? 500 : 400}}>{item.label}</div>
+                <div style={{fontFamily:T.mono, fontSize:10, color: done || current ? T.ink2 : T.ink3}}>{item.desc}</div>
               </div>
             </div>
           );
@@ -3247,7 +3247,7 @@ function SetupFlow({ onComplete, onBack, initialData }) {
       <div style={{flex:1, minHeight:0, display:'flex', overflow:'hidden'}}>
 
         {/* Left — form */}
-        <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', overflowY:'auto', padding:'80px 48px 40px', position:'relative', backgroundImage:`radial-gradient(${T.border} 1px, transparent 1px)`, backgroundSize:'20px 20px', backgroundPosition:'10px 10px'}}>
+        <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-start', overflowY:'auto', padding:'56px 48px 40px', position:'relative', backgroundImage:`radial-gradient(${T.border} 1px, transparent 1px)`, backgroundSize:'20px 20px', backgroundPosition:'10px 10px'}}>
 
 
 
@@ -3430,7 +3430,7 @@ function SetupFlow({ onComplete, onBack, initialData }) {
         </div>
 
         {/* Right — preview & checklist */}
-        <div style={{width:420, flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', borderLeft:`1px solid ${T.border}`, padding:'32px 36px', gap:20, position:'relative', background:`linear-gradient(180deg, ${T.surface} 0%, ${T.bg} 100%)`}}>
+        <div style={{width:420, flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-start', overflowY:'auto', borderLeft:`1px solid ${T.border}`, padding:'56px 36px 32px', gap:20, position:'relative', background:`linear-gradient(180deg, ${T.surface} 0%, ${T.bg} 100%)`}}>
           <DashboardPreview />
           <UnlockChecklist />
         </div>
