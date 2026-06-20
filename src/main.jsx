@@ -3542,23 +3542,23 @@ function ToolsScreen({ userData, onUpdate }) {
         <div className="shq-tools-mid" style={{marginBottom:12, background:'transparent'}}>
 
           {/* Intelligent suggestions */}
-          <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
-            <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:14}}>
+          <div style={{background:T.surface, padding:'12px 16px', borderRadius:12}}>
+            <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:10}}>
               <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52', flexShrink:0}} />
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', flex:1}}>Intelligent Suggestions</div>
               {suggestions.length > 0 && <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{suggestions.length} active</div>}
             </div>
             {suggestions.length === 0
-              ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.6}}>You've tried every tool — keep exploring.</div>
+              ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3, lineHeight:1.5}}>You've tried every tool — keep exploring.</div>
               : suggestions.map((sg, i) => (
-              <div key={i} style={{display:'flex', alignItems:'center', gap:10, padding:'11px 0', borderBottom: i < suggestions.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
-                <ToolBrandIcon tool={sg.tool} size={26} />
+              <div key={i} style={{display:'flex', alignItems:'center', gap:9, padding:'7px 0', borderBottom: i < suggestions.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
+                <ToolBrandIcon tool={sg.tool} size={22} />
                 <div style={{flex:1, minWidth:0}}>
-                  <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:2}}>
-                    <span style={{fontFamily:T.ui, fontSize:12, color:T.ink, fontWeight:500}}>{sg.tool.name}</span>
+                  <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:1}}>
+                    <span style={{fontFamily:T.ui, fontSize:11.5, color:T.ink, fontWeight:500}}>{sg.tool.name}</span>
                     <span style={{fontFamily:T.mono, fontSize:10, padding:'1px 5px', background:T.bl, color:T.ink3, letterSpacing:'0.07em'}}>TIP</span>
                   </div>
-                  <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink3, lineHeight:1.45}}>{sg.msg}</div>
+                  <div style={{fontFamily:T.ui, fontSize:11, color:T.ink3, lineHeight:1.4}}>{sg.msg}</div>
                 </div>
                 <button type="button" onClick={() => openTool(sg.tool)} style={{fontFamily:T.mono, fontSize:10, color:T.accent, background:'none', border:'none', padding:0, flexShrink:0, cursor:'pointer'}}>{sg.action} →</button>
               </div>
@@ -3566,26 +3566,26 @@ function ToolsScreen({ userData, onUpdate }) {
           </div>
 
           {/* Usage breakdown */}
-          <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
-            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
+          <div style={{background:T.surface, padding:'12px 16px', borderRadius:12}}>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Breakdown</div>
               <select
                 value={breakdownPeriod}
                 onChange={e => setBreakdownPeriod(e.target.value)}
-                style={{background:T.bl, border:`1px solid ${T.border}`, borderRadius:6, padding:'3px 8px', fontFamily:T.mono, fontSize:10, color:T.ink3, cursor:'pointer'}}
+                style={{background:T.bl, border:`1px solid ${T.border}`, borderRadius:6, padding:'2px 7px', fontFamily:T.mono, fontSize:10, color:T.ink3, cursor:'pointer'}}
               >
                 <option value="all">All Time</option>
                 <option value="week">This Week</option>
               </select>
             </div>
             {trackedTools.length === 0
-              ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.6}}>No usage data yet.</div>
-              : trackedTools.map((tool, i) => (
-              <div key={tool.id} style={{marginBottom: i < trackedTools.length - 1 ? 11 : 0}}>
-                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5}}>
-                  <div style={{display:'flex', alignItems:'center', gap:7, minWidth:0}}>
-                    <div style={{width:6, height:6, borderRadius:'50%', background:tool.color, flexShrink:0}} />
-                    <span style={{fontFamily:T.ui, fontSize:12, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tool.name}</span>
+              ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3, lineHeight:1.5}}>No usage data yet.</div>
+              : trackedTools.slice(0, 5).map((tool, i, arr) => (
+              <div key={tool.id} style={{marginBottom: i < arr.length - 1 ? 8 : 0}}>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4}}>
+                  <div style={{display:'flex', alignItems:'center', gap:6, minWidth:0}}>
+                    <div style={{width:5, height:5, borderRadius:'50%', background:tool.color, flexShrink:0}} />
+                    <span style={{fontFamily:T.ui, fontSize:11.5, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tool.name}</span>
                   </div>
                   <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, flexShrink:0}}>{tool.sessions}</div>
                 </div>
@@ -3597,12 +3597,12 @@ function ToolsScreen({ userData, onUpdate }) {
           </div>
 
           {/* Usage insight */}
-          <div style={{background:T.surface, padding:'16px 20px', display:'flex', flexDirection:'column', borderRadius:12}}>
-            <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
-              <span style={{color:T.accent, fontSize:11, lineHeight:1}}>★</span>
+          <div style={{background:T.surface, padding:'12px 16px', display:'flex', flexDirection:'column', borderRadius:12}}>
+            <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:8}}>
+              <span style={{color:T.accent, fontSize:10, lineHeight:1}}>★</span>
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Insight</div>
             </div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color: usageInsight ? T.ink2 : T.ink3, lineHeight:1.65}}>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13.5, color: usageInsight ? T.ink2 : T.ink3, lineHeight:1.55}}>
               {usageInsight || 'Use your tools to generate insights.'}
             </div>
           </div>
@@ -3613,7 +3613,7 @@ function ToolsScreen({ userData, onUpdate }) {
 
           {/* Left: unified tool card with filters */}
           <div className="shq-tools-main">
-            <div style={{background:T.surface, borderRadius:12, overflow:'hidden'}}>
+            <div className="shq-tools-main-card" style={{background:T.surface, borderRadius:12, overflow:'hidden'}}>
               <div style={{display:'flex', alignItems:'center', gap:6, padding:'12px 14px', borderBottom:`1px solid ${T.bl}`, flexWrap:'wrap'}}>
                 {cats.map(c => {
                   const count = c === 'ALL' ? allTools.length : allTools.filter(t => t.cat === c).length;
@@ -3687,14 +3687,14 @@ function ToolsScreen({ userData, onUpdate }) {
           {/* Right sidebar */}
           <div className="shq-tools-side">
 
-            <div style={{background:T.surface, borderRadius:12, padding:'18px 20px', flexShrink:0}}>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
+            <div className="shq-tools-quick" style={{background:T.surface, borderRadius:12, padding:'16px 18px'}}>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
                 <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Quick Launch</div>
                 <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>⌘1–4</div>
               </div>
               {QUICK_LAUNCH.map((ql, i) => (
                 <button key={i} type="button" onClick={() => openTool(ql.tool)}
-                  style={{display:'flex', alignItems:'center', gap:9, padding:'8px 0', borderBottom: i < QUICK_LAUNCH.length - 1 ? `1px solid ${T.bl}` : 'none', cursor:'pointer', width:'100%', background:'none', borderLeft:'none', borderRight:'none', borderTop:'none', textAlign:'left'}}
+                  style={{display:'flex', alignItems:'center', gap:9, padding:'7px 0', borderBottom: i < QUICK_LAUNCH.length - 1 ? `1px solid ${T.bl}` : 'none', cursor:'pointer', width:'100%', background:'none', borderLeft:'none', borderRight:'none', borderTop:'none', textAlign:'left'}}
                   onMouseOver={e => e.currentTarget.style.background = T.bl}
                   onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                 >
@@ -3708,13 +3708,12 @@ function ToolsScreen({ userData, onUpdate }) {
               ))}
             </div>
 
-            <div className="shq-tools-side-fill" />
-
-            <div className="shq-tools-activity" style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
+            <div className="shq-tools-activity" style={{background:T.surface, borderRadius:12, padding:'16px 18px'}}>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
                 <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Activity</div>
                 <div style={{fontFamily:T.mono, fontSize:10, color:'#3a8a52', letterSpacing:'0.08em'}}>Live</div>
               </div>
+              <div style={{flex:1, minHeight:0}}>
               {recentOpens.length === 0
                 ? <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, lineHeight:1.7}}>No activity yet. Open a tool to start tracking.</div>
                 : recentOpens.slice(0, 5).map((entry, i, arr) => {
@@ -3732,6 +3731,7 @@ function ToolsScreen({ userData, onUpdate }) {
                     </button>
                   );
                 })}
+              </div>
             </div>
 
           </div>
