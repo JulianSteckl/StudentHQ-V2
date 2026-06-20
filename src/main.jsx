@@ -3323,8 +3323,6 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
   );
 }
 
-}
-
 function AddToolModal({ open, onClose, onSave }) {
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
