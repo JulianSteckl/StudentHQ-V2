@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scholar — Testing Plan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=DM+Sans:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; background: #f8f6f0; color: #18150e; line-height: 1.5; }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 80px; }
+    .nav-links { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+    .nav-links a {
+      font-family: "Geist Mono", monospace; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+      text-decoration: none; padding: 8px 12px; border-radius: 8px; border: 1px solid #e8e2d8; background: #fff; color: #5a5240;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover { border-color: #2a60a0; background: rgba(42,96,160,0.06); color: #18150e; }
+    .nav-links a.active { border-color: #2a60a0; background: rgba(42,96,160,0.1); color: #1e4a7a; pointer-events: none; }
+    h1 { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-weight: 400; font-size: clamp(2rem, 5vw, 2.75rem); margin: 0 0 6px; letter-spacing: -0.02em; }
+    .sub { font-family: "Geist Mono", monospace; font-size: 11px; color: #9a9080; text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 28px; }
+    .progress-card { background: #fff; border: 1px solid #e8e2d8; border-radius: 12px; padding: 18px 20px; margin-bottom: 28px; }
+    .progress-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; gap: 12px; flex-wrap: wrap; }
+    .progress-label { font-family: "Geist Mono", monospace; font-size: 10px; color: #9a9080; text-transform: uppercase; letter-spacing: 0.12em; }
+    .progress-pct { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-size: 1.5rem; color: #2a60a0; }
+    .progress-bar { height: 6px; background: #f0ece4; border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #2a60a0; border-radius: 3px; width: 0%; transition: width 0.25s ease; }
+    .actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    button {
+      font-family: "Geist Mono", monospace; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 8px 14px; border-radius: 8px; border: 1px solid #e8e2d8; background: #fff; color: #5a5240; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    button:hover { border-color: #2a60a0; background: rgba(42,96,160,0.06); }
+    button.danger:hover { border-color: #bf4a30; background: rgba(191,74,48,0.06); color: #bf4a30; }
+    section { background: #fff; border: 1px solid #e8e2d8; border-radius: 12px; padding: 20px 20px 8px; margin-bottom: 16px; }
+    section h2 { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-weight: 400; font-size: 1.35rem; margin: 0 0 4px; }
+    .phase-note { font-size: 13px; color: #5a5240; margin: 0 0 14px; padding-bottom: 12px; border-bottom: 1px solid #f0ece4; }
+    .done-when { font-family: "Geist Mono", monospace; font-size: 10px; color: #2a60a0; margin: 0 0 14px; letter-spacing: 0.02em; }
+    label.item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0ece4; cursor: pointer; user-select: none; }
+    label.item:last-child { border-bottom: none; }
+    label.item:hover .text { color: #18150e; }
+    input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; accent-color: #2a60a0; cursor: pointer; }
+    .text { font-size: 14px; color: #5a5240; transition: color 0.15s; }
+    .sprint section { border-left: 3px solid #2a60a0; }
+    .hint { font-size: 12px; color: #9a9080; margin-top: 24px; text-align: center; line-height: 1.7; }
+    .hint code { font-family: "Geist Mono", monospace; font-size: 11px; background: #f0ece4; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav-links">
+      <a href="implementation-plan.html">Code</a>
+      <a href="design-plan.html">Design</a>
+      <a href="launch-plan.html">Launch</a>
+      <a href="testing-plan.html" class="active">Testing</a>
+    </nav>
+
+    <h1>Testing plan.</h1>
+    <p class="sub">Scholar · manual QA · click Prompt on any task to copy for AI</p>
+
+    <div class="progress-card">
+      <div class="progress-top">
+        <span class="progress-label">Overall progress</span>
+        <span class="progress-pct" id="pct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="fill"></div></div>
+      <div class="actions">
+        <button type="button" id="scrollEnd">Jump to end</button>
+        <button type="button" class="danger" id="resetAll">Reset all</button>
+      </div>
+    </div>
+
+    <div id="plan"></div>
+
+    <p class="hint">
+      Open in your browser:<br />
+      <code>http://localhost:3456/testing-plan.html</code><br />
+      or double-click <code>testing-plan.html</code> in File Explorer
+    </p>
+  </div>
+
+  <script src="plans-common.js"></script>
+  <script>
+    const STORAGE_KEY = 'scholar-testing-plan-v1';
+
+    const PLAN = [
+      {
+        title: 'Phase 1 — Critical paths (must pass)',
+        note: 'Run these before every launch or big deploy. All must pass.',
+        doneWhen: 'Done when: every item checked on both desktop and mobile width.',
+        items: [
+          'Welcome screen loads — no blank page or console crash',
+          '“Open fresh notebook” → setup (3 steps) → dashboard',
+          'Setup: name + grade + school + at least 1 class required',
+          'Google sign-in opens and returns to app (production + local)',
+          'Add homework → appears on Today and Homework screens',
+          'Mark homework done → moves to completed column',
+          'Edit homework → changes persist after refresh',
+          'Delete homework → removed after refresh',
+          'Refresh browser → homework still there',
+          'Sign out → welcome screen → no old user data visible',
+          'Navigate every sidebar tab without crash (Today through Tools)',
+        ],
+      },
+      {
+        title: 'Phase 2 — Account & data integrity',
+        note: 'Catch the bugs that destroy trust.',
+        items: [
+          'Google user: sign in → setup classes → refresh → subjects remain',
+          'Google user: sign out → different account → no data bleed',
+          'Non-Google user: data persists after refresh (if implemented)',
+          'Profile edit (name, school, year) saves and shows in sidebar',
+          'Add subject via sidebar + modal → appears in list',
+          'Manage subjects: rename, recolor, delete',
+          'Set grade on Grades screen → GPA updates',
+          'Grades persist after refresh',
+          'localStorage inspect: no orphaned keys after sign-out',
+          'Cloud: sign in on second browser restores profile (if MongoDB live)',
+        ],
+      },
+      {
+        title: 'Phase 3 — Screen-by-screen smoke test',
+        note: 'Each main view loads and core UI is usable.',
+        items: [
+          'Today: stat cards show real counts (not NaN or undefined)',
+          'Today: week calendar highlights correct day',
+          'Today: “+ Add” opens homework add form',
+          'Homework: kanban columns populate correctly',
+          'Homework: add form validates empty title',
+          'Quizzes: list renders (empty or with data)',
+          'Notes: search filters results',
+          'Notes: open a note → back returns to list',
+          'Flashcards: enter flip mode → flip card → next card',
+          'Schedule: week nav (← Week / Week → / Today)',
+          'Schedule: Pomodoro start / pause / reset',
+          'Grades: grade dropdown works per subject',
+          'Grades: table scrolls horizontally on narrow width',
+          'Tools: clicking a tool opens new tab',
+          'Settings menu: Profile, Manage Subjects, AI Keys, Sign Out',
+        ],
+      },
+      {
+        title: 'Phase 4 — Modals & overlays',
+        items: [
+          'Add Subject modal: open, submit, cancel, click-outside close',
+          'Profile modal: save changes reflected in sidebar',
+          'AI Keys modal: save key, show/hide toggle',
+          'Manage Subjects modal: add at limit (10) blocked',
+          'Sign-in overlay: open, close, stop propagation on inner click',
+          'Mobile: modals fit viewport, scroll if tall',
+          'Toast appears on “coming soon” actions',
+          'Toast auto-dismisses',
+        ],
+      },
+      {
+        title: 'Phase 5 — Mobile & responsive',
+        note: 'Resize to &lt; 768px or use a real phone.',
+        items: [
+          'Hamburger opens sidebar overlay',
+          'Tap overlay closes sidebar',
+          'Mobile header shows “Scholar.”',
+          'Today stat grid: 2 columns, readable',
+          'Homework board usable (scroll or stack acceptable)',
+          'Grades stats: 2 columns on mobile',
+          'Setup flow: right column hidden, steps still completable',
+          'Welcome hero: no horizontal scroll',
+          'Touch targets: buttons tappable without mis-tap',
+          'Virtual keyboard doesn’t hide submit buttons (setup, add homework)',
+        ],
+      },
+      {
+        title: 'Phase 6 — Edge cases & failure modes',
+        items: [
+          'Brand-new account: empty states don’t look broken',
+          '10 subjects max enforced',
+          'Homework with no subjects: graceful handling',
+          'Very long homework title: truncates, doesn’t break layout',
+          'API /api/profile down: app still usable locally',
+          'Google sign-in cancelled: no stuck loading state',
+          'Double-click submit buttons: no duplicate homework',
+          'Browser back button: doesn’t trap or white-screen',
+          'Hard refresh (Ctrl+Shift+R): app recovers',
+        ],
+      },
+      {
+        title: 'Phase 7 — Cross-browser',
+        note: 'Run Phase 1 again in each browser.',
+        items: [
+          'Google Chrome (desktop)',
+          'Microsoft Edge (desktop)',
+          'Safari (desktop or iOS)',
+          'Firefox (desktop)',
+          'Chrome on Android (optional)',
+        ],
+      },
+      {
+        title: 'Phase 8 — Performance & console',
+        items: [
+          'No red errors in console on welcome load',
+          'No red errors navigating all screens',
+          'First load acceptable on throttled 3G (subjective)',
+          'Fonts load (no permanent fallback flash)',
+          'No layout shift on screen change',
+          'React root mounts once (no double-render crash)',
+        ],
+      },
+      {
+        title: 'Pre-deploy regression (quick)',
+        sprint: true,
+        items: [
+          'Phase 1 all critical paths — desktop',
+          'Phase 1 all critical paths — mobile width',
+          'Sign out / sign in cycle',
+          'Production URL matches local behavior',
+          'Console clean on production',
+        ],
+      },
+    ];
+
+    let state = loadState();
+    function loadState() { try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : {}; } catch { return {}; } }
+    function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); updateProgress(); }
+    function itemId(pi, ii) { return 'p' + pi + '-i' + ii; }
+    function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    function render() {
+      PlansUI.renderPlan({
+        plan: PLAN,
+        state,
+        itemId,
+        escapeHtml,
+        planTitle: 'Testing Plan (Manual QA)',
+        planKind: 'testing',
+        onCheck: (id, checked) => {
+          state[id] = checked;
+          saveState();
+        },
+      });
+      updateProgress();
+    }
+
+    function updateProgress() {
+      let total = 0, done = 0;
+      PLAN.forEach((phase, pi) => phase.items.forEach((_, ii) => { total++; if (state[itemId(pi, ii)]) done++; }));
+      const pct = total ? Math.round(done / total * 100) : 0;
+      document.getElementById('pct').textContent = pct + '%';
+      document.getElementById('fill').style.width = pct + '%';
+    }
+
+    document.getElementById('resetAll').addEventListener('click', () => {
+      if (confirm('Reset all checkboxes?')) { state = {}; saveState(); render(); }
+    });
+    document.getElementById('scrollEnd').addEventListener('click', () => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    });
+
+    render();
+  </script>
+</body>
+</html>

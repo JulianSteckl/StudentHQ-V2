@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scholar — Launch Plan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=DM+Sans:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; background: #f8f6f0; color: #18150e; line-height: 1.5; }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 80px; }
+    .nav-links { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+    .nav-links a {
+      font-family: "Geist Mono", monospace; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+      text-decoration: none; padding: 8px 12px; border-radius: 8px; border: 1px solid #e8e2d8; background: #fff; color: #5a5240;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover { border-color: #3a8a52; background: rgba(58,138,82,0.06); color: #18150e; }
+    .nav-links a.active { border-color: #3a8a52; background: rgba(58,138,82,0.1); color: #2d6e42; pointer-events: none; }
+    h1 { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-weight: 400; font-size: clamp(2rem, 5vw, 2.75rem); margin: 0 0 6px; letter-spacing: -0.02em; }
+    .sub { font-family: "Geist Mono", monospace; font-size: 11px; color: #9a9080; text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 28px; }
+    .progress-card { background: #fff; border: 1px solid #e8e2d8; border-radius: 12px; padding: 18px 20px; margin-bottom: 28px; }
+    .progress-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; gap: 12px; flex-wrap: wrap; }
+    .progress-label { font-family: "Geist Mono", monospace; font-size: 10px; color: #9a9080; text-transform: uppercase; letter-spacing: 0.12em; }
+    .progress-pct { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-size: 1.5rem; color: #3a8a52; }
+    .progress-bar { height: 6px; background: #f0ece4; border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #3a8a52; border-radius: 3px; width: 0%; transition: width 0.25s ease; }
+    .actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    button {
+      font-family: "Geist Mono", monospace; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 8px 14px; border-radius: 8px; border: 1px solid #e8e2d8; background: #fff; color: #5a5240; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    button:hover { border-color: #3a8a52; background: rgba(58,138,82,0.06); }
+    button.danger:hover { border-color: #bf4a30; background: rgba(191,74,48,0.06); color: #bf4a30; }
+    section { background: #fff; border: 1px solid #e8e2d8; border-radius: 12px; padding: 20px 20px 8px; margin-bottom: 16px; }
+    section h2 { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-weight: 400; font-size: 1.35rem; margin: 0 0 4px; }
+    .phase-note { font-size: 13px; color: #5a5240; margin: 0 0 14px; padding-bottom: 12px; border-bottom: 1px solid #f0ece4; }
+    .done-when { font-family: "Geist Mono", monospace; font-size: 10px; color: #3a8a52; margin: 0 0 14px; letter-spacing: 0.02em; }
+    label.item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0ece4; cursor: pointer; user-select: none; }
+    label.item:last-child { border-bottom: none; }
+    label.item:hover .text { color: #18150e; }
+    input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; accent-color: #3a8a52; cursor: pointer; }
+    .text { font-size: 14px; color: #5a5240; transition: color 0.15s; }
+    .sprint section { border-left: 3px solid #3a8a52; }
+    .hint { font-size: 12px; color: #9a9080; margin-top: 24px; text-align: center; line-height: 1.7; }
+    .hint code { font-family: "Geist Mono", monospace; font-size: 11px; background: #f0ece4; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav-links">
+      <a href="implementation-plan.html">Code</a>
+      <a href="design-plan.html">Design</a>
+      <a href="launch-plan.html" class="active">Launch</a>
+      <a href="testing-plan.html">Testing</a>
+    </nav>
+
+    <h1>Launch plan.</h1>
+    <p class="sub">Scholar · ship it · click Prompt on any task to copy for AI</p>
+
+    <div class="progress-card">
+      <div class="progress-top">
+        <span class="progress-label">Overall progress</span>
+        <span class="progress-pct" id="pct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="fill"></div></div>
+      <div class="actions">
+        <button type="button" id="scrollEnd">Jump to end</button>
+        <button type="button" class="danger" id="resetAll">Reset all</button>
+      </div>
+    </div>
+
+    <div id="plan"></div>
+
+    <p class="hint">
+      Open in your browser:<br />
+      <code>http://localhost:3456/launch-plan.html</code><br />
+      or double-click <code>launch-plan.html</code> in File Explorer
+    </p>
+  </div>
+
+  <script src="plans-common.js"></script>
+  <script>
+    const STORAGE_KEY = 'scholar-launch-plan-v1';
+
+    const PLAN = [
+      {
+        title: 'Phase 1 — Pre-launch blockers',
+        note: 'Do not share the URL until these are done.',
+        doneWhen: 'Done when: a stranger can sign in, use the app, and not lose data on refresh.',
+        items: [
+          'Complete testing-plan Phase 1 (critical paths) with zero failures',
+          'Hide or remove all “coming soon” buttons that look broken to new users',
+          'Confirm homework persists after browser refresh (all user types)',
+          'Confirm sign-out clears data on shared devices',
+          'Production Google OAuth origins + redirect URIs configured',
+          'MONGODB_URI set in Vercel (if using cloud sync)',
+          'No API keys or secrets committed to git',
+          'Known broken features documented internally',
+        ],
+      },
+      {
+        title: 'Phase 2 — Hosting & domain',
+        note: 'Get the app on a real URL.',
+        items: [
+          'Deploy to Vercel (or chosen host) from main branch',
+          'Connect custom domain (optional but recommended)',
+          'HTTPS working on production URL',
+          'Verify /api/profile works on production',
+          'Test app loads without console errors on production',
+          'Set up preview deployments for future changes',
+          'Confirm index.html is the entry point (not Scholar.dc.html)',
+        ],
+      },
+      {
+        title: 'Phase 3 — Legal & trust',
+        note: 'Students and parents will ask what you do with their data.',
+        items: [
+          'Write a simple Privacy Policy page or link',
+          'Privacy policy mentions: local storage, Google sign-in, MongoDB sync',
+          'Privacy policy mentions: API keys stored locally only (if applicable)',
+          'Add Terms of Use or “as-is beta” disclaimer',
+          'Add contact email for support / data deletion requests',
+          'Decide minimum age (13+) and state it if needed',
+          'No misleading claims on welcome page about unfinished features',
+        ],
+      },
+      {
+        title: 'Phase 4 — Discoverability & polish',
+        note: 'First impression when someone lands from a link.',
+        items: [
+          'Favicon live on production',
+          'Page title and meta description set',
+          'OG / social preview image (link share looks good)',
+          'Welcome screen loads fast on mobile data',
+          '404 or fallback if someone hits a bad URL',
+          'Robots.txt if you want to stay unindexed during beta',
+        ],
+      },
+      {
+        title: 'Phase 5 — Beta launch',
+        note: 'Real users, small group, fast feedback.',
+        doneWhen: 'Done when: 3–5 students used it for a full school week.',
+        items: [
+          'Pick 3–5 beta testers (different grades/devices if possible)',
+          'Write a 3-sentence “what Scholar is” pitch for them',
+          'Send install link + how to sign in',
+          'List 3 things you want them to try (homework, grades, schedule, etc.)',
+          'Set up feedback channel (Google Form, Discord, or email)',
+          'Schedule a 15-min check-in after 3 days',
+          'Collect: what confused them, what they loved, what broke',
+          'Fix top 3 beta issues before widening access',
+        ],
+      },
+      {
+        title: 'Phase 6 — Public soft launch',
+        note: 'Share wider only after beta feedback is addressed.',
+        items: [
+          'Re-run full testing-plan on production URL',
+          'Post or share link (class group, social, portfolio)',
+          'Monitor for sign-in failures and API errors first 48 hours',
+          'Respond to feedback within 24–48 hours',
+          'Keep a public “known issues” list if anything minor remains',
+          'Thank early users publicly (optional)',
+        ],
+      },
+      {
+        title: 'Phase 7 — Post-launch operations',
+        note: 'Keep it running after day one.',
+        items: [
+          'Bookmark Vercel dashboard + MongoDB Atlas (if used)',
+          'Know how to roll back a bad deploy',
+          'Check MongoDB usage / free tier limits',
+          'Rotate credentials if anything was ever exposed',
+          'Plan a weekly 30-min maintenance block',
+          'Track feature requests separately from bugs',
+          'Version or changelog note when you ship updates',
+        ],
+      },
+      {
+        title: 'Launch day checklist',
+        sprint: true,
+        items: [
+          'Production URL opens on phone and laptop',
+          'Google sign-in works on production',
+          'Fresh notebook path works without Google',
+          'Privacy policy linked from welcome or settings',
+          'Testing plan critical paths all checked',
+          'Tell first beta user the link is live',
+        ],
+      },
+    ];
+
+    let state = loadState();
+    function loadState() { try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : {}; } catch { return {}; } }
+    function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); updateProgress(); }
+    function itemId(pi, ii) { return 'p' + pi + '-i' + ii; }
+    function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    function render() {
+      PlansUI.renderPlan({
+        plan: PLAN,
+        state,
+        itemId,
+        escapeHtml,
+        planTitle: 'Launch Plan',
+        planKind: 'launch',
+        onCheck: (id, checked) => {
+          state[id] = checked;
+          saveState();
+        },
+      });
+      updateProgress();
+    }
+
+    function updateProgress() {
+      let total = 0, done = 0;
+      PLAN.forEach((phase, pi) => phase.items.forEach((_, ii) => { total++; if (state[itemId(pi, ii)]) done++; }));
+      const pct = total ? Math.round(done / total * 100) : 0;
+      document.getElementById('pct').textContent = pct + '%';
+      document.getElementById('fill').style.width = pct + '%';
+    }
+
+    document.getElementById('resetAll').addEventListener('click', () => {
+      if (confirm('Reset all checkboxes?')) { state = {}; saveState(); render(); }
+    });
+    document.getElementById('scrollEnd').addEventListener('click', () => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    });
+
+    render();
+  </script>
+</body>
+</html>

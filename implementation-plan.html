@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scholar — Implementation Plan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=DM+Sans:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: #f8f6f0;
+      color: #18150e;
+      line-height: 1.5;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 80px; }
+    h1 {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      font-size: clamp(2rem, 5vw, 2.75rem);
+      margin: 0 0 6px;
+      letter-spacing: -0.02em;
+    }
+    .sub {
+      font-family: "Geist Mono", monospace;
+      font-size: 11px;
+      color: #9a9080;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      margin-bottom: 28px;
+    }
+    .progress-card {
+      background: #fff;
+      border: 1px solid #e8e2d8;
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 28px;
+    }
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 10px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .progress-label {
+      font-family: "Geist Mono", monospace;
+      font-size: 10px;
+      color: #9a9080;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+    .progress-pct {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-style: italic;
+      font-size: 1.5rem;
+      color: #b8943a;
+    }
+    .progress-bar {
+      height: 6px;
+      background: #f0ece4;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #b8943a;
+      border-radius: 3px;
+      width: 0%;
+      transition: width 0.25s ease;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    button {
+      font-family: "Geist Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid #e8e2d8;
+      background: #fff;
+      color: #5a5240;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    button:hover { border-color: #b8943a; background: rgba(184,148,58,0.06); }
+    button.danger:hover { border-color: #bf4a30; background: rgba(191,74,48,0.06); color: #bf4a30; }
+    section {
+      background: #fff;
+      border: 1px solid #e8e2d8;
+      border-radius: 12px;
+      padding: 20px 20px 8px;
+      margin-bottom: 16px;
+    }
+    section h2 {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      font-size: 1.35rem;
+      margin: 0 0 4px;
+      color: #18150e;
+    }
+    .phase-note {
+      font-size: 13px;
+      color: #5a5240;
+      margin: 0 0 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f0ece4;
+    }
+    .done-when {
+      font-family: "Geist Mono", monospace;
+      font-size: 10px;
+      color: #3a8a52;
+      margin: 0 0 14px;
+      letter-spacing: 0.02em;
+    }
+    label.item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0ece4;
+      cursor: pointer;
+      user-select: none;
+    }
+    label.item:last-child { border-bottom: none; }
+    label.item:hover .text { color: #18150e; }
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      flex-shrink: 0;
+      accent-color: #b8943a;
+      cursor: pointer;
+    }
+    .text { font-size: 14px; color: #5a5240; transition: color 0.15s; }
+    .sprint section { border-left: 3px solid #b8943a; }
+    .hint {
+      font-size: 12px;
+      color: #9a9080;
+      margin-top: 24px;
+      text-align: center;
+      line-height: 1.7;
+    }
+    .hint code {
+      font-family: "Geist Mono", monospace;
+      font-size: 11px;
+      background: #f0ece4;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .nav-links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .nav-links a {
+      font-family: "Geist Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid #e8e2d8;
+      background: #fff;
+      color: #5a5240;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover { border-color: #b8943a; background: rgba(184,148,58,0.06); color: #18150e; }
+    .nav-links a.active {
+      border-color: #b8943a;
+      background: rgba(184,148,58,0.1);
+      color: #9a7828;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav-links">
+      <a href="implementation-plan.html" class="active">Code</a>
+      <a href="design-plan.html">Design</a>
+      <a href="launch-plan.html">Launch</a>
+      <a href="testing-plan.html">Testing</a>
+    </nav>
+
+    <h1>Implementation plan.</h1>
+    <p class="sub">Scholar · impact-first · click Prompt on any task to copy for AI</p>
+
+    <div class="progress-card">
+      <div class="progress-top">
+        <span class="progress-label">Overall progress</span>
+        <span class="progress-pct" id="pct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="fill"></div></div>
+      <div class="actions">
+        <button type="button" id="expandAll">Jump to end</button>
+        <button type="button" class="danger" id="resetAll">Reset all</button>
+      </div>
+    </div>
+
+    <div id="plan"></div>
+
+    <p class="hint">
+      Open in your browser:<br />
+      <code>http://localhost:3456/implementation-plan.html</code><br />
+      or double-click <code>implementation-plan.html</code> in File Explorer
+    </p>
+  </div>
+
+  <script src="plans-common.js"></script>
+  <script>
+    const STORAGE_KEY = 'scholar-impl-plan-v1';
+
+    const PLAN = [
+      {
+        title: 'Phase 1 — Stop data loss and broken trust',
+        note: 'Highest impact. Fix these before anything else.',
+        doneWhen: 'Done when: homework survives refresh for every user, and can be edited/deleted reliably.',
+        items: [
+          'Persist userData for all users (not only when profile.email exists)',
+          'Fix sign-out to clear all related localStorage keys (profile + per-user data)',
+          'Fix homework items to always have a stable id',
+          'Fix homework kanban to use id for React keys (not title)',
+          'Add homework edit (title, subject, due, estimate)',
+          'Add homework delete',
+          'Add flashcards: [] to defaultUserData()',
+          'Remove or hide fake stats until they are real (e.g. “1.3d early”, fake tool sessions)',
+        ],
+      },
+      {
+        title: 'Phase 2 — Make the core product real',
+        note: 'The dashboard looks finished; these are the features users actually came for.',
+        doneWhen: 'Done when: a new user can run their whole school week in the app and refresh without losing work.',
+        items: [
+          'Build note editor — create, edit, delete, persist',
+          'Build quiz CRUD — add, edit, delete, confidence, due date',
+          'Build flashcard decks and cards — create, study, persist',
+          'Build schedule / bell-period editor (periods, times, rooms, current class)',
+          'Replace relative due labels (“Tonight”, “Wed”) with real calendar dates',
+          'Implement study streak logic (increment on real activity)',
+          'Persist Pomodoro / focus session count',
+          'Cascade delete when removing a subject (homework, grades, notes, quizzes, etc.)',
+        ],
+      },
+      {
+        title: 'Phase 3 — Cloud sync and account integrity',
+        note: 'Google sign-in promises a second brain; today it only syncs a shell.',
+        doneWhen: 'Done when: sign in on another device restores homework, notes, quizzes, and schedule.',
+        items: [
+          'Sync full userData to MongoDB (not just profile)',
+          'Load full userData from cloud on Google sign-in',
+          'Fix handleSignIn to POST merged profile (not incomplete p)',
+          'Add local JSON export/import for backup',
+          'Validate API payloads and tighten CORS for production',
+        ],
+      },
+      {
+        title: 'Phase 4 — AI and smart features',
+        note: 'High visibility, but only valuable after Phase 2 data exists.',
+        doneWhen: 'Done when: at least one AI feature works end-to-end with stored keys.',
+        items: [
+          'Wire AI keys to one real feature first (e.g. note summary)',
+          'Implement study plan generator from real homework + quiz data',
+          'Generate flashcards from notes',
+          'Implement grade insights (once grades/history exist)',
+          'Implement remaining study modes (multiple choice, type answer, true/false, etc.)',
+          'Implement Notes AI workspace actions (study guide, gap analysis, etc.)',
+        ],
+      },
+      {
+        title: 'Phase 5 — Fix what’s lying on screen',
+        note: 'Visible wrongness that erodes confidence even when features work.',
+        items: [
+          'Unify term/year copy (“Spring 2025” → profile-driven current term)',
+          'Unify branding (Scholar vs StudentHQ-V2)',
+          'Fix flashcards “AVG SCORE —%” display',
+          'Fix sign-in overlay logo (“J” → “S”)',
+          'Implement real grade sparklines or remove empty charts',
+          'Track real tool usage or remove fake Tools analytics',
+          'Implement or remove unreachable SubjectsScreen',
+          'Implement dashboard customization, import PDF, export CSV, keyboard shortcuts (or remove until ready)',
+        ],
+      },
+      {
+        title: 'Phase 6 — Mobile and layout reliability',
+        note: 'Many students live on their phones.',
+        items: [
+          'Make Homework 5-stat row responsive on mobile',
+          'Make Schedule 5-day grid responsive',
+          'Make Tools table + side cards usable on mobile',
+          'Stack Notes 2-column panels on narrow screens',
+          'Stack Flashcards 3-column study modes on narrow screens',
+          'Remove or narrow fragile .shq-screen-wrap margin CSS override',
+          'Add focus trap + Escape close on all modals',
+        ],
+      },
+      {
+        title: 'Phase 7 — Architecture and production foundation',
+        note: 'Enables speed after the product works. Do not lead with this.',
+        items: [
+          'Add Vite (or similar) build — remove in-browser Babel',
+          'Split index.html into separate modules/files',
+          'Expand .gitignore (node_modules, .env, etc.)',
+          'Add README with local dev, MongoDB, Google OAuth, deploy steps',
+          'Add vercel.json if needed for API + static routing',
+          'Remove dead code (QUIZ, HIST, DECKS, doSignIn, unused demo constants)',
+          'Decide fate of Scholar.dc.html (merge, archive, or delete)',
+          'Pin or self-host CDN dependencies (React, Babel) with SRI if kept on CDN',
+        ],
+      },
+      {
+        title: 'Phase 8 — Polish, SEO, accessibility',
+        note: 'Important for launch quality; not blocking core value.',
+        items: [
+          'Add meta description and Open Graph tags',
+          'Add favicon',
+          'Add aria-label to icon-only buttons',
+          'Add meaningful alt text on profile images',
+          'Associate form labels with inputs (htmlFor / id)',
+          'Support prefers-reduced-motion for animations',
+          'Add skip-to-content link',
+          'Don’t rely on color alone for homework urgency',
+          'Update document title per screen',
+          'Add loading/error states for Google sign-in and API calls',
+          'Add save toasts and delete confirmations',
+          'Make sidebar subject rows navigate somewhere useful',
+          'Add empty-state onboarding for brand-new users',
+          'Add unit tests (GPA calc, storage helpers, date grouping)',
+        ],
+      },
+      {
+        title: 'Sprint 1 — Trust recovery',
+        sprint: true,
+        items: [
+          'Persist all userData locally',
+          'Homework id / keys / edit / delete',
+          'Sign-out cleanup',
+          'Hide fake stats',
+        ],
+      },
+      {
+        title: 'Sprint 2 — Core CRUD',
+        sprint: true,
+        items: [
+          'Notes editor',
+          'Quiz CRUD',
+          'Real due dates on homework',
+        ],
+      },
+      {
+        title: 'Sprint 3 — Schedule + study loop',
+        sprint: true,
+        items: [
+          'Bell schedule editor',
+          'Flashcard decks',
+          'Streak + focus session persistence',
+        ],
+      },
+      {
+        title: 'Sprint 4 — Cloud',
+        sprint: true,
+        items: [
+          'Full MongoDB sync',
+          'Export/import backup',
+        ],
+      },
+      {
+        title: 'Sprint 5 — AI (one feature)',
+        sprint: true,
+        items: [
+          'Note summary OR study plan from real data',
+        ],
+      },
+      {
+        title: 'Sprint 6 — Mobile + visible bugs',
+        sprint: true,
+        items: [
+          'Responsive grids',
+          'Fix dates, branding, empty charts',
+        ],
+      },
+      {
+        title: 'Sprint 7 — Architecture',
+        sprint: true,
+        items: [
+          'Vite + file split + cleanup',
+        ],
+      },
+    ];
+
+    let state = loadState();
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      updateProgress();
+    }
+
+    function itemId(phaseIdx, itemIdx) {
+      return 'p' + phaseIdx + '-i' + itemIdx;
+    }
+
+    function render() {
+      PlansUI.renderPlan({
+        plan: PLAN,
+        state,
+        itemId,
+        escapeHtml,
+        planTitle: 'Implementation Plan (Code)',
+        planKind: 'code',
+        onCheck: (id, checked) => {
+          state[id] = checked;
+          saveState();
+        },
+      });
+      updateProgress();
+    }
+
+    function updateProgress() {
+      let total = 0;
+      let done = 0;
+      PLAN.forEach((phase, pi) => {
+        phase.items.forEach((_, ii) => {
+          total++;
+          if (state[itemId(pi, ii)]) done++;
+        });
+      });
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      document.getElementById('pct').textContent = pct + '%';
+      document.getElementById('fill').style.width = pct + '%';
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    document.getElementById('resetAll').addEventListener('click', () => {
+      if (confirm('Reset all checkboxes? This cannot be undone.')) {
+        state = {};
+        saveState();
+        render();
+      }
+    });
+
+    document.getElementById('expandAll').addEventListener('click', () => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    });
+
+    render();
+  </script>
+</body>
+</html>
