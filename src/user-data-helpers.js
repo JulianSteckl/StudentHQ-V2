@@ -215,16 +215,16 @@ const buildToolSuggestions = (opens, { notesCount = 0, tools = TOOLS_DATA } = {}
   const counts = toolOpenCounts(opens);
   const untried = tools.filter(t => !counts[t.id]);
   if (!untried.length) {
-    const ranked = tools
+    return tools
       .map(t => ({ tool: t, sessions: counts[t.id] || 0 }))
-      .sort((a, b) => a.sessions - b.sessions);
-    const pick = ranked[0];
-    if (!pick || pick.sessions === 0) return [];
-    return [{
-      tool: pick.tool,
-      msg: `${pick.tool.name} hasn't been opened in a while — worth revisiting.`,
-      action: 'Open',
-    }];
+      .sort((a, b) => a.sessions - b.sessions)
+      .filter(p => p.sessions > 0)
+      .slice(0, 3)
+      .map(pick => ({
+        tool: pick.tool,
+        msg: `${pick.tool.name} hasn't been opened in a while — worth revisiting.`,
+        action: 'Open',
+      }));
   }
   const priority = (t) => {
     if (notesCount > 0 && t.id === 'notebooklm') return 0;
@@ -232,7 +232,7 @@ const buildToolSuggestions = (opens, { notesCount = 0, tools = TOOLS_DATA } = {}
     if (t.cat === 'AI') return 2;
     return 3;
   };
-  return untried.sort((a, b) => priority(a) - priority(b)).slice(0, 2).map(tool => ({
+  return untried.sort((a, b) => priority(a) - priority(b)).slice(0, 3).map(tool => ({
     tool,
     msg: notesCount > 0 && tool.id === 'notebooklm'
       ? `You have ${notesCount} note${notesCount === 1 ? '' : 's'} — try ${tool.name} to study from them.`

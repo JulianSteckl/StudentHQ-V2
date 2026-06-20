@@ -3542,12 +3542,13 @@ function ToolsScreen({ userData, onUpdate }) {
         <div className="shq-tools-mid" style={{marginBottom:12, background:'transparent'}}>
 
           {/* Intelligent suggestions */}
-          <div style={{background:T.surface, padding:'12px 16px', borderRadius:12}}>
+          <div className="shq-tools-mid-card" style={{background:T.surface, padding:'12px 16px', borderRadius:12}}>
             <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:10}}>
               <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52', flexShrink:0}} />
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', flex:1}}>Intelligent Suggestions</div>
               {suggestions.length > 0 && <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{suggestions.length} active</div>}
             </div>
+            <div className="shq-tools-mid-body">
             {suggestions.length === 0
               ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3, lineHeight:1.5}}>You've tried every tool — keep exploring.</div>
               : suggestions.map((sg, i) => (
@@ -3563,10 +3564,11 @@ function ToolsScreen({ userData, onUpdate }) {
                 <button type="button" onClick={() => openTool(sg.tool)} style={{fontFamily:T.mono, fontSize:10, color:T.accent, background:'none', border:'none', padding:0, flexShrink:0, cursor:'pointer'}}>{sg.action} →</button>
               </div>
             ))}
+            </div>
           </div>
 
           {/* Usage breakdown */}
-          <div style={{background:T.surface, padding:'12px 16px', borderRadius:12}}>
+          <div className="shq-tools-mid-card" style={{background:T.surface, padding:'12px 16px', borderRadius:12}}>
             <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Breakdown</div>
               <select
@@ -3578,10 +3580,11 @@ function ToolsScreen({ userData, onUpdate }) {
                 <option value="week">This Week</option>
               </select>
             </div>
+            <div className="shq-tools-mid-body">
             {trackedTools.length === 0
               ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3, lineHeight:1.5}}>No usage data yet.</div>
-              : trackedTools.slice(0, 5).map((tool, i, arr) => (
-              <div key={tool.id} style={{marginBottom: i < arr.length - 1 ? 8 : 0}}>
+              : trackedTools.slice(0, 2).map((tool, i, arr) => (
+              <div key={tool.id} style={{padding:'7px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
                 <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4}}>
                   <div style={{display:'flex', alignItems:'center', gap:6, minWidth:0}}>
                     <div style={{width:5, height:5, borderRadius:'50%', background:tool.color, flexShrink:0}} />
@@ -3594,16 +3597,19 @@ function ToolsScreen({ userData, onUpdate }) {
                 </div>
               </div>
             ))}
+            </div>
           </div>
 
           {/* Usage insight */}
-          <div style={{background:T.surface, padding:'12px 16px', display:'flex', flexDirection:'column', borderRadius:12}}>
+          <div className="shq-tools-mid-card" style={{background:T.surface, padding:'12px 16px', display:'flex', flexDirection:'column', borderRadius:12}}>
             <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:8}}>
               <span style={{color:T.accent, fontSize:10, lineHeight:1}}>★</span>
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Insight</div>
             </div>
+            <div className="shq-tools-mid-body">
             <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13.5, color: usageInsight ? T.ink2 : T.ink3, lineHeight:1.55}}>
               {usageInsight || 'Use your tools to generate insights.'}
+            </div>
             </div>
           </div>
         </div>
@@ -3713,15 +3719,15 @@ function ToolsScreen({ userData, onUpdate }) {
                 <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Activity</div>
                 <div style={{fontFamily:T.mono, fontSize:10, color:'#3a8a52', letterSpacing:'0.08em'}}>Live</div>
               </div>
-              <div style={{flex:1, minHeight:0}}>
+              <div className="shq-tools-activity-list">
               {recentOpens.length === 0
                 ? <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, lineHeight:1.7}}>No activity yet. Open a tool to start tracking.</div>
-                : recentOpens.slice(0, 5).map((entry, i, arr) => {
+                : recentOpens.slice(0, 12).map((entry, i, arr) => {
                   const tool = toolById(entry.toolId, allTools);
                   if (!tool) return null;
                   return (
                     <button key={entry.id} type="button" onClick={() => openTool(tool)}
-                      style={{display:'flex', alignItems:'center', gap:8, padding:'6px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.bl}` : 'none', width:'100%', background:'none', border:'none', borderTop:'none', borderLeft:'none', borderRight:'none', cursor:'pointer', textAlign:'left'}}
+                      style={{gap:8, padding:'0 2px', borderBottom: i < arr.length - 1 ? `1px solid ${T.bl}` : 'none', width:'100%', background:'none', border:'none', borderTop:'none', borderLeft:'none', borderRight:'none', cursor:'pointer', textAlign:'left'}}
                       onMouseOver={e => e.currentTarget.style.opacity = '0.7'}
                       onMouseOut={e => e.currentTarget.style.opacity = '1'}
                     >
