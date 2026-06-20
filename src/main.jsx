@@ -471,6 +471,245 @@ function ManageSubjectsModal({ open, onClose, profile, onUpdateProfile }) {
   );
 }
 
+const MODAL_FIELD = { width:'100%', padding:'10px 14px', border:`1px solid ${T.border}`, borderRadius:10, fontFamily:T.ui, fontSize:14, color:T.ink, background:T.bg, outline:'none', boxSizing:'border-box', transition:'border-color 0.15s' };
+const MODAL_LABEL = { fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', display:'block', marginBottom:5 };
+const focusBorder = { onFocus: e => e.target.style.borderColor = T.accent, onBlur: e => e.target.style.borderColor = T.border };
+
+function AddHomeworkModal({ open, onClose, onSave, subjects }) {
+  const [title, setTitle] = useState('');
+  const [subj, setSubj] = useState('');
+  const [due, setDue] = useState('Tonight');
+  const [est, setEst] = useState('30 min');
+  const [closing, setClosing] = useState(false);
+  const panelRef = useRef(null);
+  const dismiss = useCallback(() => { setClosing(true); setTimeout(onClose, 320); }, [onClose]);
+
+  useEffect(() => {
+    if (open) {
+      setTitle('');
+      setSubj(subjects[0]?.id || '');
+      setDue('Tonight');
+      setEst('30 min');
+      setClosing(false);
+    }
+  }, [open, subjects]);
+
+  useModalA11y(open, dismiss, panelRef);
+  if (!open) return null;
+
+  const submit = () => {
+    if (!title.trim()) return;
+    onSave({
+      id: Date.now() + '',
+      subj: subj || subjects[0]?.id || '',
+      title: title.trim(),
+      due,
+      urgent: due === 'Tonight',
+      done: false,
+      est,
+    });
+    dismiss();
+  };
+
+  const DUE_OPTS = ['Tonight', 'Tomorrow', 'Wed', 'Thu', 'Fri', 'Next Week'];
+  const EST_OPTS = ['15 min', '30 min', '45 min', '1 hr', '1 hr 30 min', '2 hr', '3 hr'];
+
+  return ReactDOM.createPortal(
+    <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
+      <div ref={panelRef} role="dialog" aria-modal="true" tabIndex={-1} className="shq-modal-box" style={{
+        width:400, maxWidth:'92vw', background:T.surface, border:`1px solid ${T.border}`, borderRadius:16,
+        padding:'36px 32px 28px', position:'relative', opacity:0, outline:'none',
+        boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)',
+        animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`,
+      }}>
+        <button aria-label="Close dialog" onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
+
+        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, marginBottom:4}}>Add <span style={{color:T.accent}}>homework</span></div>
+        <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:22}}>Track assignments · due dates · time estimates</div>
+
+        <div style={{marginBottom:14}}>
+          <label htmlFor="hw-modal-title" style={MODAL_LABEL}>Assignment</label>
+          <input id="hw-modal-title" value={title} onChange={e => setTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} placeholder="e.g. Read chapter 5" autoFocus
+            style={MODAL_FIELD} {...focusBorder} />
+        </div>
+
+        {subjects.length > 0 && (
+          <div style={{marginBottom:14}}>
+            <div style={MODAL_LABEL}>Subject</div>
+            <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
+              {subjects.map(s => {
+                const sel = subj === s.id;
+                return (
+                  <button key={s.id} type="button" onClick={() => setSubj(s.id)} style={{
+                    display:'flex', alignItems:'center', gap:6, padding:'6px 11px',
+                    border:`1px solid ${sel ? s.color : T.border}`, background: sel ? s.color + '14' : T.bg,
+                    borderRadius:20, cursor:'pointer', fontFamily:T.ui, fontSize:11, color: sel ? T.ink : T.ink3,
+                  }}>
+                    <span style={{width:7, height:7, borderRadius:'50%', background:s.color}} />
+                    {s.short || s.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div style={{marginBottom:14}}>
+          <div style={MODAL_LABEL}>Due</div>
+          <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
+            {DUE_OPTS.map(d => (
+              <button key={d} type="button" onClick={() => setDue(d)} style={{
+                padding:'7px 12px', border:`1px solid ${due===d ? T.accent : T.border}`,
+                background: due===d ? T.accentSoft : 'transparent', borderRadius:8,
+                fontFamily:T.mono, fontSize:10, color: due===d ? T.accent : T.ink3,
+                fontWeight: due===d ? 600 : 400, cursor:'pointer',
+              }}>{d}</button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{marginBottom:24}}>
+          <label htmlFor="hw-modal-est" style={MODAL_LABEL}>Estimated time</label>
+          <select id="hw-modal-est" value={est} onChange={e => setEst(e.target.value)} style={{...MODAL_FIELD, cursor:'pointer', appearance:'none'}}>
+            {EST_OPTS.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
+
+        <div style={{display:'flex', gap:10, justifyContent:'flex-end'}}>
+          <button type="button" onClick={dismiss} style={{padding:'9px 20px', border:`1px solid ${T.border}`, background:'transparent', borderRadius:10, fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.06em', cursor:'pointer'}}
+            onMouseOver={e => e.currentTarget.style.background=T.bl} onMouseOut={e => e.currentTarget.style.background='transparent'}>Cancel</button>
+          <button type="button" onClick={submit} disabled={!title.trim()} style={{padding:'9px 24px', border:'none', background: title.trim() ? T.accent : T.border, borderRadius:10, fontFamily:T.mono, fontSize:10, color:'#fff', letterSpacing:'0.06em', cursor: title.trim() ? 'pointer' : 'default', fontWeight:600}}>Add Assignment</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function AddQuizModal({ open, onClose, onSave, subjects }) {
+  const [title, setTitle] = useState('');
+  const [subj, setSubj] = useState('');
+  const [date, setDate] = useState('Fri');
+  const [confidence, setConfidence] = useState(0.6);
+  const [topics, setTopics] = useState('');
+  const [closing, setClosing] = useState(false);
+  const panelRef = useRef(null);
+  const dismiss = useCallback(() => { setClosing(true); setTimeout(onClose, 320); }, [onClose]);
+
+  useEffect(() => {
+    if (open) {
+      setTitle('');
+      setSubj(subjects[0]?.id || '');
+      setDate('Fri');
+      setConfidence(0.6);
+      setTopics('');
+      setClosing(false);
+    }
+  }, [open, subjects]);
+
+  useModalA11y(open, dismiss, panelRef);
+  if (!open) return null;
+
+  const submit = () => {
+    if (!title.trim()) return;
+    onSave({
+      title: title.trim(),
+      subj: subj || subjects[0]?.id || '',
+      date: date.trim() || 'TBD',
+      confidence: Number(confidence) || 0.5,
+      topics: topics.split(',').map(t => t.trim()).filter(Boolean),
+    });
+    dismiss();
+  };
+
+  const DATE_OPTS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Next Week'];
+  const READY_OPTS = [['Low', 0.4], ['Fair', 0.6], ['Strong', 0.85]];
+
+  return ReactDOM.createPortal(
+    <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
+      <div ref={panelRef} role="dialog" aria-modal="true" tabIndex={-1} className="shq-modal-box" style={{
+        width:400, maxWidth:'92vw', background:T.surface, border:`1px solid ${T.border}`, borderRadius:16,
+        padding:'36px 32px 28px', position:'relative', opacity:0, outline:'none',
+        boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)',
+        animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`,
+      }}>
+        <button aria-label="Close dialog" onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
+
+        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, marginBottom:4}}>Schedule a <span style={{color:T.accent}}>quiz</span></div>
+        <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:22}}>Track dates · readiness · topics to review</div>
+
+        <div style={{marginBottom:14}}>
+          <label htmlFor="quiz-modal-title" style={MODAL_LABEL}>Quiz title</label>
+          <input id="quiz-modal-title" value={title} onChange={e => setTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} placeholder="e.g. Unit 4 — Cell division" autoFocus
+            style={MODAL_FIELD} {...focusBorder} />
+        </div>
+
+        {subjects.length > 0 && (
+          <div style={{marginBottom:14}}>
+            <div style={MODAL_LABEL}>Subject</div>
+            <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
+              {subjects.map(s => {
+                const sel = subj === s.id;
+                return (
+                  <button key={s.id} type="button" onClick={() => setSubj(s.id)} style={{
+                    display:'flex', alignItems:'center', gap:6, padding:'6px 11px',
+                    border:`1px solid ${sel ? s.color : T.border}`, background: sel ? s.color + '14' : T.bg,
+                    borderRadius:20, cursor:'pointer', fontFamily:T.ui, fontSize:11, color: sel ? T.ink : T.ink3,
+                  }}>
+                    <span style={{width:7, height:7, borderRadius:'50%', background:s.color}} />
+                    {s.short || s.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div style={{marginBottom:14}}>
+          <div style={MODAL_LABEL}>Date</div>
+          <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
+            {DATE_OPTS.map(d => (
+              <button key={d} type="button" onClick={() => setDate(d)} style={{
+                padding:'7px 12px', border:`1px solid ${date===d ? T.accent : T.border}`,
+                background: date===d ? T.accentSoft : 'transparent', borderRadius:8,
+                fontFamily:T.mono, fontSize:10, color: date===d ? T.accent : T.ink3,
+                fontWeight: date===d ? 600 : 400, cursor:'pointer',
+              }}>{d}</button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <div style={MODAL_LABEL}>Readiness</div>
+          <div style={{display:'flex', gap:6}}>
+            {READY_OPTS.map(([l, v]) => (
+              <button key={l} type="button" onClick={() => setConfidence(v)} style={{
+                flex:1, padding:'8px 0', border:`1px solid ${confidence===v ? T.accent : T.border}`,
+                background: confidence===v ? T.accentSoft : 'transparent', borderRadius:8,
+                fontFamily:T.mono, fontSize:10, color: confidence===v ? T.accent : T.ink3,
+                fontWeight: confidence===v ? 600 : 400, cursor:'pointer',
+              }}>{l}</button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{marginBottom:24}}>
+          <label htmlFor="quiz-modal-topics" style={MODAL_LABEL}>Topics <span style={{opacity:0.5, textTransform:'none', letterSpacing:0}}>— comma-separated</span></label>
+          <input id="quiz-modal-topics" value={topics} onChange={e => setTopics(e.target.value)} placeholder="Mitosis, DNA, Labs"
+            style={MODAL_FIELD} {...focusBorder} />
+        </div>
+
+        <div style={{display:'flex', gap:10, justifyContent:'flex-end'}}>
+          <button type="button" onClick={dismiss} style={{padding:'9px 20px', border:`1px solid ${T.border}`, background:'transparent', borderRadius:10, fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.06em', cursor:'pointer'}}
+            onMouseOver={e => e.currentTarget.style.background=T.bl} onMouseOut={e => e.currentTarget.style.background='transparent'}>Cancel</button>
+          <button type="button" onClick={submit} disabled={!title.trim()} style={{padding:'9px 24px', border:'none', background: title.trim() ? T.accent : T.border, borderRadius:10, fontFamily:T.mono, fontSize:10, color:'#fff', letterSpacing:'0.06em', cursor: title.trim() ? 'pointer' : 'default', fontWeight:600}}>Add Quiz</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function MobileHeader({ onMenuOpen, sidebarOpen }) {
   return (
     <header className="shq-mobile-header" role="banner">
@@ -1044,10 +1283,6 @@ function HomeworkScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
   const homework  = userData?.homework || [];
 
   const [showAdd, setShowAdd] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
-  const [newSubj,  setNewSubj]  = useState(subjects[0]?.id || '');
-  const [newDue,   setNewDue]   = useState('Tonight');
-  const [newEst,   setNewEst]   = useState('30 min');
   const urgentColRef = useRef(null);
 
   useRunScreenAction(screenAction, onScreenActionHandled, (action) => {
@@ -1063,11 +1298,8 @@ function HomeworkScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
     { ic:'+', label:'Start Focus Session', run: () => onNav?.('schedule', 'focus') },
   ];
 
-  const addHomework = () => {
-    if (!newTitle.trim()) return;
-    const item = { id: Date.now()+'', subj: newSubj || subjects[0]?.id || '', title: newTitle.trim(), due: newDue, urgent: newDue === 'Tonight', done: false, est: newEst };
+  const addHomework = (item) => {
     onUpdate && onUpdate({ homework: [...homework, item] });
-    setNewTitle(''); setShowAdd(false);
   };
   const toggleDone = (id) => {
     onUpdate && onUpdate({ homework: homework.map(h => h.id === id ? { ...h, done: !h.done } : h) });
@@ -1127,6 +1359,7 @@ function HomeworkScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
 
   return (
     <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
+        <AddHomeworkModal open={showAdd} onClose={() => setShowAdd(false)} onSave={addHomework} subjects={subjects} />
         {/* Header */}
         <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:20}}>
           <div>
@@ -1139,38 +1372,8 @@ function HomeworkScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
               {open.length === 0 ? 'Nothing due — enjoy the break ✓' : `${open.length} assignments open · ${urgent.length} urgent`}
             </div>
           </div>
-          <button onClick={() => setShowAdd(s => !s)} style={{padding:'7px 18px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', flexShrink:0}}>+ Add</button>
+          <button onClick={() => setShowAdd(true)} style={{padding:'7px 18px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', flexShrink:0}}>+ Add</button>
         </div>
-
-        {/* Add homework form */}
-        {showAdd && (
-          <div style={{background:T.surface, border:`1px solid ${T.border}`, padding:'16px 20px', marginBottom:12, display:'flex', flexWrap:'wrap', gap:10, alignItems:'flex-end'}}>
-            <div style={{flex:'1 1 200px'}}>
-              <label htmlFor="hw-title" style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Assignment</label>
-              <input id="hw-title" value={newTitle} onChange={e=>setNewTitle(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addHomework()} placeholder="e.g. Read chapter 5" style={{width:'100%', padding:'7px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, background:T.bg, outline:'none', boxSizing:'border-box'}} />
-            </div>
-            <div style={{flex:'0 1 140px'}}>
-              <label htmlFor="hw-subj" style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Subject</label>
-              <select id="hw-subj" value={newSubj} onChange={e=>setNewSubj(e.target.value)} style={{width:'100%', padding:'7px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, background:T.bg, cursor:'pointer'}}>
-                {subjects.map(s => <option key={s.id} value={s.id}>{s.short || s.name}</option>)}
-              </select>
-            </div>
-            <div style={{flex:'0 1 120px'}}>
-              <label htmlFor="hw-due" style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Due</label>
-              <select id="hw-due" value={newDue} onChange={e=>setNewDue(e.target.value)} style={{width:'100%', padding:'7px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, background:T.bg, cursor:'pointer'}}>
-                {['Tonight','Tomorrow','Wed','Thu','Fri','Next Week'].map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-            <div style={{flex:'0 1 120px'}}>
-              <label htmlFor="hw-est" style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Est. Time</label>
-              <select id="hw-est" value={newEst} onChange={e=>setNewEst(e.target.value)} style={{width:'100%', padding:'7px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, background:T.bg, cursor:'pointer'}}>
-                {['15 min','30 min','45 min','1 hr','1 hr 30 min','2 hr','3 hr'].map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-            <button onClick={addHomework} style={{padding:'8px 20px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', flexShrink:0}}>Save →</button>
-            <button onClick={()=>setShowAdd(false)} style={{padding:'8px 14px', border:`1px solid ${T.border}`, background:'none', color:T.ink3, fontFamily:T.mono, fontSize:10, cursor:'pointer', flexShrink:0}}>Cancel</button>
-          </div>
-        )}
 
         {/* 5 stat cards */}
         <div className="shq-hw-stats" style={{marginBottom:12}}>
@@ -1270,66 +1473,26 @@ function QuizzesScreen({ profile, userData, onUpdate }) {
   const subjects  = profile?.subjects || [];
   const quizzes   = userData?.quizzes || [];
   const [showAdd, setShowAdd] = useState(false);
-  const [title, setTitle] = useState('');
-  const [subj, setSubj] = useState(subjects[0]?.id || '');
-  const [date, setDate] = useState('Fri');
-  const [confidence, setConfidence] = useState(0.6);
-  const [topics, setTopics] = useState('');
 
-  const addQuiz = () => {
-    if (!title.trim()) return;
-    const item = {
-      title: title.trim(),
-      subj: subj || subjects[0]?.id || '',
-      date: date.trim() || 'TBD',
-      confidence: Number(confidence) || 0.5,
-      topics: topics.split(',').map(t => t.trim()).filter(Boolean),
-    };
+  const addQuiz = (item) => {
     onUpdate && onUpdate({ quizzes: [...quizzes, item] });
-    setTitle(''); setTopics(''); setShowAdd(false);
   };
 
   const cc = (c) => c >= 0.75 ? '#3a8a52' : c >= 0.55 ? '#b07020' : '#bf4a30';
   const cl = (c) => c >= 0.75 ? 'strong' : c >= 0.55 ? 'fair' : 'weak';
   return (
     <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
+      <AddQuizModal open={showAdd} onClose={() => setShowAdd(false)} onSave={addQuiz} subjects={subjects} />
       <PageHeader eyebrow={`${quizzes.length} upcoming`} title="Quizzes" right={
-        <button type="button" onClick={() => setShowAdd(s => !s)} style={{padding:'8px 18px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>+ Add quiz</button>
+        <button type="button" onClick={() => setShowAdd(true)} style={{padding:'8px 18px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>+ Add quiz</button>
       } />
       <Hr />
-      {showAdd && (
-        <div style={{background:T.surface, border:`1px solid ${T.border}`, borderRadius:12, padding:'18px 20px', marginBottom:16, display:'flex', flexWrap:'wrap', gap:10, alignItems:'flex-end'}}>
-          <div style={{flex:'1 1 200px'}}>
-            <label style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Quiz title</label>
-            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Unit 4 — Cell division" style={{width:'100%', padding:'8px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, background:T.bg, boxSizing:'border-box'}} />
-          </div>
-          <div style={{flex:'0 1 130px'}}>
-            <label style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Subject</label>
-            <select value={subj} onChange={e => setSubj(e.target.value)} style={{width:'100%', padding:'8px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, background:T.bg}}>
-              {subjects.map(s => <option key={s.id} value={s.id}>{s.short || s.name}</option>)}
-            </select>
-          </div>
-          <div style={{flex:'0 1 100px'}}>
-            <label style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Date</label>
-            <select value={date} onChange={e => setDate(e.target.value)} style={{width:'100%', padding:'8px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, background:T.bg}}>
-              {['Mon','Tue','Wed','Thu','Fri','Next Week'].map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
-          <div style={{flex:'0 1 120px'}}>
-            <label style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Readiness</label>
-            <select value={confidence} onChange={e => setConfidence(Number(e.target.value))} style={{width:'100%', padding:'8px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, background:T.bg}}>
-              {[['Low',0.4],['Fair',0.6],['Strong',0.85]].map(([l,v]) => <option key={l} value={v}>{l}</option>)}
-            </select>
-          </div>
-          <div style={{flex:'1 1 180px'}}>
-            <label style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Topics (comma-separated)</label>
-            <input value={topics} onChange={e => setTopics(e.target.value)} placeholder="Mitosis, DNA, Labs" style={{width:'100%', padding:'8px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, background:T.bg, boxSizing:'border-box'}} />
-          </div>
-          <button type="button" onClick={addQuiz} style={{padding:'8px 20px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, cursor:'pointer'}}>Save</button>
+      {quizzes.length === 0 && (
+        <div style={{background:T.surface, borderRadius:12, padding:'40px 32px', textAlign:'center', marginBottom:16}}>
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, marginBottom:8}}>No quizzes scheduled yet.</div>
+          <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink3, lineHeight:1.6, marginBottom:18}}>Add quiz dates to track readiness and topics to review.</div>
+          <button type="button" onClick={() => setShowAdd(true)} style={{padding:'9px 22px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>+ Add your first quiz</button>
         </div>
-      )}
-      {quizzes.length === 0 && !showAdd && (
-        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink3, lineHeight:1.8, marginBottom:16}}>No quizzes scheduled yet. Add one to track readiness and dates.</div>
       )}
       <div style={{display:'flex', flexDirection:'column', gap:12}}>
         {quizzes.map(q => {
