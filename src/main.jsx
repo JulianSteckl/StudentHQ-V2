@@ -2737,6 +2737,96 @@ function SubjectsScreen({ profile, userData }) {
   );
 }
 
+/* ── Welcome dashboard preview ──────────────────────────── */
+function WelcomeDashboardPreview() {
+  const stats = [
+    { label:'OPEN TASKS', val:'4', sub:'2 due tonight', accent:T.accent },
+    { label:'GPA', val:'3.84', sub:'Unweighted · Spring', accent:'#3a8a52' },
+    { label:'STREAK', val:'12', sub:'days running', accent:T.accent2 },
+    { label:'QUIZZES', val:'2', sub:'This week', accent:'#9254de' },
+  ];
+  const weekDays = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  const monOffset = todayIdx;
+  const now = new Date();
+  return (
+    <div style={{
+      maxWidth:960, width:'100%', margin:'0 auto',
+      border:`1px solid ${T.border}`, borderRadius:16,
+      overflow:'hidden', background:T.surface,
+      boxShadow:'0 32px 80px -24px rgba(24,21,14,0.18), 0 8px 24px -8px rgba(24,21,14,0.08)',
+    }}>
+      <div style={{display:'flex', minHeight:400, background:T.bg}}>
+        <div style={{width:196, flexShrink:0, background:T.surface, borderRight:`1px solid ${T.border}`, padding:'18px 12px', display:'flex', flexDirection:'column'}}>
+          <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:20, padding:'0 6px'}}>
+            <div style={{width:32, height:32, borderRadius:8, background:`linear-gradient(135deg, ${T.accent}, #9a7828)`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+              <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:'#fff'}}>J</span>
+            </div>
+            <div style={{minWidth:0}}>
+              <div style={{fontFamily:T.ui, fontSize:13, fontWeight:600, color:T.ink}}>Julian</div>
+              <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.06em'}}>Junior · Lincoln HS</div>
+            </div>
+          </div>
+          {NAV.slice(0, 8).map((item, i) => (
+            <div key={item.id} style={{
+              display:'flex', alignItems:'center', gap:10, padding:'7px 10px', borderRadius:8, marginBottom:1,
+              background: i === 0 ? T.accentSoft : 'transparent',
+              color: i === 0 ? T.accent : T.ink2,
+            }}>
+              <span style={{opacity: i === 0 ? 1 : 0.5, display:'flex'}}>{item.icon}</span>
+              <span style={{fontFamily:T.ui, fontSize:12, fontWeight: i === 0 ? 500 : 400}}>{item.label}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{flex:1, minWidth:0, overflow:'hidden', padding:'20px 24px 24px'}}>
+          <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:4}}>
+            {now.toLocaleDateString('en-US',{weekday:'short'}).toUpperCase()} · {now.toLocaleDateString('en-US',{month:'short', day:'numeric'})} · Spring Term
+          </div>
+          <div style={{marginBottom:14}}>
+            <span style={{fontFamily:T.ui, fontWeight:700, fontSize:21, color:T.ink}}>Good afternoon, </span>
+            <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:23, color:T.ink}}>Julian.</span>
+          </div>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:10}}>
+            {stats.map(c => (
+              <div key={c.label} style={{background:T.surface, padding:'12px 14px', borderRadius:10, borderLeft:`3px solid ${c.accent}`}}>
+                <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5}}>{c.label}</div>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, lineHeight:1, marginBottom:3}}>{c.val}</div>
+                <div style={{fontFamily:T.mono, fontSize:8, color:c.accent}}>{c.sub}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:6, marginBottom:10}}>
+            {weekDays.map((d, i) => {
+              const date = new Date(now); date.setDate(now.getDate() - monOffset + i);
+              const isToday = i === todayIdx;
+              return (
+                <div key={d} style={{background: isToday ? T.accentSoft : T.surface, padding:'9px 6px', borderRadius:10, textAlign:'center'}}>
+                  <div style={{fontFamily:T.mono, fontSize:8, color: isToday ? T.accent : T.ink3, textTransform:'uppercase', marginBottom:5}}>{d}</div>
+                  {isToday
+                    ? <div style={{width:28, height:28, borderRadius:'50%', background:T.accent, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto'}}>
+                        <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:'#fff', lineHeight:1}}>{date.getDate()}</span>
+                      </div>
+                    : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink3, lineHeight:1}}>{date.getDate()}</div>
+                  }
+                </div>
+              );
+            })}
+          </div>
+          <div style={{background:T.surface, padding:'13px 16px', borderRadius:10, borderLeft:`3px solid ${T.accent}`}}>
+            <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:3}}>Game plan · 4 tasks remaining</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:19, color:T.ink, marginBottom:8}}>AP Calculus problem set</div>
+            <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
+              {['Calc BC','English','Physics'].map(s => (
+                <span key={s} style={{fontFamily:T.mono, fontSize:8, color:T.ink3, padding:'3px 8px', border:`1px solid ${T.border}`, borderRadius:4, background:T.bg}}>{s}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Welcome Screen ─────────────────────────────────────── */
 function WelcomeScreen({ onSignIn, onSetup }) {
   const [mouse, setMouse]       = useState({x:-999, y:-999});
@@ -2780,15 +2870,6 @@ function WelcomeScreen({ onSignIn, onSetup }) {
     client.requestAccessToken({ prompt: '' });
   };
 
-  const FEATURES = [
-    { ic:'◷', label:'Homework',   desc:'Every assignment tracked — urgency flags, due dates, and kanban board.' },
-    { ic:'◈', label:'Notes',      desc:'A full knowledge base. Search by subject, tag, or keyword instantly.' },
-    { ic:'⊟', label:'Flashcards', desc:'Study decks tied to your notes with spaced repetition built in.' },
-    { ic:'◉', label:'Schedule',   desc:'Daily and weekly view. See what\'s in session and what\'s due next.' },
-    { ic:'☆', label:'Grades',     desc:'Letter grades, GPA ring, and sparkline trends across the term.' },
-    { ic:'✦', label:'AI Tools',   desc:'Study guides, flashcard generation, and knowledge gap analysis.' },
-  ];
-
   const WORD = 'Scholar.';
   const MODULES = ['Homework', 'Notes', 'Flashcards', 'Schedule', 'Grades', 'AI Tools'];
   const MONO_LABEL = { fontFamily:T.mono, fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink2 };
@@ -2809,6 +2890,61 @@ function WelcomeScreen({ onSignIn, onSetup }) {
         .shq-feat:hover { transform:translateY(-3px); box-shadow:0 10px 28px -10px rgba(24,21,14,0.12); border-color:${T.accent} !important; }
         .shq-input { transition:border-color 0.12s; }
         .shq-input:focus { outline:none; border-color:${T.accent} !important; }
+        .shq-welcome-hero { --frame: clamp(28px, 4.5vmin, 56px); --hero-scale: clamp(0.84, min(100vw / 920, 100dvh / 680), 1.32); }
+        .shq-welcome-frame { position:absolute; pointer-events:none; overflow:hidden; }
+        .shq-welcome-frame--outer { inset: var(--frame); }
+        .shq-welcome-frame--inner { inset: calc(var(--frame) + 8px); }
+        .shq-welcome-body {
+          position:absolute; inset:var(--frame);
+          display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+          padding:clamp(10px, 1.8vh, 22px) clamp(16px, 4vw, 48px);
+        }
+        .shq-welcome-main {
+          flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+          width:100%; max-width:min(92vw, 780px);
+          transform:scale(var(--hero-scale)); transform-origin:center center;
+        }
+        .shq-welcome-wordmark {
+          font-family:${T.serif}; font-style:italic; font-weight:400;
+          font-size:clamp(72px, min(13vw, 11dvh), 220px);
+          line-height:0.9; color:${T.ink}; letter-spacing:-0.02em; display:flex;
+        }
+        .shq-welcome-tagline {
+          margin-top:clamp(14px, 2.2vh, 28px);
+          font-family:${T.serif}; font-style:italic;
+          font-size:clamp(15px, min(1.9vw, 2.4dvh), 24px);
+          color:${T.ink2}; text-align:center;
+        }
+        .shq-welcome-modules {
+          margin-top:clamp(18px, 2.8vh, 36px);
+          display:flex; gap:clamp(6px, 1vw, 10px); flex-wrap:wrap; justify-content:center;
+          max-width:min(92vw, 640px);
+        }
+        .shq-welcome-module {
+          font-family:${T.mono}; font-size:clamp(9px, min(1vw, 1.3dvh), 12px);
+          letter-spacing:0.1em; text-transform:uppercase; color:${T.ink2};
+          padding:clamp(5px, 0.8vh, 8px) clamp(10px, 1.4vw, 16px);
+          border:1px solid ${T.border}; border-radius:6px; background:${T.surface};
+        }
+        .shq-welcome-ctas {
+          margin-top:clamp(24px, 3.5vh, 44px);
+          display:flex; gap:clamp(10px, 1.5vw, 14px); flex-wrap:wrap; justify-content:center;
+        }
+        .shq-welcome-btn {
+          font-family:${T.ui}; font-size:clamp(13px, min(1.2vw, 1.6dvh), 17px);
+          padding:clamp(11px, 1.6vh, 16px) clamp(20px, 2.4vw, 30px);
+          border-radius:8px; cursor:pointer;
+        }
+        .shq-welcome-eyebrow {
+          font-family:${T.mono}; font-size:clamp(10px, min(1vw, 1.4dvh), 13px);
+          letter-spacing:0.14em; text-transform:uppercase; color:${T.ink2}; text-align:center;
+        }
+        .shq-welcome-footer-label {
+          font-family:${T.mono}; font-size:clamp(9px, min(0.9vw, 1.2dvh), 12px);
+          letter-spacing:0.12em; text-transform:uppercase; color:${T.ink3}; text-align:center;
+        }
+        .shq-welcome-scroll { display:flex; flex-direction:column; align-items:center; gap:4px; }
+        .shq-welcome-scroll-arrow { font-size:clamp(12px, min(1.2vw, 1.6dvh), 16px); line-height:1; }
       `}</style>
 
       {/* Cursor spotlight */}
@@ -2817,10 +2953,10 @@ function WelcomeScreen({ onSignIn, onSetup }) {
         transition:'background 0.12s ease'}} />
 
       {/* ── Hero ── */}
-      <div style={{position:'relative', height:'100vh', minHeight:580}}>
+      <div className="shq-welcome-hero" style={{position:'relative', height:'100dvh', minHeight:580}}>
         {/* Double hairline frame */}
-        {[44,52].map((ins,fi) => (
-          <div key={fi} style={{position:'absolute', inset:ins, pointerEvents:'none', overflow:'hidden'}}>
+        {['outer', 'inner'].map((layer, fi) => (
+          <div key={layer} className={`shq-welcome-frame shq-welcome-frame--${layer}`}>
             <div style={{position:'absolute', top:0, left:0, right:0, height:1, background:T.border, transformOrigin:'left',   animation:`shq-drawh ${0.55+fi*0.08}s ${0.18+fi*0.08}s ease both`}} />
             <div style={{position:'absolute', bottom:0, left:0, right:0, height:1, background:T.border, transformOrigin:'right',  animation:`shq-drawh ${0.55+fi*0.08}s ${0.34+fi*0.08}s ease both`}} />
             <div style={{position:'absolute', top:0, bottom:0, left:0, width:1,   background:T.border, transformOrigin:'top',    animation:`shq-drawv ${0.55+fi*0.08}s ${0.26+fi*0.08}s ease both`}} />
@@ -2828,107 +2964,72 @@ function WelcomeScreen({ onSignIn, onSetup }) {
           </div>
         ))}
 
-        {/* Eyebrow */}
-        <div style={{position:'absolute', top:80, left:0, right:0, textAlign:'center', ...MONO_LABEL, animation:'shq-up 0.5s 0.28s both'}}>
-          — A Student Dashboard —
-        </div>
-
-        {/* Center */}
-        <div style={{position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'0 32px'}}>
-          {/* Letter-reveal wordmark */}
-          <div style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:'clamp(82px,14vw,200px)', lineHeight:0.9, color:T.ink, letterSpacing:'-0.02em', display:'flex'}}>
-            {WORD.split('').map((ch,i) => (
-              <span key={i} style={{display:'inline-block', animation:`shq-letter 0.5s ${0.48+i*0.055}s cubic-bezier(0.2,0.8,0.2,1) both`}}>{ch}</span>
-            ))}
+        <div className="shq-welcome-body">
+          {/* Eyebrow */}
+          <div className="shq-welcome-eyebrow" style={{animation:'shq-up 0.5s 0.28s both'}}>
+            — A Student Dashboard —
           </div>
 
-          {/* Tagline */}
-          <div style={{marginTop:22, fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:T.ink2, textAlign:'center', animation:'shq-up 0.6s 1.1s both'}}>
-            A second brain for serious students.
+          {/* Center */}
+          <div className="shq-welcome-main">
+            <div className="shq-welcome-wordmark">
+              {WORD.split('').map((ch,i) => (
+                <span key={i} style={{display:'inline-block', animation:`shq-letter 0.5s ${0.48+i*0.055}s cubic-bezier(0.2,0.8,0.2,1) both`}}>{ch}</span>
+              ))}
+            </div>
+
+            <div className="shq-welcome-tagline" style={{animation:'shq-up 0.6s 1.1s both'}}>
+              A second brain for serious students.
+            </div>
+
+            <div className="shq-welcome-modules" style={{animation:'shq-up 0.6s 1.22s both'}}>
+              {MODULES.map(label => (
+                <span key={label} className="shq-welcome-module">{label}</span>
+              ))}
+            </div>
+
+            <div className="shq-welcome-ctas" style={{animation:'shq-up 0.6s 1.38s both'}}>
+              <button className="shq-google shq-welcome-btn" onClick={() => setOverlay(true)} style={{
+                display:'flex', alignItems:'center', gap:10,
+                border:`1px solid ${T.border}`, background:T.surface,
+                color:T.ink, fontWeight:500,
+              }}>
+                <GoogleG size={16} colored /> Sign in with Google
+              </button>
+              <button className="shq-ghost shq-welcome-btn" onClick={onSetup} style={{
+                border:`1px solid ${T.border}`, background:T.bl, color:T.ink,
+              }}>
+                Begin without signing in
+              </button>
+            </div>
           </div>
 
-          {/* Module glimpse */}
-          <div style={{marginTop:28, display:'flex', gap:8, flexWrap:'wrap', justifyContent:'center', maxWidth:520, animation:'shq-up 0.6s 1.22s both'}}>
-            {MODULES.map(label => (
-              <span key={label} style={{
-                ...MONO_LABEL, fontSize:10, letterSpacing:'0.1em', color:T.ink2,
-                padding:'6px 12px', border:`1px solid ${T.border}`, borderRadius:6, background:T.surface,
-              }}>{label}</span>
-            ))}
-          </div>
-
-          {/* CTAs */}
-          <div style={{marginTop:40, display:'flex', gap:12, flexWrap:'wrap', justifyContent:'center', animation:'shq-up 0.6s 1.38s both'}}>
-            <button className="shq-google" onClick={() => setOverlay(true)} style={{
-              display:'flex', alignItems:'center', gap:10, padding:'14px 26px',
-              border:`1px solid ${T.border}`, background:T.surface,
-              fontFamily:T.ui, fontSize:14, color:T.ink, fontWeight:500, cursor:'pointer', borderRadius:8,
-            }}>
-              <GoogleG size={16} colored /> Sign in with Google
-            </button>
-            <button className="shq-ghost" onClick={onSetup} style={{
-              padding:'14px 26px', border:`1px solid ${T.border}`, background:T.bl,
-              fontFamily:T.ui, fontSize:14, color:T.ink, cursor:'pointer', borderRadius:8,
-            }}>
-              Begin without signing in
-            </button>
-          </div>
-        </div>
-
-        {/* Footer — kept inside frame (hairlines inset 44–52px) */}
-        <div style={{
-          position:'absolute', bottom:70, left:0, right:0,
-          display:'flex', flexDirection:'column', alignItems:'center', gap:12,
-          animation:'shq-up 0.6s 1.5s both',
-        }}>
-          <div style={{...MONO_LABEL, fontSize:10, color:T.ink3}}>2026 School Year</div>
-          <div style={{...MONO_LABEL, fontSize:10, color:T.ink3, display:'flex', flexDirection:'column', alignItems:'center', gap:4}}>
-            <span>What's inside</span>
-            <span style={{fontSize:13, lineHeight:1}}>↓</span>
+          {/* Footer */}
+          <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:'clamp(8px, 1.5vh, 12px)', animation:'shq-up 0.6s 1.5s both'}}>
+            <div className="shq-welcome-footer-label">2026 School Year</div>
+            <div className="shq-welcome-footer-label shq-welcome-scroll">
+              <span>What's inside</span>
+              <span className="shq-welcome-scroll-arrow">↓</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Feature showcase ── */}
-      <div style={{borderTop:`1px solid ${T.border}`, padding:'68px min(68px,8vw) 84px', background:T.bg}}>
-        <div style={{textAlign:'center', marginBottom:50}}>
-          <div style={{...MONO_LABEL, letterSpacing:'0.2em', marginBottom:14}}>Everything you need</div>
-          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:'clamp(32px,4.8vw,50px)', lineHeight:1.05, color:T.ink, letterSpacing:'-0.02em'}}>
+      {/* ── Dashboard preview ── */}
+      <div style={{borderTop:`1px solid ${T.border}`, padding:'72px min(48px,6vw) 80px', background:T.bg}}>
+        <div style={{textAlign:'center', marginBottom:40}}>
+          <div style={{...MONO_LABEL, letterSpacing:'0.2em', marginBottom:14}}>Your workspace</div>
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:'clamp(28px,4vw,42px)', lineHeight:1.08, color:T.ink, letterSpacing:'-0.02em'}}>
             One dashboard for every class.
           </div>
+          <p style={{fontFamily:T.ui, fontSize:14, color:T.ink3, margin:'14px auto 0', maxWidth:440, lineHeight:1.65}}>
+            Homework, grades, notes, and study tools — organized by subject, ready when you are.
+          </p>
         </div>
 
-        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(250px,1fr))', gap:14, maxWidth:1060, margin:'0 auto'}}>
-          {FEATURES.map(f => (
-            <div key={f.label} className="shq-feat" style={{padding:'22px 24px 20px', border:`1px solid ${T.border}`, borderRadius:12, background:T.surface}}>
-              <div style={{fontFamily:T.serif, fontSize:20, color:T.accent, marginBottom:9, lineHeight:1}}>{f.ic}</div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:T.ink, marginBottom:6}}>{f.label}</div>
-              <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink3, lineHeight:1.65}}>{f.desc}</div>
-            </div>
-          ))}
-        </div>
+        <WelcomeDashboardPreview />
 
-        {/* Bottom CTA */}
-        <div style={{textAlign:'center', marginTop:60}}>
-          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink2, marginBottom:18}}>Ready to begin?</div>
-          <div style={{display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap'}}>
-            <button className="shq-google" onClick={() => setOverlay(true)} style={{
-              display:'flex', alignItems:'center', gap:10, padding:'13px 24px',
-              border:`1px solid ${T.border}`, background:T.surface,
-              fontFamily:T.ui, fontSize:14, color:T.ink, fontWeight:500, cursor:'pointer', borderRadius:8,
-            }}>
-              <GoogleG size={15} colored /> Sign in with Google
-            </button>
-            <button className="shq-ghost" onClick={onSetup} style={{
-              padding:'13px 24px', border:`1px solid ${T.border}`, background:T.bl,
-              fontFamily:T.ui, fontSize:14, color:T.ink, cursor:'pointer', borderRadius:8,
-            }}>
-              Begin without signing in
-            </button>
-          </div>
-        </div>
-
-        <div style={{marginTop:60, textAlign:'center', ...MONO_LABEL, fontSize:10, color:T.ink3}}>
+        <div style={{marginTop:56, textAlign:'center', ...MONO_LABEL, fontSize:10, color:T.ink3}}>
           — Scholar · 2026 School Year —
         </div>
       </div>
