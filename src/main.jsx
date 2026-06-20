@@ -2780,12 +2780,26 @@ function WelcomeScreen({ onSignIn, onSetup }) {
     client.requestAccessToken({ prompt: '' });
   };
 
+  const FEATURES = [
+    { ic:'◷', label:'Homework',   desc:'Every assignment tracked — urgency flags, due dates, and kanban board.' },
+    { ic:'◈', label:'Notes',      desc:'A full knowledge base. Search by subject, tag, or keyword instantly.' },
+    { ic:'⊟', label:'Flashcards', desc:'Study decks tied to your notes with spaced repetition built in.' },
+    { ic:'◉', label:'Schedule',   desc:'Daily and weekly view. See what\'s in session and what\'s due next.' },
+    { ic:'☆', label:'Grades',     desc:'Letter grades, GPA ring, and sparkline trends across the term.' },
+    { ic:'✦', label:'AI Tools',   desc:'Study guides, flashcard generation, and knowledge gap analysis.' },
+  ];
+
   const WORD = 'Scholar.';
   const MODULES = ['Homework', 'Notes', 'Flashcards', 'Schedule', 'Grades', 'AI Tools'];
+  const MONO_LABEL = { fontFamily:T.mono, fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink2 };
+
+  const scrollToFeatures = () => {
+    document.getElementById('shq-features')?.scrollIntoView({ behavior:'smooth', block:'start' });
+  };
 
   return (
     <div onMouseMove={e => setMouse({x:e.clientX, y:e.clientY})}
-      style={{position:'fixed', inset:0, zIndex:900, background:T.bg, fontFamily:T.ui, overflow:'hidden'}}>
+      style={{position:'fixed', inset:0, zIndex:900, background:T.bg, fontFamily:T.ui, overflowY:'auto', overflowX:'hidden'}}>
       <style>{`
         @keyframes shq-letter { from{opacity:0;transform:translateY(10px) skewX(-3deg)} to{opacity:1;transform:none} }
         @keyframes shq-up     { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
@@ -2795,61 +2809,79 @@ function WelcomeScreen({ onSignIn, onSetup }) {
         .shq-google:hover { transform:translateY(-2px); box-shadow:0 6px 20px -8px rgba(24,21,14,0.12); border-color:${T.accent} !important; }
         .shq-ghost { transition:transform 0.18s ease,box-shadow 0.18s ease,border-color 0.18s ease; }
         .shq-ghost:hover { transform:translateY(-2px); box-shadow:0 4px 16px -10px rgba(24,21,14,0.08); border-color:${T.ink2} !important; }
+        .shq-feat { transition:transform 0.2s ease,box-shadow 0.2s ease,border-color 0.2s ease; cursor:default; }
+        .shq-feat:hover { transform:translateY(-3px); box-shadow:0 10px 28px -10px rgba(24,21,14,0.12); border-color:${T.accent} !important; }
         .shq-input { transition:border-color 0.12s; }
         .shq-input:focus { outline:none; border-color:${T.accent} !important; }
-        .shq-welcome-hero { --frame: clamp(28px, 4.5vmin, 56px); --hero-scale: clamp(0.84, min(100vw / 920, 100dvh / 680), 1.32); }
+        @keyframes shq-scroll-hint { 0%,100%{transform:translateY(0)} 50%{transform:translateY(4px)} }
+        .shq-welcome-hero { --frame: clamp(24px, 3.8vmin, 52px); --hero-scale: clamp(0.9, min(100vw / 760, 100dvh / 580), 1.55); }
         .shq-welcome-frame { position:absolute; pointer-events:none; overflow:hidden; }
         .shq-welcome-frame--outer { inset: var(--frame); }
         .shq-welcome-frame--inner { inset: calc(var(--frame) + 8px); }
         .shq-welcome-body {
           position:absolute; inset:var(--frame);
           display:flex; flex-direction:column; align-items:center; justify-content:space-between;
-          padding:clamp(10px, 1.8vh, 22px) clamp(16px, 4vw, 48px);
+          padding:clamp(12px, 2vh, 24px) clamp(16px, 4vw, 48px) clamp(20px, 3.5vh, 36px);
         }
         .shq-welcome-main {
           flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-          width:100%; max-width:min(92vw, 780px);
+          width:100%; max-width:min(94vw, 860px);
           transform:scale(var(--hero-scale)); transform-origin:center center;
         }
         .shq-welcome-wordmark {
           font-family:${T.serif}; font-style:italic; font-weight:400;
-          font-size:clamp(72px, min(13vw, 11dvh), 220px);
+          font-size:clamp(80px, max(11vw, 14dvh), 280px);
           line-height:0.9; color:${T.ink}; letter-spacing:-0.02em; display:flex;
         }
         .shq-welcome-tagline {
           margin-top:clamp(14px, 2.2vh, 28px);
           font-family:${T.serif}; font-style:italic;
-          font-size:clamp(15px, min(1.9vw, 2.4dvh), 24px);
+          font-size:clamp(16px, max(1.7vw, 2.6dvh), 26px);
           color:${T.ink2}; text-align:center;
         }
         .shq-welcome-modules {
           margin-top:clamp(18px, 2.8vh, 36px);
           display:flex; gap:clamp(6px, 1vw, 10px); flex-wrap:wrap; justify-content:center;
-          max-width:min(92vw, 640px);
+          max-width:min(94vw, 700px);
         }
         .shq-welcome-module {
-          font-family:${T.mono}; font-size:clamp(9px, min(1vw, 1.3dvh), 12px);
+          font-family:${T.mono}; font-size:clamp(9px, max(0.95vw, 1.35dvh), 12px);
           letter-spacing:0.1em; text-transform:uppercase; color:${T.ink2};
           padding:clamp(5px, 0.8vh, 8px) clamp(10px, 1.4vw, 16px);
           border:1px solid ${T.border}; border-radius:6px; background:${T.surface};
+          transition:border-color 0.15s ease, color 0.15s ease;
         }
+        .shq-welcome-module:hover { border-color:${T.accent}; color:${T.ink}; }
         .shq-welcome-ctas {
           margin-top:clamp(24px, 3.5vh, 44px);
           display:flex; gap:clamp(10px, 1.5vw, 14px); flex-wrap:wrap; justify-content:center;
         }
         .shq-welcome-btn {
-          font-family:${T.ui}; font-size:clamp(13px, min(1.2vw, 1.6dvh), 17px);
+          font-family:${T.ui}; font-size:clamp(13px, max(1.15vw, 1.7dvh), 18px);
           padding:clamp(11px, 1.6vh, 16px) clamp(20px, 2.4vw, 30px);
           border-radius:8px; cursor:pointer;
         }
         .shq-welcome-eyebrow {
-          font-family:${T.mono}; font-size:clamp(10px, min(1vw, 1.4dvh), 13px);
+          font-family:${T.mono}; font-size:clamp(10px, max(0.95vw, 1.45dvh), 13px);
           letter-spacing:0.14em; text-transform:uppercase; color:${T.ink2}; text-align:center;
         }
+        .shq-welcome-footer {
+          display:flex; flex-direction:column; align-items:center; gap:clamp(10px, 1.8vh, 16px);
+          flex-shrink:0;
+        }
         .shq-welcome-footer-label {
-          font-family:${T.mono}; font-size:clamp(9px, min(0.9vw, 1.2dvh), 12px);
+          font-family:${T.mono}; font-size:clamp(9px, max(0.85vw, 1.2dvh), 11px);
           letter-spacing:0.12em; text-transform:uppercase; color:${T.ink3}; text-align:center;
         }
+        .shq-welcome-scroll {
+          background:none; border:none; padding:4px 8px; cursor:pointer;
+          font-family:${T.mono}; font-size:clamp(9px, max(0.85vw, 1.2dvh), 11px);
+          letter-spacing:0.14em; text-transform:uppercase; color:${T.ink3};
+          display:flex; flex-direction:column; align-items:center; gap:5px;
+          transition:color 0.15s ease;
+        }
+        .shq-welcome-scroll:hover { color:${T.ink2}; }
+        .shq-welcome-scroll-arrow { font-size:clamp(12px, max(1.1vw, 1.5dvh), 15px); line-height:1; animation:shq-scroll-hint 2.2s ease-in-out infinite; }
       `}</style>
 
       {/* Cursor spotlight */}
@@ -2910,9 +2942,55 @@ function WelcomeScreen({ onSignIn, onSetup }) {
           </div>
 
           {/* Footer */}
-          <div style={{animation:'shq-up 0.6s 1.5s both'}}>
-            <div className="shq-welcome-footer-label">— Scholar · 2026 School Year —</div>
+          <div className="shq-welcome-footer" style={{animation:'shq-up 0.6s 1.5s both'}}>
+            <button type="button" className="shq-welcome-scroll" onClick={scrollToFeatures}>
+              <span>What's inside</span>
+              <span className="shq-welcome-scroll-arrow">↓</span>
+            </button>
+            <div className="shq-welcome-footer-label">2026 School Year</div>
           </div>
+        </div>
+      </div>
+
+      {/* ── Feature showcase ── */}
+      <div id="shq-features" style={{borderTop:`1px solid ${T.border}`, padding:'68px min(68px,8vw) 84px', background:T.bg}}>
+        <div style={{textAlign:'center', marginBottom:50}}>
+          <div style={{...MONO_LABEL, letterSpacing:'0.2em', marginBottom:14}}>Everything you need</div>
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:'clamp(32px,4.8vw,50px)', lineHeight:1.05, color:T.ink, letterSpacing:'-0.02em'}}>
+            One dashboard for every class.
+          </div>
+        </div>
+
+        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(250px,1fr))', gap:14, maxWidth:1060, margin:'0 auto'}}>
+          {FEATURES.map(f => (
+            <div key={f.label} className="shq-feat" style={{padding:'22px 24px 20px', border:`1px solid ${T.border}`, borderRadius:12, background:T.surface}}>
+              <div style={{fontFamily:T.serif, fontSize:20, color:T.accent, marginBottom:9, lineHeight:1}}>{f.ic}</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:T.ink, marginBottom:6}}>{f.label}</div>
+              <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink3, lineHeight:1.65}}>{f.desc}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{textAlign:'center', marginTop:60}}>
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink2, marginBottom:18}}>Ready to begin?</div>
+          <div style={{display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap'}}>
+            <button className="shq-google shq-welcome-btn" onClick={() => setOverlay(true)} style={{
+              display:'flex', alignItems:'center', gap:10,
+              border:`1px solid ${T.border}`, background:T.surface,
+              color:T.ink, fontWeight:500,
+            }}>
+              <GoogleG size={15} colored /> Sign in with Google
+            </button>
+            <button className="shq-ghost shq-welcome-btn" onClick={onSetup} style={{
+              border:`1px solid ${T.border}`, background:T.bl, color:T.ink,
+            }}>
+              Begin without signing in
+            </button>
+          </div>
+        </div>
+
+        <div style={{marginTop:60, textAlign:'center', ...MONO_LABEL, fontSize:10, color:T.ink3}}>
+          — Scholar · 2026 School Year —
         </div>
       </div>
 
