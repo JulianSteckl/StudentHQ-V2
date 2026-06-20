@@ -2737,96 +2737,6 @@ function SubjectsScreen({ profile, userData }) {
   );
 }
 
-/* ── Welcome dashboard preview ──────────────────────────── */
-function WelcomeDashboardPreview() {
-  const stats = [
-    { label:'OPEN TASKS', val:'4', sub:'2 due tonight', accent:T.accent },
-    { label:'GPA', val:'3.84', sub:'Unweighted · Spring', accent:'#3a8a52' },
-    { label:'STREAK', val:'12', sub:'days running', accent:T.accent2 },
-    { label:'QUIZZES', val:'2', sub:'This week', accent:'#9254de' },
-  ];
-  const weekDays = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const todayIdx = (new Date().getDay() + 6) % 7;
-  const monOffset = todayIdx;
-  const now = new Date();
-  return (
-    <div style={{
-      maxWidth:960, width:'100%', margin:'0 auto',
-      border:`1px solid ${T.border}`, borderRadius:16,
-      overflow:'hidden', background:T.surface,
-      boxShadow:'0 32px 80px -24px rgba(24,21,14,0.18), 0 8px 24px -8px rgba(24,21,14,0.08)',
-    }}>
-      <div style={{display:'flex', minHeight:400, background:T.bg}}>
-        <div style={{width:196, flexShrink:0, background:T.surface, borderRight:`1px solid ${T.border}`, padding:'18px 12px', display:'flex', flexDirection:'column'}}>
-          <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:20, padding:'0 6px'}}>
-            <div style={{width:32, height:32, borderRadius:8, background:`linear-gradient(135deg, ${T.accent}, #9a7828)`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
-              <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:'#fff'}}>J</span>
-            </div>
-            <div style={{minWidth:0}}>
-              <div style={{fontFamily:T.ui, fontSize:13, fontWeight:600, color:T.ink}}>Julian</div>
-              <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.06em'}}>Junior · Lincoln HS</div>
-            </div>
-          </div>
-          {NAV.slice(0, 8).map((item, i) => (
-            <div key={item.id} style={{
-              display:'flex', alignItems:'center', gap:10, padding:'7px 10px', borderRadius:8, marginBottom:1,
-              background: i === 0 ? T.accentSoft : 'transparent',
-              color: i === 0 ? T.accent : T.ink2,
-            }}>
-              <span style={{opacity: i === 0 ? 1 : 0.5, display:'flex'}}>{item.icon}</span>
-              <span style={{fontFamily:T.ui, fontSize:12, fontWeight: i === 0 ? 500 : 400}}>{item.label}</span>
-            </div>
-          ))}
-        </div>
-        <div style={{flex:1, minWidth:0, overflow:'hidden', padding:'20px 24px 24px'}}>
-          <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:4}}>
-            {now.toLocaleDateString('en-US',{weekday:'short'}).toUpperCase()} · {now.toLocaleDateString('en-US',{month:'short', day:'numeric'})} · Spring Term
-          </div>
-          <div style={{marginBottom:14}}>
-            <span style={{fontFamily:T.ui, fontWeight:700, fontSize:21, color:T.ink}}>Good afternoon, </span>
-            <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:23, color:T.ink}}>Julian.</span>
-          </div>
-          <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:10}}>
-            {stats.map(c => (
-              <div key={c.label} style={{background:T.surface, padding:'12px 14px', borderRadius:10, borderLeft:`3px solid ${c.accent}`}}>
-                <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5}}>{c.label}</div>
-                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, lineHeight:1, marginBottom:3}}>{c.val}</div>
-                <div style={{fontFamily:T.mono, fontSize:8, color:c.accent}}>{c.sub}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:6, marginBottom:10}}>
-            {weekDays.map((d, i) => {
-              const date = new Date(now); date.setDate(now.getDate() - monOffset + i);
-              const isToday = i === todayIdx;
-              return (
-                <div key={d} style={{background: isToday ? T.accentSoft : T.surface, padding:'9px 6px', borderRadius:10, textAlign:'center'}}>
-                  <div style={{fontFamily:T.mono, fontSize:8, color: isToday ? T.accent : T.ink3, textTransform:'uppercase', marginBottom:5}}>{d}</div>
-                  {isToday
-                    ? <div style={{width:28, height:28, borderRadius:'50%', background:T.accent, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto'}}>
-                        <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:'#fff', lineHeight:1}}>{date.getDate()}</span>
-                      </div>
-                    : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink3, lineHeight:1}}>{date.getDate()}</div>
-                  }
-                </div>
-              );
-            })}
-          </div>
-          <div style={{background:T.surface, padding:'13px 16px', borderRadius:10, borderLeft:`3px solid ${T.accent}`}}>
-            <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:3}}>Game plan · 4 tasks remaining</div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:19, color:T.ink, marginBottom:8}}>AP Calculus problem set</div>
-            <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
-              {['Calc BC','English','Physics'].map(s => (
-                <span key={s} style={{fontFamily:T.mono, fontSize:8, color:T.ink3, padding:'3px 8px', border:`1px solid ${T.border}`, borderRadius:4, background:T.bg}}>{s}</span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ── Welcome Screen ─────────────────────────────────────── */
 function WelcomeScreen({ onSignIn, onSetup }) {
   const [mouse, setMouse]       = useState({x:-999, y:-999});
@@ -2872,11 +2782,10 @@ function WelcomeScreen({ onSignIn, onSetup }) {
 
   const WORD = 'Scholar.';
   const MODULES = ['Homework', 'Notes', 'Flashcards', 'Schedule', 'Grades', 'AI Tools'];
-  const MONO_LABEL = { fontFamily:T.mono, fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink2 };
 
   return (
     <div onMouseMove={e => setMouse({x:e.clientX, y:e.clientY})}
-      style={{position:'fixed', inset:0, zIndex:900, background:T.bg, fontFamily:T.ui, overflowY:'auto', overflowX:'hidden'}}>
+      style={{position:'fixed', inset:0, zIndex:900, background:T.bg, fontFamily:T.ui, overflow:'hidden'}}>
       <style>{`
         @keyframes shq-letter { from{opacity:0;transform:translateY(10px) skewX(-3deg)} to{opacity:1;transform:none} }
         @keyframes shq-up     { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
@@ -2886,8 +2795,6 @@ function WelcomeScreen({ onSignIn, onSetup }) {
         .shq-google:hover { transform:translateY(-2px); box-shadow:0 6px 20px -8px rgba(24,21,14,0.12); border-color:${T.accent} !important; }
         .shq-ghost { transition:transform 0.18s ease,box-shadow 0.18s ease,border-color 0.18s ease; }
         .shq-ghost:hover { transform:translateY(-2px); box-shadow:0 4px 16px -10px rgba(24,21,14,0.08); border-color:${T.ink2} !important; }
-        .shq-feat { transition:transform 0.2s ease,box-shadow 0.2s ease,border-color 0.2s ease; cursor:default; }
-        .shq-feat:hover { transform:translateY(-3px); box-shadow:0 10px 28px -10px rgba(24,21,14,0.12); border-color:${T.accent} !important; }
         .shq-input { transition:border-color 0.12s; }
         .shq-input:focus { outline:none; border-color:${T.accent} !important; }
         .shq-welcome-hero { --frame: clamp(28px, 4.5vmin, 56px); --hero-scale: clamp(0.84, min(100vw / 920, 100dvh / 680), 1.32); }
@@ -2943,8 +2850,6 @@ function WelcomeScreen({ onSignIn, onSetup }) {
           font-family:${T.mono}; font-size:clamp(9px, min(0.9vw, 1.2dvh), 12px);
           letter-spacing:0.12em; text-transform:uppercase; color:${T.ink3}; text-align:center;
         }
-        .shq-welcome-scroll { display:flex; flex-direction:column; align-items:center; gap:4px; }
-        .shq-welcome-scroll-arrow { font-size:clamp(12px, min(1.2vw, 1.6dvh), 16px); line-height:1; }
       `}</style>
 
       {/* Cursor spotlight */}
@@ -3005,32 +2910,9 @@ function WelcomeScreen({ onSignIn, onSetup }) {
           </div>
 
           {/* Footer */}
-          <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:'clamp(8px, 1.5vh, 12px)', animation:'shq-up 0.6s 1.5s both'}}>
-            <div className="shq-welcome-footer-label">2026 School Year</div>
-            <div className="shq-welcome-footer-label shq-welcome-scroll">
-              <span>See the dashboard</span>
-              <span className="shq-welcome-scroll-arrow">↓</span>
-            </div>
+          <div style={{animation:'shq-up 0.6s 1.5s both'}}>
+            <div className="shq-welcome-footer-label">— Scholar · 2026 School Year —</div>
           </div>
-        </div>
-      </div>
-
-      {/* ── Dashboard preview ── */}
-      <div style={{borderTop:`1px solid ${T.border}`, padding:'72px min(48px,6vw) 80px', background:T.bg}}>
-        <div style={{textAlign:'center', marginBottom:40}}>
-          <div style={{...MONO_LABEL, letterSpacing:'0.2em', marginBottom:14}}>Your workspace</div>
-          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:'clamp(28px,4vw,42px)', lineHeight:1.08, color:T.ink, letterSpacing:'-0.02em'}}>
-            One dashboard for every class.
-          </div>
-          <p style={{fontFamily:T.ui, fontSize:14, color:T.ink3, margin:'14px auto 0', maxWidth:440, lineHeight:1.65}}>
-            Homework, grades, notes, and study tools — organized by subject, ready when you are.
-          </p>
-        </div>
-
-        <WelcomeDashboardPreview />
-
-        <div style={{marginTop:56, textAlign:'center', ...MONO_LABEL, fontSize:10, color:T.ink3}}>
-          — Scholar · 2026 School Year —
         </div>
       </div>
 
