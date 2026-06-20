@@ -3263,6 +3263,8 @@ function SetupFlow({ onComplete, onBack, initialData }) {
   );
 
   const inputStyle = {width:'100%', padding:'10px 14px', border:`1px solid ${T.border}`, background:T.bg, fontFamily:T.ui, fontSize:14, color:T.ink, outline:'none', boxSizing:'border-box', borderRadius:6};
+  const sparseStep = step === 1;
+  const colJustify = sparseStep ? 'center' : 'flex-start';
 
   return (
     <div style={{
@@ -3325,7 +3327,7 @@ function SetupFlow({ onComplete, onBack, initialData }) {
       <div style={{flex:1, minHeight:0, display:'flex', overflow:'hidden'}}>
 
         {/* Left — form */}
-        <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-start', overflowY:'auto', padding:'56px 48px 40px', position:'relative', backgroundImage:`radial-gradient(${T.border} 1px, transparent 1px)`, backgroundSize:'20px 20px', backgroundPosition:'10px 10px'}}>
+        <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:colJustify, overflowY:'auto', padding:'48px 48px 40px', position:'relative', backgroundImage:`radial-gradient(${T.border} 1px, transparent 1px)`, backgroundSize:'20px 20px', backgroundPosition:'10px 10px'}}>
 
 
 
@@ -3508,7 +3510,7 @@ function SetupFlow({ onComplete, onBack, initialData }) {
         </div>
 
         {/* Right — preview & checklist */}
-        <div style={{width:420, flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-start', overflowY:'auto', borderLeft:`1px solid ${T.border}`, padding:'56px 36px 32px', gap:20, position:'relative', background:`linear-gradient(180deg, ${T.surface} 0%, ${T.bg} 100%)`}}>
+        <div style={{width:420, flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:colJustify, overflowY:'auto', borderLeft:`1px solid ${T.border}`, padding:'48px 36px 32px', gap:20, position:'relative', background:`linear-gradient(180deg, ${T.surface} 0%, ${T.bg} 100%)`}}>
           <DashboardPreview />
           <UnlockChecklist />
         </div>
