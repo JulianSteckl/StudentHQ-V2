@@ -4,7 +4,10 @@ dist/
 .env
 .env.*
 !.env.example
-.cursor/
+# Cursor IDE (keep shared rules)
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
 .claude/
 *.log
 npm-debug.log*

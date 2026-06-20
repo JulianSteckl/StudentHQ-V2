@@ -1,0 +1,31 @@
+---
+description: Commit and push completed work to GitHub master
+alwaysApply: true
+---
+
+# Commit and push after changes
+
+When you finish implementing requested code changes in this project, **always commit and push** unless the user explicitly says not to.
+
+## Workflow
+
+1. Run `git status`, `git diff`, and `git log -1 --format='%s'` to review changes.
+2. Stage only relevant files. Never commit secrets (`.env`, credentials, tokens).
+3. Write a concise 1–2 sentence commit message focused on **why**.
+4. Commit, then push to `origin master`:
+   ```bash
+   git push origin master
+   ```
+5. Run `git status` after push to confirm success.
+
+## Constraints
+
+- Do not force-push to `master`.
+- Do not skip hooks (`--no-verify`) unless the user asks.
+- If push fails (auth/network), report the error and give the user the exact command to run.
+- If there are no changes to commit, skip commit/push.
+- Question-only or review-only tasks with no file edits: do not commit.
+
+## Deploy
+
+This repo is connected to Vercel via GitHub. Pushing to `master` triggers production deploy.
