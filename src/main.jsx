@@ -8,7 +8,16 @@ import { PRESET_COLORS, MONTHS, CY, makeSubjId, makeShort, SUBJECTS, GPA_MAP, TO
 import { ICO, NAV } from './icons.jsx';
 import { appendGradeHistory, gradeSparklinePoints, appendToolOpen, toolOpensThisWeek, toolOpenCounts, toolById, formatToolWhen, buildToolUsageInsight, normalizeUserData, normalizeToolOpens, normalizeDashboardPrefs, DEFAULT_DASHBOARD_PREFS, exportGradesCsv } from './user-data-helpers.js';
 
-const { useState, useEffect, useRef, useCallback } = React;
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+function useRunScreenAction(action, onHandled, handler) {
+  useEffect(() => {
+    if (!action) return;
+    handler(action);
+    onHandled?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+}
 const ReactDOM = { createRoot, createPortal };
 
 const MODAL_FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -484,7 +493,7 @@ function MobileHeader({ onMenuOpen, sidebarOpen }) {
   );
 }
 
-function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, onUpdateProfile, open, onCloseSidebar }) {
+function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, onUpdateProfile, open, onCloseSidebar, requestedAction, onActionHandled }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAIKeys, setShowAIKeys] = useState(false);
@@ -499,6 +508,13 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
   }, [showSettings]);
+
+  useEffect(() => {
+    if (!requestedAction) return;
+    if (requestedAction === 'addSubject') setShowAddModal(true);
+    if (requestedAction === 'manageSubjects') setShowManageSubjects(true);
+    onActionHandled?.();
+  }, [requestedAction, onActionHandled]);
 
   const ud = userData || defaultUserData();
   const subjects = profile?.subjects || [];
@@ -778,10 +794,11 @@ function DashboardCustomizeModal({ open, onClose, prefs, onSave }) {
 }
 
 /* ── 1. Today ───────────────────────────────────────────── */
-function TodayScreen({ profile, userData, onUpdate }) {
+function TodayScreen({ profile, userData, onUpdate, onNav, onRequestSidebar, screenAction, onScreenActionHandled }) {
   const ud       = userData || defaultUserData();
   const prefs    = ud.dashboardPrefs || DEFAULT_DASHBOARD_PREFS;
   const [showCustomize, setShowCustomize] = useState(false);
+  const [planTick, setPlanTick] = useState(0);
   const subjects = profile?.subjects || [];
   const subjectBy = makeSubjectBy(subjects);
   const homework  = ud.homework || [];
@@ -815,6 +832,12 @@ function TodayScreen({ profile, userData, onUpdate }) {
     <button onClick={onClick} style={{padding:'7px 14px', border: gold ? 'none' : `1px solid ${T.border}`, background: gold ? T.accent : T.surface, color: gold ? '#fff' : T.ink3, fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', display:'flex', alignItems:'center', gap:6, borderRadius:8}}>{children}</button>
   );
 
+  useRunScreenAction(screenAction, onScreenActionHandled, (action) => {
+    if (action === 'add') onNav?.('homework', 'add');
+  });
+
+  const gamePlanItems = useMemo(() => open.slice(0, 4), [open, planTick]);
+
   const hasBasics = subjects.length > 0;
 
   return (
@@ -831,7 +854,7 @@ function TodayScreen({ profile, userData, onUpdate }) {
             <div style={{fontFamily:T.mono, fontSize:10, color:T.accent, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:4}}>Getting started</div>
             <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink2, lineHeight:1.45}}>Add your first subject in the sidebar to unlock Homework, Notes, and Grades.</div>
           </div>
-          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{padding:'7px 12px', border:`1px solid ${T.accent}55`, background:'#fff', borderRadius:10, fontFamily:T.mono, fontSize:10, color:T.accent, cursor:'pointer', whiteSpace:'nowrap'}}>Tip: tap “+”</button>
+          <button type="button" onClick={() => onRequestSidebar?.('addSubject')} style={{padding:'7px 12px', border:`1px solid ${T.accent}55`, background:'#fff', borderRadius:10, fontFamily:T.mono, fontSize:10, color:T.accent, cursor:'pointer', whiteSpace:'nowrap'}}>Add subject →</button>
         </div>
       )}
       {/* Header */}
@@ -850,7 +873,7 @@ function TodayScreen({ profile, userData, onUpdate }) {
         </div>
         <div style={{display:'flex', gap:8, flexShrink:0, marginTop:4}}>
           <Btn onClick={() => setShowCustomize(true)}>✦ Customize</Btn>
-          <Btn gold>+ Add</Btn>
+          <Btn gold onClick={() => onNav?.('homework', 'add')}>+ Add</Btn>
         </div>
       </div>
 
@@ -919,14 +942,14 @@ function TodayScreen({ profile, userData, onUpdate }) {
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>AI · updates with your homework & schedule</div>
             </div>
           </div>
-          <button style={{fontFamily:T.mono, fontSize:10, color:T.ink3, background:'none', border:`1px solid ${T.border}`, padding:'5px 11px', cursor:'pointer', transition:'border-color 0.12s', display:'flex', alignItems:'center', gap:5}}
+          <button type="button" onClick={() => setPlanTick(t => t + 1)} style={{fontFamily:T.mono, fontSize:10, color:T.ink3, background:'none', border:`1px solid ${T.border}`, padding:'5px 11px', cursor:'pointer', transition:'border-color 0.12s', display:'flex', alignItems:'center', gap:5}}
             onMouseOver={e=>e.currentTarget.style.borderColor=T.accent}
             onMouseOut={e=>e.currentTarget.style.borderColor=T.border}
           ><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2.5v4h-4"/><path d="M3 13.5v-4h4"/><path d="M12.7 6.3a5.5 5.5 0 1 0 .8-2.8"/><path d="M3.3 9.7a5.5 5.5 0 1 0-.8 2.8"/></svg> Refresh</button>
         </div>
         {open.length === 0
           ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3}}>Review your notes and plan out your evening.</div>
-          : open.slice(0,4).map((hw,i) => {
+          : gamePlanItems.map((hw,i) => {
               const s = subjectBy(hw.subj);
               return (
                 <div key={i} style={{display:'flex', gap:12, marginBottom:8}}>
@@ -946,7 +969,7 @@ function TodayScreen({ profile, userData, onUpdate }) {
           <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:11}}>Workload</div>
           <div style={{display:'flex', justifyContent:'space-between', marginBottom:8}}>
             <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>Due Today</div>
-            <span style={{fontFamily:T.mono, fontSize:10, color:T.accent, cursor:'pointer'}}>All homework →</span>
+            <button type="button" onClick={() => onNav?.('homework')} style={{fontFamily:T.mono, fontSize:10, color:T.accent, background:'none', border:'none', padding:0, cursor:'pointer'}}>All homework →</button>
           </div>
           {tonight.length > 0 ? tonight.map(hw => {
             const s = subjectBy(hw.subj);
@@ -977,7 +1000,7 @@ function TodayScreen({ profile, userData, onUpdate }) {
           <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:11}}>Schedule & Notes</div>
           <div style={{display:'flex', justifyContent:'space-between', marginBottom:8}}>
             <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>Schedule</div>
-            <span style={{fontFamily:T.mono, fontSize:10, color:T.accent2, cursor:'pointer'}}>Edit → {dayStr.slice(0,3)}</span>
+            <button type="button" onClick={() => onNav?.('schedule')} style={{fontFamily:T.mono, fontSize:10, color:T.accent2, background:'none', border:'none', padding:0, cursor:'pointer'}}>Edit → {dayStr.slice(0,3)}</button>
           </div>
           {schedule.filter(p => p.subj).slice(0,5).map(p => {
             const s = subjectBy(p.subj);
@@ -1015,7 +1038,7 @@ function TodayScreen({ profile, userData, onUpdate }) {
 }
 
 /* ── 2. Homework ────────────────────────────────────────── */
-function HomeworkScreen({ profile, userData, onUpdate }) {
+function HomeworkScreen({ profile, userData, onUpdate, onNav, screenAction, onScreenActionHandled }) {
   const subjects  = profile?.subjects || [];
   const subjectBy = makeSubjectBy(subjects);
   const homework  = userData?.homework || [];
@@ -1025,6 +1048,20 @@ function HomeworkScreen({ profile, userData, onUpdate }) {
   const [newSubj,  setNewSubj]  = useState(subjects[0]?.id || '');
   const [newDue,   setNewDue]   = useState('Tonight');
   const [newEst,   setNewEst]   = useState('30 min');
+  const urgentColRef = useRef(null);
+
+  useRunScreenAction(screenAction, onScreenActionHandled, (action) => {
+    if (action === 'add') setShowAdd(true);
+    if (action === 'tonight') setTimeout(() => urgentColRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  });
+
+  const QUICK_ACTIONS = [
+    { ic:'+', label:'Add Homework', run: () => setShowAdd(true) },
+    { ic:'✦', label:'Generate Study Plan', run: () => onNav?.('schedule') },
+    { ic:'+', label:'Create Flashcards', run: () => onNav?.('flashcards', 'add') },
+    { ic:'→', label:'Open Due Today', run: () => onNav?.('homework', 'tonight') },
+    { ic:'+', label:'Start Focus Session', run: () => onNav?.('schedule', 'focus') },
+  ];
 
   const addHomework = () => {
     if (!newTitle.trim()) return;
@@ -1158,7 +1195,7 @@ function HomeworkScreen({ profile, userData, onUpdate }) {
         {/* Kanban */}
         <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12}}>
           {COLS.map(col => (
-            <div key={col.label} style={{background:T.surface, borderRadius:12, minHeight:180}}>
+            <div key={col.label} ref={col.label === 'URGENT' ? urgentColRef : null} style={{background:T.surface, borderRadius:12, minHeight:180}}>
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderBottom:`1px solid ${T.bl}`}}>
                 <div style={{display:'flex', alignItems:'center', gap:6}}>
                   <div style={{width:6, height:6, borderRadius:'50%', background:col.color}}/>
@@ -1198,15 +1235,16 @@ function HomeworkScreen({ profile, userData, onUpdate }) {
           {/* Quick Actions */}
           <div style={{background:T.surface, borderRadius:12, padding:'20px 22px'}}>
             <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:14}}>Quick Actions</div>
-            {[['+','Add Homework'],['✦','Generate Study Plan'],['+','Create Flashcards'],['→','Open Due Today'],['+','Start Focus Session']].map(([ic,lb]) => (
-              <div key={lb} style={{display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:`1px solid ${T.bl}`, cursor:'pointer'}}
+            {QUICK_ACTIONS.map(({ ic, label, run }) => (
+              <div key={label} role="button" tabIndex={0} onClick={run} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); run(); } }}
+                style={{display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:`1px solid ${T.bl}`, cursor:'pointer'}}
                 onMouseOver={e => e.currentTarget.style.opacity='0.6'}
                 onMouseOut={e => e.currentTarget.style.opacity='1'}
               >
                 <div style={{width:28, height:28, borderRadius:'50%', background:T.accentSoft, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
                   <span style={{fontFamily:T.mono, fontSize:11, color:T.accent, fontWeight:700}}>{ic}</span>
                 </div>
-                <span style={{fontFamily:T.ui, fontSize:12, color:T.ink2}}>{lb}</span>
+                <span style={{fontFamily:T.ui, fontSize:12, color:T.ink2}}>{label}</span>
               </div>
             ))}
           </div>
@@ -1227,17 +1265,71 @@ function HomeworkScreen({ profile, userData, onUpdate }) {
 }
 
 /* ── 3. Quizzes ─────────────────────────────────────────── */
-function QuizzesScreen({ profile, userData }) {
+function QuizzesScreen({ profile, userData, onUpdate }) {
   const subjectBy = makeSubjectBy(profile?.subjects || []);
+  const subjects  = profile?.subjects || [];
   const quizzes   = userData?.quizzes || [];
+  const [showAdd, setShowAdd] = useState(false);
+  const [title, setTitle] = useState('');
+  const [subj, setSubj] = useState(subjects[0]?.id || '');
+  const [date, setDate] = useState('Fri');
+  const [confidence, setConfidence] = useState(0.6);
+  const [topics, setTopics] = useState('');
+
+  const addQuiz = () => {
+    if (!title.trim()) return;
+    const item = {
+      title: title.trim(),
+      subj: subj || subjects[0]?.id || '',
+      date: date.trim() || 'TBD',
+      confidence: Number(confidence) || 0.5,
+      topics: topics.split(',').map(t => t.trim()).filter(Boolean),
+    };
+    onUpdate && onUpdate({ quizzes: [...quizzes, item] });
+    setTitle(''); setTopics(''); setShowAdd(false);
+  };
+
   const cc = (c) => c >= 0.75 ? '#3a8a52' : c >= 0.55 ? '#b07020' : '#bf4a30';
   const cl = (c) => c >= 0.75 ? 'strong' : c >= 0.55 ? 'fair' : 'weak';
   return (
     <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
-      <PageHeader eyebrow={`${quizzes.length} upcoming`} title="Quizzes" />
+      <PageHeader eyebrow={`${quizzes.length} upcoming`} title="Quizzes" right={
+        <button type="button" onClick={() => setShowAdd(s => !s)} style={{padding:'8px 18px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>+ Add quiz</button>
+      } />
       <Hr />
-      {quizzes.length === 0 && (
-        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink3, lineHeight:1.8}}>No quizzes scheduled yet. Add quiz dates from your Homework screen or directly here.</div>
+      {showAdd && (
+        <div style={{background:T.surface, border:`1px solid ${T.border}`, borderRadius:12, padding:'18px 20px', marginBottom:16, display:'flex', flexWrap:'wrap', gap:10, alignItems:'flex-end'}}>
+          <div style={{flex:'1 1 200px'}}>
+            <label style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Quiz title</label>
+            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Unit 4 — Cell division" style={{width:'100%', padding:'8px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, background:T.bg, boxSizing:'border-box'}} />
+          </div>
+          <div style={{flex:'0 1 130px'}}>
+            <label style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Subject</label>
+            <select value={subj} onChange={e => setSubj(e.target.value)} style={{width:'100%', padding:'8px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, background:T.bg}}>
+              {subjects.map(s => <option key={s.id} value={s.id}>{s.short || s.name}</option>)}
+            </select>
+          </div>
+          <div style={{flex:'0 1 100px'}}>
+            <label style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Date</label>
+            <select value={date} onChange={e => setDate(e.target.value)} style={{width:'100%', padding:'8px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, background:T.bg}}>
+              {['Mon','Tue','Wed','Thu','Fri','Next Week'].map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+          <div style={{flex:'0 1 120px'}}>
+            <label style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Readiness</label>
+            <select value={confidence} onChange={e => setConfidence(Number(e.target.value))} style={{width:'100%', padding:'8px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, background:T.bg}}>
+              {[['Low',0.4],['Fair',0.6],['Strong',0.85]].map(([l,v]) => <option key={l} value={v}>{l}</option>)}
+            </select>
+          </div>
+          <div style={{flex:'1 1 180px'}}>
+            <label style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5, display:'block'}}>Topics (comma-separated)</label>
+            <input value={topics} onChange={e => setTopics(e.target.value)} placeholder="Mitosis, DNA, Labs" style={{width:'100%', padding:'8px 10px', border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, background:T.bg, boxSizing:'border-box'}} />
+          </div>
+          <button type="button" onClick={addQuiz} style={{padding:'8px 20px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, cursor:'pointer'}}>Save</button>
+        </div>
+      )}
+      {quizzes.length === 0 && !showAdd && (
+        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink3, lineHeight:1.8, marginBottom:16}}>No quizzes scheduled yet. Add one to track readiness and dates.</div>
       )}
       <div style={{display:'flex', flexDirection:'column', gap:12}}>
         {quizzes.map(q => {
@@ -1252,7 +1344,7 @@ function QuizzesScreen({ profile, userData }) {
                 </div>
                 <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, lineHeight:1.25, marginBottom:14}}>{q.title}</div>
                 <div style={{display:'flex', flexWrap:'wrap', gap:7}}>
-                  {q.topics.map(t => (
+                  {(q.topics || []).map(t => (
                     <span key={t} style={{fontFamily:T.mono, fontSize:10, color:T.ink2, background:T.bl, padding:'3px 9px', letterSpacing:'0.02em'}}>{t}</span>
                   ))}
                 </div>
@@ -1351,7 +1443,7 @@ function NoteEditorModal({ open, onClose, onSave, subjects, initial }) {
   );
 }
 
-function NotesScreen({ profile, userData, onUpdate }) {
+function NotesScreen({ profile, userData, onUpdate, onNav }) {
   const subjectBy = makeSubjectBy(profile?.subjects || []);
   const subjects  = profile?.subjects || [];
   const notes     = userData?.notes   || [];
@@ -1390,6 +1482,68 @@ function NotesScreen({ profile, userData, onUpdate }) {
     onUpdate({ notes: notes.filter(n => n.id !== id) });
     setActive(null);
   };
+
+  const runAiAction = (action) => {
+    const now = Date.now();
+    const stamp = () => fmtNoteDate(now);
+    if (action === 'studyGuide') {
+      if (!notes.length) return;
+      const body = subjects.map(s => {
+        const sn = notes.filter(n => n.subj === s.id);
+        if (!sn.length) return '';
+        return `## ${s.name}\n` + sn.map(n => `- **${n.title}**: ${makeNotePreview(n.body || n.preview)}`).join('\n');
+      }).filter(Boolean).join('\n\n');
+      const newNote = { id: 'n-' + now, subj: subjects[0]?.id || '', title: 'Study Guide', body, preview: makeNotePreview(body), date: stamp(), createdAt: now, updatedAt: now };
+      onUpdate({ notes: [newNote, ...notes] });
+      setActive(newNote.id);
+      return;
+    }
+    if (action === 'summarise') {
+      if (!notes.length) return;
+      const body = subjects.map(s => {
+        const sn = notes.filter(n => n.subj === s.id);
+        if (!sn.length) return `### ${s.name}\n_No notes yet._`;
+        return `### ${s.name}\n` + sn.map(n => `- ${n.title}`).join('\n');
+      }).join('\n\n');
+      const newNote = { id: 'n-' + now, subj: subjects[0]?.id || '', title: 'Subject Summary', body, preview: makeNotePreview(body), date: stamp(), createdAt: now, updatedAt: now };
+      onUpdate({ notes: [newNote, ...notes] });
+      setActive(newNote.id);
+      return;
+    }
+    if (action === 'flashcards') {
+      const cards = notes.filter(n => n.title.trim()).map((n, i) => ({
+        id: 'f-' + now + '-' + i,
+        q: n.title,
+        a: makeNotePreview(n.body || n.preview) || 'Review this note.',
+        subj: n.subj || subjects[0]?.id || '',
+        createdAt: now,
+        updatedAt: now,
+      }));
+      if (!cards.length) return;
+      const existing = userData?.flashcards || [];
+      onUpdate({ flashcards: [...existing, ...cards] });
+      onNav?.('flashcards');
+      return;
+    }
+    if (action === 'gaps') {
+      const ranked = subjects.map(s => ({ s, count: notes.filter(n => n.subj === s.id).length })).sort((a, b) => a.count - b.count);
+      const weak = ranked.filter(x => x.count < 2);
+      const body = weak.length
+        ? 'Subjects that could use more notes:\n\n' + weak.map(x => `- **${x.s.name}** (${x.count} note${x.count === 1 ? '' : 's'})`).join('\n')
+        : 'Nice — every subject has at least two notes. Keep building your knowledge base.';
+      const newNote = { id: 'n-' + now, subj: subjects[0]?.id || '', title: 'Knowledge Gaps', body, preview: makeNotePreview(body), date: stamp(), createdAt: now, updatedAt: now };
+      onUpdate({ notes: [newNote, ...notes] });
+      setActive(newNote.id);
+    }
+  };
+
+  const AI_ACTIONS = [
+    { id:'studyGuide', ic:'✦', label:'Generate study guide',     sub:'Compile all notes into one guide' },
+    { id:'summarise',  ic:'◈', label:'Summarise subject notes',  sub:'Outline notes by subject' },
+    { id:'flashcards', ic:'⊞', label:'Create flashcard deck',    sub:'Turn note titles into cards' },
+    { id:'gaps',       ic:'◉', label:'Find knowledge gaps',      sub:'Spot subjects with few notes' },
+  ];
+
   const noteEditor = <NoteEditorModal open={editorOpen} onClose={() => setEditorOpen(false)} onSave={saveNote} subjects={subjects} initial={editTarget} />;
 
   if (active) {
@@ -1549,15 +1703,11 @@ function NotesScreen({ profile, userData, onUpdate }) {
               </div>
               <span style={{fontFamily:T.mono, fontSize:10, background:'rgba(108,99,255,0.1)', color:'#6c63ff', padding:'2px 6px'}}>AI</span>
             </div>
-            {[
-              {ic:'✦', label:'Generate study guide',     sub:'AI summary from all notes'},
-              {ic:'◈', label:'Summarise subject notes',  sub:'Distil key concepts'},
-              {ic:'⊞', label:'Create flashcard deck',    sub:'Turn notes into study cards'},
-              {ic:'◉', label:'Find knowledge gaps',      sub:'Identify missing areas'},
-            ].map(a => (
-              <div key={a.label} style={{display:'flex', gap:9, alignItems:'flex-start', padding:'9px 0', borderBottom:`1px solid ${T.bl}`, cursor:'pointer'}}
-                onMouseOver={e => e.currentTarget.style.opacity='0.65'}
-                onMouseOut={e => e.currentTarget.style.opacity='1'}
+            {AI_ACTIONS.map(a => (
+              <div key={a.id} role="button" tabIndex={0} onClick={() => runAiAction(a.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); runAiAction(a.id); } }}
+                style={{display:'flex', gap:9, alignItems:'flex-start', padding:'9px 0', borderBottom:`1px solid ${T.bl}`, cursor: notes.length ? 'pointer' : 'default', opacity: notes.length ? 1 : 0.45}}
+                onMouseOver={e => { if (notes.length) e.currentTarget.style.opacity='0.65'; }}
+                onMouseOut={e => { if (notes.length) e.currentTarget.style.opacity='1'; }}
               >
                 <div style={{width:22, height:22, background:T.bl, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:3, flexShrink:0}}>
                   <span style={{fontSize:11, color:'#6c63ff'}}>{a.ic}</span>
@@ -1647,7 +1797,7 @@ function FlashcardEditorModal({ open, onClose, onSave, subjects, initial }) {
   );
 }
 
-function FlashcardsScreen({ profile, userData, onUpdate }) {
+function FlashcardsScreen({ profile, userData, onUpdate, screenAction, onScreenActionHandled }) {
   const subjectBy  = makeSubjectBy(profile?.subjects || []);
   const subjects   = profile?.subjects || [];
   const quizzes    = userData?.quizzes    || [];
@@ -1658,10 +1808,37 @@ function FlashcardsScreen({ profile, userData, onUpdate }) {
   const [fl, setFl]     = useState(false);
   const [recall, setRecall]     = useState('');
   const [revealed, setRevealed] = useState(false);
+  const [picked, setPicked]     = useState(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const card = flashCards[qi % Math.max(flashCards.length, 1)] || { q: 'No flashcards yet', a: 'Add your first card to start studying.' };
-  const next = (e) => { if (e) e.stopPropagation(); setFl(false); setRecall(''); setRevealed(false); setQi((qi+1) % Math.max(flashCards.length, 1)); };
+  const next = (e) => { if (e) e.stopPropagation(); setFl(false); setRecall(''); setRevealed(false); setPicked(null); setQi((qi+1) % Math.max(flashCards.length, 1)); };
+
+  useRunScreenAction(screenAction, onScreenActionHandled, (action) => {
+    if (action === 'add') openNew();
+  });
+
+  const mcOptions = useMemo(() => {
+    if (!flashCards.length) return [];
+    const correct = card.a;
+    const pool = flashCards.filter((c, i) => i !== qi && c.a && c.a !== correct).map(c => c.a);
+    const fillers = ['Not the right definition', 'Only applies in some cases', 'The inverse is true'];
+    while (pool.length < 3) pool.push(fillers[pool.length % fillers.length]);
+    const opts = [correct, ...pool.slice(0, 3)];
+    for (let i = opts.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [opts[i], opts[j]] = [opts[j], opts[i]];
+    }
+    return opts;
+  }, [flashCards, qi, card.a]);
+
+  const tfRound = useMemo(() => {
+    if (!flashCards.length) return { statement: '', isTrue: true };
+    const isTrue = qi % 2 === 0;
+    if (isTrue) return { statement: card.a, isTrue: true };
+    const other = flashCards.find((c, i) => i !== qi && c.a && c.a !== card.a);
+    return { statement: other?.q || 'This term is unrelated to the question.', isTrue: false };
+  }, [flashCards, qi, card.a, card.q]);
 
   const openNew  = (subjId) => { setEditTarget(subjId ? { subj: subjId } : null); setEditorOpen(true); };
   const openEditCard = (c)  => { setEditTarget(c); setEditorOpen(true); };
@@ -1681,7 +1858,7 @@ function FlashcardsScreen({ profile, userData, onUpdate }) {
   };
   const cardEditor = <FlashcardEditorModal open={editorOpen} onClose={() => setEditorOpen(false)} onSave={saveCard} subjects={subjects} initial={editTarget} />;
   const backBtn = (
-    <button onClick={() => { setMode(null); setFl(false); setQi(0); setRecall(''); setRevealed(false); }} style={{display:'flex', alignItems:'center', gap:7, background:'none', border:'none', padding:0, fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase', cursor:'pointer'}}>
+    <button onClick={() => { setMode(null); setFl(false); setQi(0); setRecall(''); setRevealed(false); setPicked(null); }} style={{display:'flex', alignItems:'center', gap:7, background:'none', border:'none', padding:0, fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase', cursor:'pointer'}}>
       <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><path d="M8 2L4 6l4 4"/></svg>
       Back to Study Modes
     </button>
@@ -1765,6 +1942,95 @@ function FlashcardsScreen({ profile, userData, onUpdate }) {
     );
   }
 
+  if (mode === 'multiple') {
+    const answered = picked !== null;
+    const isCorrect = picked === card.a;
+    return (
+      <div className="screen-enter" style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden', padding:'40px 60px 0'}}>
+        {cardEditor}
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:22}}>
+          {backBtn}
+          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{qi+1} / {flashCards.length}</div>
+        </div>
+        <div style={{flex:1, display:'flex', flexDirection:'column', maxWidth:560}}>
+          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:14}}>Multiple choice</div>
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, lineHeight:1.5, marginBottom:24}}>{card.q}</div>
+          <div style={{display:'flex', flexDirection:'column', gap:10, marginBottom:20}}>
+            {mcOptions.map(opt => {
+              const sel = picked === opt;
+              const showResult = answered && sel;
+              const isOptCorrect = opt === card.a;
+              let border = T.border, bg = T.surface, color = T.ink;
+              if (answered && isOptCorrect) { border = '#3a8a52'; bg = 'rgba(58,138,82,0.1)'; }
+              else if (showResult && !isOptCorrect) { border = '#bf4a30'; bg = 'rgba(191,74,48,0.08)'; }
+              else if (sel) { border = T.accent; bg = T.accentSoft; }
+              return (
+                <button key={opt} type="button" disabled={answered} onClick={() => setPicked(opt)}
+                  style={{textAlign:'left', padding:'14px 16px', border:`1.5px solid ${border}`, background:bg, borderRadius:10, fontFamily:T.ui, fontSize:14, color, cursor: answered ? 'default' : 'pointer'}}>
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+          {answered && (
+            <div style={{fontFamily:T.mono, fontSize:10, color: isCorrect ? '#3a8a52' : '#b07020', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:16}}>
+              {isCorrect ? '✓ Correct' : '✗ Correct answer: ' + card.a}
+            </div>
+          )}
+          {answered && (
+            <button type="button" onClick={() => next()} style={{alignSelf:'flex-start', padding:'11px 24px', border:`1px solid ${T.border}`, background:T.surface, color:T.ink, fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>Next card →</button>
+          )}
+        </div>
+        <div style={{height:24, flexShrink:0}}/>
+      </div>
+    );
+  }
+
+  if (mode === 'truefalse') {
+    const answered = picked !== null;
+    const isCorrect = picked === tfRound.isTrue;
+    return (
+      <div className="screen-enter" style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden', padding:'40px 60px 0'}}>
+        {cardEditor}
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:22}}>
+          {backBtn}
+          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{qi+1} / {flashCards.length}</div>
+        </div>
+        <div style={{flex:1, display:'flex', flexDirection:'column', maxWidth:560}}>
+          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:14}}>True or false</div>
+          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginBottom:8}}>For: {card.q}</div>
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, lineHeight:1.55, marginBottom:28, padding:'20px 22px', background:T.surface, borderRadius:12, border:`1px solid ${T.border}`}}>{tfRound.statement}</div>
+          <div style={{display:'flex', gap:12, marginBottom:20}}>
+            {[true, false].map(val => {
+              const sel = picked === val;
+              const showResult = answered && sel;
+              let border = T.border, bg = T.surface;
+              if (answered && val === tfRound.isTrue) { border = '#3a8a52'; bg = 'rgba(58,138,82,0.1)'; }
+              else if (showResult && val !== tfRound.isTrue) { border = '#bf4a30'; bg = 'rgba(191,74,48,0.08)'; }
+              else if (sel) { border = T.accent; bg = T.accentSoft; }
+              return (
+                <button key={String(val)} type="button" disabled={answered} onClick={() => setPicked(val)}
+                  style={{flex:1, padding:'14px', border:`1.5px solid ${border}`, background:bg, borderRadius:10, fontFamily:T.mono, fontSize:12, letterSpacing:'0.08em', cursor: answered ? 'default' : 'pointer'}}>
+                  {val ? 'TRUE' : 'FALSE'}
+                </button>
+              );
+            })}
+          </div>
+          {answered && (
+            <>
+              <div style={{fontFamily:T.mono, fontSize:10, color: isCorrect ? '#3a8a52' : '#b07020', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8}}>
+                {isCorrect ? '✓ Correct' : '✗ The statement was ' + (tfRound.isTrue ? 'true' : 'false')}
+              </div>
+              <div style={{fontFamily:T.ui, fontSize:13, color:T.ink2, marginBottom:16, lineHeight:1.6}}>Answer: {card.a}</div>
+              <button type="button" onClick={() => next()} style={{alignSelf:'flex-start', padding:'11px 24px', border:`1px solid ${T.border}`, background:T.surface, color:T.ink, fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>Next card →</button>
+            </>
+          )}
+        </div>
+        <div style={{height:24, flexShrink:0}}/>
+      </div>
+    );
+  }
+
   const bestSubj  = pickBestGradedSubject(subjects, grades) || { short:'—', color:T.border };
   const readinessPct = quizzes.length > 0 ? Math.round(quizzes.reduce((a,q)=>a+(q.confidence||0),0)/quizzes.length*100) : null;
 
@@ -1773,8 +2039,8 @@ function FlashcardsScreen({ profile, userData, onUpdate }) {
     {id:'type',       ic:'Aa', icC:'#bf4a30', title:'Type the answer',  sub:'Type, then self-check'        },
     {id:'written',    ic:'⊟', icC:'#9254de', title:'Written recall',   sub:'Free-write what you know'     },
     {id:'concepts',   ic:'⊞', icC:'#9a9080', title:'Key Concepts',     sub:'Reference sheet of all cards' },
-    {id:'multiple',   ic:'⊡', icC:'#2a60a0', title:'Multiple choice',  sub:'Auto-generated quiz',          soon:true },
-    {id:'truefalse',  ic:'T/F',icC:'#3a8a52', title:'True / False',    sub:'Is this definition correct?',  soon:true },
+    {id:'multiple',   ic:'⊡', icC:'#2a60a0', title:'Multiple choice',  sub:'Pick the right answer'        },
+    {id:'truefalse',  ic:'T/F',icC:'#3a8a52', title:'True / False',    sub:'Is this statement correct?'   },
   ];
 
   if (mode === 'flashcards') {
@@ -1854,9 +2120,7 @@ function FlashcardsScreen({ profile, userData, onUpdate }) {
             </div>
             <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, marginBottom:5, lineHeight:1.2}}>{m.title}</div>
             <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.03em', marginBottom:18}}>{m.sub}</div>
-            {m.soon
-              ? <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3, border:`1px solid ${T.border}`, padding:'5px 12px', letterSpacing:'0.07em', borderRadius:4}}>SOON</span>
-              : <button onClick={() => setMode(m.id)} style={{fontFamily:T.mono, fontSize:10, color:m.icC, background:'none', border:`1px solid ${m.icC}50`, padding:'5px 14px', cursor:'pointer', letterSpacing:'0.07em'}}>START →</button>}
+            <button type="button" onClick={() => setMode(m.id)} style={{fontFamily:T.mono, fontSize:10, color:m.icC, background:'none', border:`1px solid ${m.icC}50`, padding:'5px 14px', cursor:'pointer', letterSpacing:'0.07em'}}>START →</button>
           </div>
         ))}
       </div>
@@ -1895,15 +2159,21 @@ function FlashcardsScreen({ profile, userData, onUpdate }) {
 }
 
 /* ── 6. Schedule ────────────────────────────────────────── */
-function ScheduleScreen({ profile, userData }) {
+function ScheduleScreen({ profile, userData, screenAction, onScreenActionHandled }) {
   const subjectBy = makeSubjectBy(profile?.subjects || []);
   const homework  = userData?.homework || [];
   const quizzes   = userData?.quizzes  || [];
   const [weekOffset, setWeekOffset] = useState(0);
   const [planOpen,   setPlanOpen]   = useState(true);
+  const [planSeed,   setPlanSeed]   = useState(0);
   const [secs,       setSecs]       = useState(25 * 60);
   const [running,    setRunning]    = useState(false);
   const [sessions,   setSessions]   = useState(0);
+  const focusRef = useRef(null);
+
+  useRunScreenAction(screenAction, onScreenActionHandled, (action) => {
+    if (action === 'focus') setTimeout(() => focusRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+  });
 
   useEffect(() => {
     if (!running) return;
@@ -1945,9 +2215,10 @@ function ScheduleScreen({ profile, userData }) {
   const totalTasks = homework.filter(h => !h.done).length;
 
   const PLAN_DAYS = [
-    { day:'Monday',    tasks: homework.filter(h=>h.urgent&&!h.done).slice(0,1).map(h=>subjectBy(h.subj).short+': '+h.title.slice(0,35)) },
-    { day:'Tuesday',   tasks: homework.filter(h=>h.due==='Tomorrow'&&!h.done).slice(0,1).map(h=>subjectBy(h.subj).short+': '+h.title.slice(0,35)) },
-    { day:'Wednesday', tasks: homework.filter(h=>h.due==='Wed'&&!h.done).slice(0,1).map(h=>subjectBy(h.subj).short+': '+h.title.slice(0,35)) },
+    { day:'Monday',    tasks: homework.filter(h=>h.urgent&&!h.done).slice(planSeed % 3, planSeed % 3 + 1).map(h=>subjectBy(h.subj).short+': '+h.title.slice(0,35)) },
+    { day:'Tuesday',   tasks: homework.filter(h=>h.due==='Tomorrow'&&!h.done).slice(planSeed % 2, planSeed % 2 + 1).map(h=>subjectBy(h.subj).short+': '+h.title.slice(0,35)) },
+    { day:'Wednesday', tasks: homework.filter(h=>h.due==='Wed'&&!h.done).slice(planSeed % 2, planSeed % 2 + 1).map(h=>subjectBy(h.subj).short+': '+h.title.slice(0,35)) },
+    { day:'Thursday',  tasks: homework.filter(h=>!h.done && !h.urgent && h.due !== 'Tonight' && h.due !== 'Tomorrow').slice(planSeed % 3, planSeed % 3 + 1).map(h=>subjectBy(h.subj).short+': '+h.title.slice(0,35)) },
   ].filter(d => d.tasks.length > 0);
 
   const workloadDays = ['M','T','W','T','F'];
@@ -1994,7 +2265,7 @@ function ScheduleScreen({ profile, userData }) {
             <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>Adapts to your homework, quizzes, and due dates</div>
           </div>
           <div style={{display:'flex', gap:7}}>
-            <button style={{fontFamily:T.mono, fontSize:10, color:T.ink3, background:'none', border:`1px solid ${T.border}`, padding:'4px 10px', cursor:'pointer'}}
+            <button type="button" onClick={() => setPlanSeed(s => s + 1)} style={{fontFamily:T.mono, fontSize:10, color:T.ink3, background:'none', border:`1px solid ${T.border}`, padding:'4px 10px', cursor:'pointer'}}
               onMouseOver={e=>e.currentTarget.style.borderColor=T.accent}
               onMouseOut={e=>e.currentTarget.style.borderColor=T.border}
             >↻ Regenerate</button>
@@ -2091,7 +2362,7 @@ function ScheduleScreen({ profile, userData }) {
       </div>
 
       {/* Focus / Pomodoro */}
-      <div style={{display:'grid', gridTemplateColumns:'1fr auto', gap:12}}>
+      <div ref={focusRef} style={{display:'grid', gridTemplateColumns:'1fr auto', gap:12}}>
         <div style={{background:T.surface, padding:'20px 24px', borderRadius:12}}>
           <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:14}}>
             Focus · {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getDay()]}
@@ -2127,7 +2398,7 @@ function ScheduleScreen({ profile, userData }) {
 }
 
 /* ── 7. Grades ──────────────────────────────────────────── */
-function GradesScreen({ profile, userData, onUpdate }) {
+function GradesScreen({ profile, userData, onUpdate, onRequestSidebar }) {
   const subjects   = profile?.subjects || [];
   const homework   = userData?.homework || [];
   const grades     = userData?.grades   || {};
@@ -2178,7 +2449,7 @@ function GradesScreen({ profile, userData, onUpdate }) {
             <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>Click any subject to view grade detail.</div>
           </div>
           <div style={{display:'flex', gap:8, flexShrink:0}}>
-            <button style={{
+            <button type="button" onClick={() => onRequestSidebar?.('addSubject')} style={{
               display:'flex', alignItems:'center', gap:6, padding:'7px 13px',
               border:'none', background:T.accent, color:'#fff',
               fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer',
@@ -2271,7 +2542,7 @@ function GradesScreen({ profile, userData, onUpdate }) {
             const myGrade = grades[s.id] || '';
             const hasGrade = !!myGrade;
             return (
-              <div key={s.id}
+              <div key={s.id} id={`grade-row-${s.id}`}
                 style={{display:'grid', gridTemplateColumns:'1fr 120px 72px 80px 100px', gap:8, background:T.surface, alignItems:'center', cursor:'pointer', transition:'background 0.1s', borderRadius:8, borderLeft:`3px solid ${s.color}`}}
                 onMouseOver={e => e.currentTarget.style.background = T.bl}
                 onMouseOut={e => e.currentTarget.style.background = T.surface}
@@ -2403,7 +2674,7 @@ function GradesScreen({ profile, userData, onUpdate }) {
                 <div style={{width:5, height:5, borderRadius:1, background:s.color, flexShrink:0}}/>
                 <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1}}>{s.short}</div>
                 <div style={{fontFamily:T.mono, fontSize:10, color: grades[s.id] ? T.ink3 : T.accent}}>{grades[s.id] || '—'}</div>
-                <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3, cursor:'pointer'}}>→</span>
+                <button type="button" onClick={() => document.getElementById(`grade-row-${s.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })} style={{fontFamily:T.mono, fontSize:10, color:T.ink3, background:'none', border:'none', padding:0, cursor:'pointer'}}>→</button>
               </div>
             ))}
           </div>
@@ -3479,6 +3750,8 @@ function App() {
   const [key, setKey]           = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toast, setToast]       = useState('');
+  const [screenAction, setScreenAction] = useState(null);
+  const [sidebarAction, setSidebarAction] = useState(null);
   const [userData, setUserData] = useState(() => {
     const p = loadProfile();
     return p ? (loadUserData(p.email) || defaultUserData()) : defaultUserData();
@@ -3490,7 +3763,13 @@ function App() {
     return () => clearTimeout(id);
   }, [toast]);
 
-  const nav = (s) => { setScreen(s); setKey(k => k+1); setSidebarOpen(false); };
+  const nav = (s, action) => {
+    setScreen(s);
+    setKey(k => k + 1);
+    setSidebarOpen(false);
+    setScreenAction(action || null);
+  };
+  const requestSidebar = (action) => setSidebarAction(action);
   const Screen = SCREENS[screen] || TodayScreen;
 
   useEffect(() => {
@@ -3671,13 +3950,24 @@ function App() {
         onSignOut={handleSignOut}
         open={sidebarOpen}
         onCloseSidebar={() => setSidebarOpen(false)}
+        requestedAction={sidebarAction}
+        onActionHandled={() => setSidebarAction(null)}
         onAddSubject={subj => {
           persistProfile({ ...profile, subjects: [...(profile.subjects||[]), subj] });
         }}
         onUpdateProfile={persistProfile}
       />
       <main id="shq-main" tabIndex={-1} style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden', outline:'none'}}>
-        <Screen key={key} profile={profile} userData={userData} onUpdate={updateUserData} />
+        <Screen
+          key={key}
+          profile={profile}
+          userData={userData}
+          onUpdate={updateUserData}
+          onNav={nav}
+          onRequestSidebar={requestSidebar}
+          screenAction={screenAction}
+          onScreenActionHandled={() => setScreenAction(null)}
+        />
       </main>
       <SyncBadge onReconnect={reconnectCloud} />
       <Toast message={toast} />
