@@ -39,6 +39,8 @@ button { cursor: pointer; font-family: inherit; }
 .shq-hw-stats { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
 .shq-sched-stats { display:grid; grid-template-columns:repeat(4,1fr) minmax(140px,1fr); gap:12px; }
 .shq-sched-week { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+.shq-sched-weekend { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.shq-sched-focus { display:grid; grid-template-columns:1fr auto; gap:12px; }
 .shq-tools-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
 .shq-subjects-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
 .shq-grades-stats { display:grid; grid-template-columns:240px 1fr 1fr 1fr; gap:12px; }
@@ -127,6 +129,8 @@ button { cursor: pointer; font-family: inherit; }
   .shq-hw-stats { grid-template-columns:repeat(2,1fr)!important; }
   .shq-sched-stats { grid-template-columns:repeat(2,1fr)!important; }
   .shq-sched-week { grid-template-columns:1fr!important; }
+  .shq-sched-weekend { grid-template-columns:1fr!important; }
+  .shq-sched-focus { grid-template-columns:1fr!important; }
   .shq-tools-stats { grid-template-columns:repeat(2,1fr)!important; }
   .shq-subjects-stats { grid-template-columns:repeat(2,1fr)!important; }
   .shq-subjects-grid { grid-template-columns:1fr!important; }

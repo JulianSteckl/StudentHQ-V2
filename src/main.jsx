@@ -2453,17 +2453,131 @@ function FlashcardsScreen({ profile, userData, onUpdate, screenAction, onScreenA
 }
 
 /* ── 6. Schedule ────────────────────────────────────────── */
-function ScheduleScreen({ profile, userData, screenAction, onScreenActionHandled }) {
-  const subjectBy = makeSubjectBy(profile?.subjects || []);
+const SCHED_WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+const DUE_WEEKDAY = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5 };
+const PLAN_DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const PLAN_DAY_FROM_DOW = { 1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday' };
+const DEFAULT_BELL = [
+  { period: '1', subj: '', time: '8:00–8:50', room: '', current: false },
+  { period: '2', subj: '', time: '8:55–9:45', room: '', current: false },
+  { period: '3', subj: '', time: '9:50–10:40', room: '', current: false },
+  { period: '4', subj: '', time: '10:45–11:35', room: '', current: false },
+  { period: '5', subj: '', time: '12:15–1:05', room: '', current: false },
+  { period: '6', subj: '', time: '1:10–2:00', room: '', current: false },
+  { period: '7', subj: '', time: '2:05–2:55', room: '', current: false },
+];
+
+function schedTermLabel(date = new Date()) {
+  const m = date.getMonth();
+  if (m <= 4) return 'Spring';
+  if (m <= 7) return 'Summer';
+  return 'Fall';
+}
+
+function schedParseEstMinutes(est) {
+  if (!est) return 30;
+  let m = 0;
+  const hrs = est.match(/(\d+)\s*hr/);
+  const mins = est.match(/(\d+)\s*min/);
+  if (hrs) m += parseInt(hrs[1], 10) * 60;
+  if (mins) m += parseInt(mins[1], 10);
+  return m || 30;
+}
+
+function schedFormatEstTotal(minutes) {
+  if (minutes <= 0) return '—';
+  if (minutes >= 60) {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m ? `${h}h ${m}m` : `${h}h`;
+  }
+  return `${minutes}m`;
+}
+
+function schedWeekDates(weekStart) {
+  return SCHED_WEEKDAYS.map((_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+}
+
+function schedHomeworkDayIndex(hw, weekStart, now, weekOffset) {
+  if (!hw || hw.done || !hw.due) return -1;
+  const weekDates = schedWeekDates(weekStart);
+  const findByDow = (dow) => weekDates.findIndex(d => d.getDay() === dow);
+  if (DUE_WEEKDAY[hw.due] != null) return findByDow(DUE_WEEKDAY[hw.due]);
+  if (weekOffset !== 0) return hw.due === 'Next Week' && weekOffset === 1 ? 0 : -1;
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  if (hw.due === 'Tonight') return weekDates.findIndex(d => d.getTime() === today.getTime());
+  if (hw.due === 'Tomorrow') return weekDates.findIndex(d => d.getTime() === tomorrow.getTime());
+  return -1;
+}
+
+function schedQuizDayIndex(quiz, weekStart, weekOffset) {
+  if (!quiz?.date) return -1;
+  if (quiz.date === 'Next Week') return weekOffset === 1 ? 0 : -1;
+  if (DUE_WEEKDAY[quiz.date] == null) return -1;
+  return schedWeekDates(weekStart).findIndex(d => d.getDay() === DUE_WEEKDAY[quiz.date]);
+}
+
+function schedPlanDayForDue(due) {
+  if (DUE_WEEKDAY[due] != null) return PLAN_DAY_FROM_DOW[DUE_WEEKDAY[due]];
+  const now = new Date();
+  if (due === 'Tonight') return PLAN_DAY_FROM_DOW[now.getDay()] || 'Monday';
+  if (due === 'Tomorrow') {
+    const t = new Date(now);
+    t.setDate(t.getDate() + 1);
+    return PLAN_DAY_FROM_DOW[t.getDay()] || 'Monday';
+  }
+  if (due === 'Next Week') return 'Monday';
+  return null;
+}
+
+function buildSchedStudyPlan(homework, quizzes, subjectBy, seed = 0) {
+  const buckets = Object.fromEntries(PLAN_DAY_NAMES.map(d => [d, []]));
+  const open = homework.filter(h => !h.done);
+  const urgent = open.filter(h => h.urgent);
+  const rest = open.filter(h => !h.urgent);
+  const ordered = [...urgent, ...rest];
+  const perDay = Math.max(1, Math.ceil(ordered.length / 4));
+  ordered.forEach((hw, i) => {
+    const day = schedPlanDayForDue(hw.due) || PLAN_DAY_NAMES[(i + seed) % 5];
+    if (!buckets[day]) return;
+    if (buckets[day].length >= perDay + 1) return;
+    buckets[day].push(`${subjectBy(hw.subj).short}: ${hw.title.slice(0, 36)}${hw.urgent ? ' · urgent' : ''}`);
+  });
+  quizzes.forEach(q => {
+    const day = schedPlanDayForDue(q.date);
+    if (!day || !buckets[day]) return;
+    buckets[day].push(`Quiz · ${subjectBy(q.subj).short}: ${q.title.slice(0, 30)}`);
+  });
+  return PLAN_DAY_NAMES.map(day => ({ day, tasks: buckets[day] })).filter(d => d.tasks.length > 0);
+}
+
+function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onScreenActionHandled }) {
+  const subjects  = profile?.subjects || [];
+  const subjectBy = makeSubjectBy(subjects);
   const homework  = userData?.homework || [];
   const quizzes   = userData?.quizzes  || [];
+  const bellSchedule = userData?.schedule || [];
+  const sessions  = userData?.focusSessions || 0;
+
   const [weekOffset, setWeekOffset] = useState(0);
-  const [planOpen,   setPlanOpen]   = useState(true);
-  const [planSeed,   setPlanSeed]   = useState(0);
-  const [secs,       setSecs]       = useState(25 * 60);
-  const [running,    setRunning]    = useState(false);
-  const [sessions,   setSessions]   = useState(0);
+  const [planOpen, setPlanOpen] = useState(true);
+  const [planSeed, setPlanSeed] = useState(0);
+  const [bellOpen, setBellOpen] = useState(bellSchedule.length === 0);
+  const [editingBell, setEditingBell] = useState(false);
+  const [draftBell, setDraftBell] = useState([]);
+  const [secs, setSecs] = useState(25 * 60);
+  const [running, setRunning] = useState(false);
   const focusRef = useRef(null);
+  const sessionsRef = useRef(sessions);
+  sessionsRef.current = sessions;
 
   useRunScreenAction(screenAction, onScreenActionHandled, (action) => {
     if (action === 'focus') setTimeout(() => focusRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
@@ -2473,108 +2587,206 @@ function ScheduleScreen({ profile, userData, screenAction, onScreenActionHandled
     if (!running) return;
     const id = setInterval(() => {
       setSecs(s => {
-        if (s <= 1) { setRunning(false); setSessions(n => n+1); return 25*60; }
+        if (s <= 1) {
+          setRunning(false);
+          onUpdate && onUpdate({ focusSessions: sessionsRef.current + 1 });
+          return 25 * 60;
+        }
         return s - 1;
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [running]);
+  }, [running, onUpdate]);
 
-  const mm = String(Math.floor(secs/60)).padStart(2,'0');
-  const ss = String(secs%60).padStart(2,'0');
+  const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+  const ss = String(secs % 60).padStart(2, '0');
 
   const now = new Date();
-  const dow = now.getDay();
-  const monOffset = (dow + 6) % 7;
-  const weekStart = new Date(now); weekStart.setDate(now.getDate() - monOffset + weekOffset * 7);
-  const weekEnd   = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 4);
-  const fmt = d => d.toLocaleDateString('en-US',{month:'short', day:'numeric'});
+  const monOffset = (now.getDay() + 6) % 7;
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - monOffset + weekOffset * 7);
+  weekStart.setHours(0, 0, 0, 0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 4);
+  const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const isWeekend = now.getDay() === 0 || now.getDay() === 6;
 
-  const DAYS = ['Mon','Tue','Wed','Thu','Fri'];
-  const dayCards = DAYS.map((name, i) => {
-    const d = new Date(weekStart); d.setDate(weekStart.getDate() + i);
+  const dayCards = SCHED_WEEKDAYS.map((name, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
     const isToday = d.toDateString() === now.toDateString();
-    const dayHW = homework.filter(hw => {
-      if (hw.done) return false;
-      if (name === 'Mon' && hw.due === 'Tonight')    return weekOffset === 0 && dow <= 1;
-      if (name === 'Tue' && hw.due === 'Tomorrow')   return weekOffset === 0 && dow === 1;
-      if (name === 'Wed' && hw.due === 'Wed')         return true;
-      if (name === 'Thu' && hw.due === 'Thu')         return true;
-      if (name === 'Fri' && hw.due === 'Fri')         return true;
-      return false;
-    });
+    const dayHW = homework.filter(hw => schedHomeworkDayIndex(hw, weekStart, now, weekOffset) === i);
+    const dayQuizzes = quizzes.filter(q => schedQuizDayIndex(q, weekStart, weekOffset) === i);
+    return { name, date: d.getDate(), isToday, dayHW, dayQuizzes, itemCount: dayHW.length + dayQuizzes.length };
+  });
+
+  const weekendCards = ['Sat', 'Sun'].map((name, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + 5 + i);
+    d.setHours(0, 0, 0, 0);
+    const isToday = d.toDateString() === now.toDateString();
+    const dayHW = weekOffset === 0
+      ? homework.filter(hw => !hw.done && ((hw.due === 'Tonight' && isToday) || (hw.due === 'Tomorrow' && i === 1 && now.getDay() === 6)))
+      : [];
     return { name, date: d.getDate(), isToday, dayHW };
   });
 
-  const totalTasks = homework.filter(h => !h.done).length;
+  const weekItemCount = dayCards.reduce((a, d) => a + d.itemCount, 0)
+    + weekendCards.reduce((a, d) => a + d.dayHW.length, 0);
+  const weekQuizzes = dayCards.reduce((a, d) => a + d.dayQuizzes.length, 0);
+  const urgentCount = homework.filter(h => h.urgent && !h.done).length;
+  const openHW = homework.filter(h => !h.done);
+  const weekOpenHW = openHW.filter(hw => schedHomeworkDayIndex(hw, weekStart, now, weekOffset) >= 0);
+  const estMinutes = weekOpenHW.reduce((acc, h) => acc + schedParseEstMinutes(h.est), 0);
+  const unplacedUrgent = openHW.filter(h => h.urgent && schedHomeworkDayIndex(h, weekStart, now, weekOffset) < 0 && weekOffset === 0);
+  const planDays = useMemo(
+    () => buildSchedStudyPlan(homework, quizzes, subjectBy, planSeed),
+    [homework, quizzes, subjectBy, planSeed]
+  );
+  const barMax = Math.max(...dayCards.map(d => d.itemCount), 1);
 
-  const PLAN_DAYS = [
-    { day:'Monday',    tasks: homework.filter(h=>h.urgent&&!h.done).slice(planSeed % 3, planSeed % 3 + 1).map(h=>subjectBy(h.subj).short+': '+h.title.slice(0,35)) },
-    { day:'Tuesday',   tasks: homework.filter(h=>h.due==='Tomorrow'&&!h.done).slice(planSeed % 2, planSeed % 2 + 1).map(h=>subjectBy(h.subj).short+': '+h.title.slice(0,35)) },
-    { day:'Wednesday', tasks: homework.filter(h=>h.due==='Wed'&&!h.done).slice(planSeed % 2, planSeed % 2 + 1).map(h=>subjectBy(h.subj).short+': '+h.title.slice(0,35)) },
-    { day:'Thursday',  tasks: homework.filter(h=>!h.done && !h.urgent && h.due !== 'Tonight' && h.due !== 'Tomorrow').slice(planSeed % 3, planSeed % 3 + 1).map(h=>subjectBy(h.subj).short+': '+h.title.slice(0,35)) },
-  ].filter(d => d.tasks.length > 0);
+  const startBellEdit = () => {
+    setDraftBell(bellSchedule.length ? bellSchedule.map(p => ({ ...p })) : DEFAULT_BELL.map(p => ({ ...p })));
+    setEditingBell(true);
+    setBellOpen(true);
+  };
+  const saveBell = () => {
+    const cleaned = draftBell
+      .map(p => ({ period: p.period || '', subj: p.subj || '', room: p.room || '', time: p.time || '', current: !!p.current }))
+      .filter(p => p.period || p.subj || p.room || p.time);
+    const withOneCurrent = cleaned.map((p, i) => ({ ...p, current: cleaned.some(x => x.current) ? !!p.current : i === 0 }));
+    onUpdate && onUpdate({ schedule: withOneCurrent });
+    setEditingBell(false);
+  };
 
-  const workloadDays = ['M','T','W','T','F'];
-  const workloadVals = [urgent=>urgent, thisWeek=>thisWeek, upcoming=>upcoming, 0, 0];
-  const barMax = Math.max(totalTasks, 1);
+  const weekLabel = weekOffset === 0 ? 'This week' : weekOffset > 0 ? `+${weekOffset} week` : `${weekOffset} week`;
 
-  const NavBtn = ({children, onClick}) => (
-    <button onClick={onClick} style={{padding:'6px 12px', border:`1px solid ${T.border}`, background:T.surface, color:T.ink3, fontFamily:T.mono, fontSize:10, letterSpacing:'0.06em', cursor:'pointer'}}
-      onMouseOver={e=>e.currentTarget.style.borderColor=T.accent}
-      onMouseOut={e=>e.currentTarget.style.borderColor=T.border}
-    >{children}</button>
+  const NavBtn = ({ children, onClick, active }) => (
+    <button type="button" onClick={onClick} style={{
+      padding: '6px 12px', borderRadius: 8, border: `1px solid ${active ? T.accent : T.border}`,
+      background: active ? T.accentSoft : T.surface, color: active ? T.accent : T.ink3,
+      fontFamily: T.mono, fontSize: 10, letterSpacing: '0.06em', cursor: 'pointer',
+    }}>{children}</button>
   );
 
+  const cardStyle = { background: T.surface, borderRadius: 12, border: `1px solid ${T.border}` };
+
   return (
-    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
+    <div className="screen-enter shq-screen-pad" style={{ flex: 1, overflowY: 'auto' }}>
       {/* Header */}
-      <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:18}}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:6}}>
-            Spring · Week {weekOffset === 0 ? '·' : weekOffset > 0 ? '+'+weekOffset : weekOffset} · This Week
+          <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.13em', marginBottom: 6 }}>
+            {schedTermLabel(now)} · {weekLabel}{isWeekend && weekOffset === 0 ? ' · weekend' : ''}
           </div>
-          <h1 style={{margin:'0 0 5px', lineHeight:1.1}}>
-            <span style={{fontFamily:T.ui, fontWeight:700, fontSize:28, color:T.ink}}>Your </span>
-            <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:30, color:T.ink}}>schedule.</span>
+          <h1 style={{ margin: '0 0 5px', lineHeight: 1.1 }}>
+            <span style={{ fontFamily: T.ui, fontWeight: 700, fontSize: 28, color: T.ink }}>Your </span>
+            <span style={{ fontFamily: T.serif, fontStyle: 'italic', fontWeight: 400, fontSize: 30, color: T.ink }}>schedule.</span>
           </h1>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{fmt(weekStart)} – {fmt(weekEnd)} · {dayCards.reduce((a,d)=>a+d.dayHW.length,0)} items</div>
+          <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3 }}>
+            {fmt(weekStart)} – {fmt(weekEnd)}
+            {weekendCards[0] && ` · Sat ${weekendCards[0].date}`}
+            {' · '}{weekItemCount} item{weekItemCount !== 1 ? 's' : ''}
+          </div>
         </div>
-        <div style={{display:'flex', gap:6, flexShrink:0, marginTop:6}}>
-          <NavBtn onClick={()=>setWeekOffset(w=>w-1)}>← Week</NavBtn>
-          <NavBtn onClick={()=>setWeekOffset(w=>w+1)}>Week →</NavBtn>
-          <NavBtn onClick={()=>setWeekOffset(0)}>Today</NavBtn>
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginTop: 6 }}>
+          <NavBtn onClick={() => setWeekOffset(w => w - 1)}>← Week</NavBtn>
+          <NavBtn onClick={() => setWeekOffset(w => w + 1)}>Week →</NavBtn>
+          <NavBtn active={weekOffset === 0} onClick={() => setWeekOffset(0)}>Today</NavBtn>
         </div>
       </div>
 
-      {/* AI Study Plan */}
-      <div style={{background:T.surface, marginBottom:1, border:`1px solid ${T.border}`}}>
-        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 18px', borderBottom: planOpen ? `1px solid ${T.border}` : 'none'}}>
-          <div style={{display:'flex', alignItems:'center', gap:9}}>
-            <div style={{display:'flex', gap:3}}>
-              {['#bf4a30','#b8943a','#3a8a52'].map(c=><div key={c} style={{width:7,height:7,borderRadius:'50%',background:c}}/>)}
+      {/* Class schedule (bell periods) */}
+      <div style={{ ...cardStyle, marginBottom: 12, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', borderBottom: bellOpen ? `1px solid ${T.border}` : 'none' }}>
+          <div>
+            <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.11em', marginBottom: 3 }}>Class schedule</div>
+            <div style={{ fontFamily: T.ui, fontSize: 13, color: T.ink, fontWeight: 500 }}>
+              {bellSchedule.length ? `${bellSchedule.filter(p => p.subj).length} periods set` : 'Set up your bell schedule'}
             </div>
-            <div style={{fontFamily:T.ui, fontSize:13, color:T.ink, fontWeight:500}}>AI Study Plan</div>
-            <span style={{fontFamily:T.mono, fontSize:10, background:'rgba(108,99,255,0.1)', color:'#6c63ff', padding:'2px 6px'}}>AI</span>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>Adapts to your homework, quizzes, and due dates</div>
           </div>
-          <div style={{display:'flex', gap:7}}>
-            <button type="button" onClick={() => setPlanSeed(s => s + 1)} style={{fontFamily:T.mono, fontSize:10, color:T.ink3, background:'none', border:`1px solid ${T.border}`, padding:'4px 10px', cursor:'pointer'}}
-              onMouseOver={e=>e.currentTarget.style.borderColor=T.accent}
-              onMouseOut={e=>e.currentTarget.style.borderColor=T.border}
-            >↻ Regenerate</button>
-            <button onClick={()=>setPlanOpen(o=>!o)} style={{fontFamily:T.mono, fontSize:10, color:T.ink3, background:'none', border:`1px solid ${T.border}`, padding:'4px 10px', cursor:'pointer'}}>{planOpen?'Hide plan':'Show plan'}</button>
+          <div style={{ display: 'flex', gap: 7 }}>
+            {!editingBell && (
+              <button type="button" onClick={startBellEdit} style={{ fontFamily: T.mono, fontSize: 10, color: T.accent, background: 'none', border: `1px solid ${T.border}`, padding: '4px 10px', borderRadius: 8, cursor: 'pointer' }}>
+                {bellSchedule.length ? 'Edit' : 'Set up'}
+              </button>
+            )}
+            <button type="button" onClick={() => setBellOpen(o => !o)} style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, background: 'none', border: `1px solid ${T.border}`, padding: '4px 10px', borderRadius: 8, cursor: 'pointer' }}>
+              {bellOpen ? 'Hide' : 'Show'}
+            </button>
+          </div>
+        </div>
+        {bellOpen && (
+          <div style={{ padding: '14px 18px' }}>
+            {editingBell ? (
+              <>
+                {draftBell.map((p, i) => (
+                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '44px 1fr 120px 80px auto', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                    <input value={p.period} onChange={e => setDraftBell(rows => rows.map((r, j) => j === i ? { ...r, period: e.target.value } : r))} placeholder="P" style={{ fontFamily: T.mono, fontSize: 11, padding: '6px 8px', border: `1px solid ${T.border}`, borderRadius: 6, background: T.bg }} />
+                    <select value={p.subj} onChange={e => setDraftBell(rows => rows.map((r, j) => j === i ? { ...r, subj: e.target.value } : r))} style={{ fontFamily: T.ui, fontSize: 11, padding: '6px 8px', border: `1px solid ${T.border}`, borderRadius: 6, background: T.bg }}>
+                      <option value="">— Subject —</option>
+                      {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                    <input value={p.time} onChange={e => setDraftBell(rows => rows.map((r, j) => j === i ? { ...r, time: e.target.value } : r))} placeholder="8:00–8:50" style={{ fontFamily: T.mono, fontSize: 11, padding: '6px 8px', border: `1px solid ${T.border}`, borderRadius: 6, background: T.bg }} />
+                    <input value={p.room} onChange={e => setDraftBell(rows => rows.map((r, j) => j === i ? { ...r, room: e.target.value } : r))} placeholder="Room" style={{ fontFamily: T.mono, fontSize: 11, padding: '6px 8px', border: `1px solid ${T.border}`, borderRadius: 6, background: T.bg }} />
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: T.mono, fontSize: 10, color: T.ink3, cursor: 'pointer' }}>
+                      <input type="radio" name="currentPeriod" checked={!!p.current} onChange={() => setDraftBell(rows => rows.map((r, j) => ({ ...r, current: j === i })))} />
+                      Now
+                    </label>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  <button type="button" onClick={() => setDraftBell(rows => [...rows, { period: String(rows.length + 1), subj: '', time: '', room: '', current: false }])} style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, background: 'none', border: `1px solid ${T.border}`, padding: '5px 10px', borderRadius: 8, cursor: 'pointer' }}>+ Period</button>
+                  <button type="button" onClick={saveBell} style={{ fontFamily: T.mono, fontSize: 10, color: '#fff', background: T.accent, border: 'none', padding: '5px 14px', borderRadius: 8, cursor: 'pointer' }}>Save</button>
+                  <button type="button" onClick={() => setEditingBell(false)} style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, background: 'none', border: `1px solid ${T.border}`, padding: '5px 10px', borderRadius: 8, cursor: 'pointer' }}>Cancel</button>
+                </div>
+              </>
+            ) : bellSchedule.length === 0 ? (
+              <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 14, color: T.ink3 }}>
+                Add your class periods so Today can show what you&apos;re in right now.
+              </div>
+            ) : (
+              bellSchedule.map(p => {
+                const s = p.subj ? subjectBy(p.subj) : null;
+                return (
+                  <div key={p.period + p.time} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, padding: p.current ? '6px 10px' : 0, background: p.current ? T.accentSoft : 'transparent', borderRadius: 8 }}>
+                    <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, width: 28, flexShrink: 0 }}>P{p.period}</div>
+                    {s && <div style={{ width: 5, height: 5, borderRadius: 1, background: s.color, flexShrink: 0 }} />}
+                    <div style={{ fontFamily: T.ui, fontSize: 12, color: T.ink2, flex: 1 }}>{s ? s.short : p.room || '—'}</div>
+                    <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3 }}>{p.time}</div>
+                    {p.current && <span style={{ fontFamily: T.mono, fontSize: 10, color: T.accent, letterSpacing: '0.08em' }}>NOW</span>}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Study plan */}
+      <div style={{ ...cardStyle, marginBottom: 12, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', borderBottom: planOpen ? `1px solid ${T.border}` : 'none', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 3 }}>
+              {['#bf4a30', '#b8943a', '#3a8a52'].map(c => <div key={c} style={{ width: 7, height: 7, borderRadius: '50%', background: c }} />)}
+            </div>
+            <div style={{ fontFamily: T.ui, fontSize: 13, color: T.ink, fontWeight: 500 }}>Study plan</div>
+            <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3 }}>Built from homework, quizzes, and due dates</div>
+          </div>
+          <div style={{ display: 'flex', gap: 7 }}>
+            <button type="button" onClick={() => setPlanSeed(s => s + 1)} style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, background: 'none', border: `1px solid ${T.border}`, padding: '4px 10px', borderRadius: 8, cursor: 'pointer' }}>↻ Shuffle</button>
+            <button type="button" onClick={() => setPlanOpen(o => !o)} style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, background: 'none', border: `1px solid ${T.border}`, padding: '4px 10px', borderRadius: 8, cursor: 'pointer' }}>{planOpen ? 'Hide' : 'Show'}</button>
           </div>
         </div>
         {planOpen && (
-          <div style={{padding:'14px 18px'}}>
-            {PLAN_DAYS.length === 0
-              ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3}}>Log homework and quiz dates to generate your personalised plan.</div>
-              : PLAN_DAYS.map(p => (
-                  <div key={p.day} style={{display:'flex', gap:12, marginBottom:7}}>
-                    <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em', width:64, flexShrink:0, paddingTop:1}}>{p.day}</div>
-                    <div style={{flex:1}}>
-                      {p.tasks.map(t=><div key={t} style={{fontFamily:T.ui, fontSize:12.5, color:T.ink2, lineHeight:1.5}}>{t}</div>)}
+          <div style={{ padding: '14px 18px' }}>
+            {planDays.length === 0
+              ? <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 14, color: T.ink3 }}>Add homework and quizzes to build your week.</div>
+              : planDays.map(p => (
+                  <div key={p.day} style={{ display: 'flex', gap: 12, marginBottom: 7 }}>
+                    <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.09em', width: 72, flexShrink: 0, paddingTop: 1 }}>{p.day}</div>
+                    <div style={{ flex: 1 }}>
+                      {p.tasks.map(t => <div key={t} style={{ fontFamily: T.ui, fontSize: 12.5, color: T.ink2, lineHeight: 1.5 }}>{t}</div>)}
                     </div>
                   </div>
                 ))
@@ -2583,30 +2795,46 @@ function ScheduleScreen({ profile, userData, screenAction, onScreenActionHandled
         )}
       </div>
 
+      {/* Urgent carryover */}
+      {unplacedUrgent.length > 0 && (
+        <div style={{ ...cardStyle, marginBottom: 12, padding: '12px 18px', borderLeft: `3px solid #bf4a30` }}>
+          <div style={{ fontFamily: T.mono, fontSize: 10, color: '#bf4a30', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Needs attention</div>
+          {unplacedUrgent.map(hw => {
+            const s = subjectBy(hw.subj);
+            return (
+              <div key={hw.id || hw.title} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                <div style={{ width: 4, height: 4, borderRadius: 1, background: s.color, flexShrink: 0 }} />
+                <div style={{ fontFamily: T.ui, fontSize: 12, color: T.ink2, flex: 1 }}>{hw.title}</div>
+                <div style={{ fontFamily: T.mono, fontSize: 10, color: '#bf4a30' }}>{hw.due}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Stats row */}
-      <div className="shq-sched-stats" style={{marginBottom:12}}>
+      <div className="shq-sched-stats" style={{ marginBottom: 12 }}>
         {[
-          {label:'TASKS DUE',  val: dayCards.reduce((a,d)=>a+d.dayHW.length,0), accent:T.accent  },
-          {label:'QUIZZES',    val: quizzes.length,                                              accent:'#9254de' },
-          {label:'EST. STUDY', val: `${Math.ceil(homework.filter(h=>!h.done).length*0.75)}h`,    accent:'#2a60a0' },
-          {label:'URGENT',     val: homework.filter(h=>h.urgent&&!h.done).length,                accent:'#bf4a30' },
+          { label: 'TASKS DUE', val: weekOpenHW.length, accent: T.accent },
+          { label: 'QUIZZES', val: weekQuizzes, accent: '#9254de' },
+          { label: 'EST. STUDY', val: schedFormatEstTotal(estMinutes), accent: '#2a60a0' },
+          { label: 'URGENT', val: urgentCount, accent: '#bf4a30' },
         ].map(c => (
-          <div key={c.label} style={{background:T.surface, padding:'22px 18px', borderRadius:12, minHeight:90, borderBottom:`2px solid ${c.accent}28`}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:8}}>{c.label}</div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:30, color:T.ink, lineHeight:0.9, marginBottom:5}}>{c.val}</div>
-            <div style={{width:24, height:2, background:c.accent, opacity:0.5}}/>
+          <div key={c.label} style={{ ...cardStyle, padding: '22px 18px', minHeight: 90, borderBottom: `2px solid ${c.accent}28` }}>
+            <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.11em', marginBottom: 8 }}>{c.label}</div>
+            <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 30, color: T.ink, lineHeight: 0.9, marginBottom: 5 }}>{c.val}</div>
+            <div style={{ width: 24, height: 2, background: c.accent, opacity: 0.5 }} />
           </div>
         ))}
-        {/* Workload Distribution mini bar chart */}
-        <div style={{background:T.surface, padding:'11px 16px'}}>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8}}>Workload Distribution</div>
-          <div style={{display:'flex', alignItems:'flex-end', gap:4, height:28}}>
-            {dayCards.map((d,i) => {
-              const h = barMax > 0 ? Math.round((d.dayHW.length / barMax) * 28) : 4;
+        <div style={{ ...cardStyle, padding: '14px 16px' }}>
+          <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Workload</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 32 }}>
+            {dayCards.map((d, i) => {
+              const h = Math.round((d.itemCount / barMax) * 32);
               return (
-                <div key={i} style={{display:'flex', flexDirection:'column', alignItems:'center', flex:1, gap:3}}>
-                  <div style={{width:'100%', background:d.isToday?T.accent:T.bl, height:Math.max(h,3), transition:'height 0.2s', borderRadius:1}}/>
-                  <div style={{fontFamily:T.mono, fontSize:10, color:d.isToday?T.accent:T.ink3, letterSpacing:'0.06em'}}>{d.name[0]}</div>
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, gap: 3 }}>
+                  <div style={{ width: '100%', background: d.isToday ? T.accent : d.itemCount ? T.ink3 : T.bl, opacity: d.itemCount ? (d.isToday ? 1 : 0.35) : 0.2, height: Math.max(h, 4), transition: 'height 0.2s', borderRadius: 2 }} />
+                  <div style={{ fontFamily: T.mono, fontSize: 10, color: d.isToday ? T.accent : T.ink3, letterSpacing: '0.06em' }}>{d.name[0]}</div>
                 </div>
               );
             })}
@@ -2615,78 +2843,114 @@ function ScheduleScreen({ profile, userData, screenAction, onScreenActionHandled
       </div>
 
       {/* Weekly grid Mon–Fri */}
-      <div className="shq-sched-week" style={{marginBottom:12}}>
+      <div className="shq-sched-week" style={{ marginBottom: 12 }}>
         {dayCards.map(d => (
-          <div key={d.name} style={{background: d.isToday ? T.accentSoft : T.surface, padding:'18px 16px', borderTop: d.isToday ? `2px solid ${T.accent}` : '2px solid transparent', minHeight:148, borderRadius:12, position:'relative', overflow:'hidden'}}>
-            {d.isToday && <div style={{position:'absolute', bottom:-22, right:-22, width:72, height:72, borderRadius:'50%', background:T.accent, opacity:0.08}}/>}
-            <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:13}}>
-              <div style={{fontFamily:T.mono, fontSize:10, color:d.isToday?T.accent:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{d.name}</div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:d.isToday?T.accent:T.ink3}}>{d.date}</div>
+          <div key={d.name} style={{
+            ...cardStyle, padding: '18px 16px',
+            background: d.isToday ? T.accentSoft : T.surface,
+            borderTop: d.isToday ? `2px solid ${T.accent}` : `1px solid ${T.border}`,
+            minHeight: 148, position: 'relative', overflow: 'hidden',
+          }}>
+            {d.isToday && <div style={{ position: 'absolute', bottom: -22, right: -22, width: 72, height: 72, borderRadius: '50%', background: T.accent, opacity: 0.08 }} />}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 13 }}>
+              <div style={{ fontFamily: T.mono, fontSize: 10, color: d.isToday ? T.accent : T.ink3, textTransform: 'uppercase', letterSpacing: '0.09em' }}>{d.name}</div>
+              <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 22, color: d.isToday ? T.accent : T.ink3 }}>{d.date}</div>
             </div>
-            {d.dayHW.length === 0
-              ? <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, opacity:0.35, textTransform:'uppercase', letterSpacing:'0.08em'}}>Nothing scheduled</div>
-              : d.dayHW.map(hw => {
-                  const s = subjectBy(hw.subj);
-                  return (
-                    <div key={hw.title} style={{display:'flex', gap:6, alignItems:'flex-start', marginBottom:5}}>
-                      <div style={{width:4, height:4, borderRadius:1, background:s.color, marginTop:4, flexShrink:0}}/>
-                      <div style={{fontFamily:T.ui, fontSize:11, color:T.ink2, lineHeight:1.4}}>{hw.title.slice(0,32)}{hw.title.length>32?'…':''}</div>
-                    </div>
-                  );
-                })
+            {d.itemCount === 0
+              ? <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, opacity: 0.35, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Nothing scheduled</div>
+              : <>
+                  {d.dayQuizzes.map(q => {
+                    const s = subjectBy(q.subj);
+                    return (
+                      <div key={q.title} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginBottom: 5 }}>
+                        <div style={{ fontFamily: T.mono, fontSize: 10, color: '#9254de', flexShrink: 0, marginTop: 1 }}>Q</div>
+                        <div style={{ fontFamily: T.ui, fontSize: 11, color: T.ink2, lineHeight: 1.4 }}>{q.title.slice(0, 32)}{q.title.length > 32 ? '…' : ''}</div>
+                      </div>
+                    );
+                  })}
+                  {d.dayHW.map(hw => {
+                    const s = subjectBy(hw.subj);
+                    return (
+                      <div key={hw.id || hw.title} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginBottom: 5 }}>
+                        <div style={{ width: 4, height: 4, borderRadius: 1, background: s.color, marginTop: 4, flexShrink: 0 }} />
+                        <div style={{ fontFamily: T.ui, fontSize: 11, color: T.ink2, lineHeight: 1.4 }}>
+                          {hw.title.slice(0, 32)}{hw.title.length > 32 ? '…' : ''}
+                          {hw.urgent && <span style={{ fontFamily: T.mono, fontSize: 10, color: '#bf4a30', marginLeft: 4 }}>· urgent</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
             }
           </div>
         ))}
       </div>
 
-      {/* Sat / Sun compact */}
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12}}>
-        {['Sat','Sun'].map((d,i) => {
-          const date = new Date(weekStart); date.setDate(weekStart.getDate() + 5 + i);
-          return (
-            <div key={d} style={{background:T.surface, padding:'10px 14px', display:'flex', justifyContent:'space-between', alignItems:'center', borderRadius:12}}>
-              <div style={{display:'flex', gap:10, alignItems:'center'}}>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{d} {date.getDate()}</div>
-                <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>Free</div>
+      {/* Sat / Sun */}
+      <div className="shq-sched-weekend" style={{ marginBottom: 12 }}>
+        {weekendCards.map(d => (
+          <div key={d.name} style={{
+            ...cardStyle, padding: '12px 14px',
+            background: d.isToday ? T.accentSoft : T.surface,
+            borderTop: d.isToday ? `2px solid ${T.accent}` : `1px solid ${T.border}`,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: d.dayHW.length ? 8 : 0 }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
+                <div style={{ fontFamily: T.mono, fontSize: 10, color: d.isToday ? T.accent : T.ink3, textTransform: 'uppercase', letterSpacing: '0.09em' }}>{d.name} {d.date}</div>
+                {d.dayHW.length === 0 && <div style={{ fontFamily: T.ui, fontSize: 12, color: T.ink3 }}>Free</div>}
               </div>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, opacity:0.4}}>· · ·</div>
+              {d.dayHW.length === 0 && <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, opacity: 0.4 }}>· · ·</div>}
             </div>
-          );
-        })}
+            {d.dayHW.map(hw => {
+              const s = subjectBy(hw.subj);
+              return (
+                <div key={hw.id || hw.title} style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                  <div style={{ width: 4, height: 4, borderRadius: 1, background: s.color, marginTop: 4, flexShrink: 0 }} />
+                  <div style={{ fontFamily: T.ui, fontSize: 11, color: T.ink2 }}>{hw.title}</div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
       {/* Focus / Pomodoro */}
-      <div ref={focusRef} style={{display:'grid', gridTemplateColumns:'1fr auto', gap:12}}>
-        <div style={{background:T.surface, padding:'20px 24px', borderRadius:12}}>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:14}}>
-            Focus · {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getDay()]}
+      <div ref={focusRef} className="shq-sched-focus">
+        <div style={{ ...cardStyle, padding: '20px 24px' }}>
+          <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.13em', marginBottom: 14 }}>
+            Focus · {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()]}
           </div>
-          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, marginBottom:4}}>Focus session</div>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginBottom:20}}>25-minute Pomodoro · {sessions} session{sessions!==1?'s':''} completed</div>
-          <div style={{display:'flex', gap:8}}>
-            <button onClick={()=>setRunning(r=>!r)} style={{padding:'8px 20px', border:'none', background: running?T.accent:T.bl, color: running?'#fff':T.ink, fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer'}}>
+          <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 22, color: T.ink, marginBottom: 4 }}>Focus session</div>
+          <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, marginBottom: 20 }}>
+            25-minute Pomodoro · {sessions} session{sessions !== 1 ? 's' : ''} completed
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" onClick={() => setRunning(r => !r)} style={{ padding: '8px 20px', border: 'none', borderRadius: 8, background: running ? T.accent : T.bl, color: running ? '#fff' : T.ink, fontFamily: T.mono, fontSize: 10, letterSpacing: '0.07em', cursor: 'pointer' }}>
               {running ? '⏸ Pause' : '▶ Start'}
             </button>
-            <button onClick={()=>{setRunning(false);setSecs(25*60);}} style={{padding:'8px 14px', border:`1px solid ${T.border}`, background:'none', color:T.ink3, fontFamily:T.mono, fontSize:10, cursor:'pointer'}}>↺ Reset</button>
+            <button type="button" onClick={() => { setRunning(false); setSecs(25 * 60); }} style={{ padding: '8px 14px', border: `1px solid ${T.border}`, borderRadius: 8, background: 'none', color: T.ink3, fontFamily: T.mono, fontSize: 10, cursor: 'pointer' }}>↺ Reset</button>
+            {openHW.length > 0 && (
+              <button type="button" onClick={() => onNav?.('homework')} style={{ padding: '8px 14px', border: `1px solid ${T.border}`, borderRadius: 8, background: 'none', color: T.ink3, fontFamily: T.mono, fontSize: 10, cursor: 'pointer' }}>View homework →</button>
+            )}
           </div>
         </div>
-        <div style={{background:T.surface, padding:'20px 28px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'}}>
-          <div style={{position:'relative', width:90, height:90, marginBottom:10}}>
-            <svg width={90} height={90} viewBox="-45 -45 90 90" style={{transform:'rotate(-90deg)'}}>
-              <circle r={38} fill="none" stroke={T.bl} strokeWidth={4}/>
-              <circle r={38} fill="none" stroke={running?T.accent:T.ink3} strokeWidth={4}
-                strokeDasharray={`${(secs/(25*60))*2*Math.PI*38} ${2*Math.PI*38}`}
-                strokeLinecap="round" style={{transition:'stroke-dasharray 1s linear'}}/>
+        <div style={{ ...cardStyle, padding: '20px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'relative', width: 90, height: 90, marginBottom: 10 }}>
+            <svg width={90} height={90} viewBox="-45 -45 90 90" style={{ transform: 'rotate(-90deg)' }}>
+              <circle r={38} fill="none" stroke={T.bl} strokeWidth={4} />
+              <circle r={38} fill="none" stroke={running ? T.accent : T.ink3} strokeWidth={4}
+                strokeDasharray={`${(secs / (25 * 60)) * 2 * Math.PI * 38} ${2 * Math.PI * 38}`}
+                strokeLinecap="round" style={{ transition: 'stroke-dasharray 1s linear' }} />
             </svg>
-            <div style={{position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center'}}>
-              <div style={{fontFamily:T.mono, fontSize:16, color: running?T.accent:T.ink, letterSpacing:'-0.02em'}}>{mm}:{ss}</div>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ fontFamily: T.mono, fontSize: 16, color: running ? T.accent : T.ink, letterSpacing: '-0.02em' }}>{mm}:{ss}</div>
             </div>
           </div>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em'}}>{sessions} sessions</div>
+          <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{sessions} sessions</div>
         </div>
       </div>
 
-      <div style={{height:28}}/>
+      <div style={{ height: 28 }} />
     </div>
   );
 }
