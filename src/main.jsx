@@ -3942,35 +3942,26 @@ function SubjectsScreen({ profile, userData, onNav, onRequestSidebar }) {
   const grades   = userData?.grades   || {};
   const gradeHistory = userData?.gradeHistory || [];
 
-  const openHw    = homework.filter(h => !h.done);
-  const gpaStr    = calcGPA(subjects, grades);
-  const graded    = subjects.filter(s => grades[s.id] && grades[s.id] !== '—');
-  const busiest   = subjects.length
-    ? subjects.reduce((a, b) => (
-        homework.filter(h => h.subj === b.id && !h.done).length >
-        homework.filter(h => h.subj === a.id && !h.done).length ? b : a
-      ))
-    : null;
-  const busiestOpen = busiest ? homework.filter(h => h.subj === busiest.id && !h.done).length : 0;
+  const openHw  = homework.filter(h => !h.done);
+  const gpaStr  = calcGPA(subjects, grades);
+  const graded  = subjects.filter(s => grades[s.id] && grades[s.id] !== '—');
+  const termLabel = profile?.term ? `${profile.term.charAt(0).toUpperCase()}${profile.term.slice(1)}` : 'Spring';
 
-  const headerBtn = (label, gold, onClick) => (
-    <button type="button" onClick={onClick} style={{
-      display:'flex', alignItems:'center', gap:6, padding:'7px 13px',
-      border: gold ? 'none' : `1px solid ${T.border}`, background: gold ? T.accent : T.surface,
-      color: gold ? '#fff' : T.ink3, fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em',
-      cursor:'pointer', borderRadius:8, transition:'border-color 0.12s',
-    }}
-      onMouseOver={e => { if (!gold) e.currentTarget.style.borderColor = T.accent; }}
-      onMouseOut={e => { if (!gold) e.currentTarget.style.borderColor = T.border; }}
-    >{label}</button>
-  );
+  const topGpa = graded.length
+    ? graded.reduce((a, b) => (GPA_MAP[grades[b.id]] || 0) > (GPA_MAP[grades[a.id]] || 0) ? b : a)
+    : null;
+  const bottomGpa = graded.length >= 2
+    ? graded.reduce((a, b) => (GPA_MAP[grades[b.id]] || 0) < (GPA_MAP[grades[a.id]] || 0) ? b : a)
+    : null;
 
   return (
-    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
+    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto', overflowX:'hidden'}}>
+
+      {/* Header */}
       <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:22, flexWrap:'wrap', gap:16}}>
         <div>
           <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:7}}>
-            {subjects.length} {subjects.length === 1 ? 'class' : 'classes'} · Spring Term
+            {subjects.length} {subjects.length === 1 ? 'class' : 'classes'} · {termLabel} Term
           </div>
           <h1 style={{margin:'0 0 5px', lineHeight:1.1}}>
             <span style={{fontFamily:T.ui, fontWeight:700, fontSize:29, color:T.ink}}>Your </span>
@@ -3979,31 +3970,27 @@ function SubjectsScreen({ profile, userData, onNav, onRequestSidebar }) {
           <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>
             {subjects.length === 0
               ? 'Add your classes to track homework, grades, and quizzes.'
-              : `${openHw.length} open assignments · ${quizzes.length} quizzes across all classes`}
+              : `${openHw.length} open assignment${openHw.length !== 1 ? 's' : ''} · ${graded.length} of ${subjects.length} graded`}
           </div>
         </div>
         <div style={{display:'flex', gap:8, flexShrink:0}}>
-          {headerBtn('+ Add Subject', true, () => onRequestSidebar?.('addSubject'))}
-          {subjects.length > 0 && headerBtn('Manage', false, () => onRequestSidebar?.('manageSubjects'))}
+          <button type="button" onClick={() => onRequestSidebar?.('addSubject')} style={{
+            display:'flex', alignItems:'center', gap:6, padding:'7px 13px', border:'none',
+            background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10,
+            letterSpacing:'0.07em', cursor:'pointer', borderRadius:8,
+          }}>+ Add Subject</button>
+          {subjects.length > 0 && (
+            <button type="button" onClick={() => onRequestSidebar?.('manageSubjects')} style={{
+              display:'flex', alignItems:'center', gap:6, padding:'7px 13px',
+              border:`1px solid ${T.border}`, background:T.surface, color:T.ink3,
+              fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8,
+            }}
+              onMouseOver={e => e.currentTarget.style.borderColor = T.accent}
+              onMouseOut={e => e.currentTarget.style.borderColor = T.border}
+            >Manage</button>
+          )}
         </div>
       </div>
-
-      {subjects.length > 0 && (
-        <div className="shq-subjects-stats" style={{marginBottom:12}}>
-          {[
-            { label:'ENROLLED', val:String(subjects.length), sub:`${graded.length} graded`, accent:T.accent },
-            { label:'OPEN HW', val:String(openHw.length), sub: openHw.length === 1 ? 'assignment' : 'assignments', accent: openHw.length > 0 ? '#b07020' : T.ink3 },
-            { label:'QUIZZES', val:String(quizzes.length), sub:'scheduled', accent:'#2a60a0' },
-            { label:'TERM GPA', val:gpaStr, sub: graded.length ? `${graded.length} of ${subjects.length} logged` : 'log grades to calculate', accent:'#3a8a52' },
-          ].map(c => (
-            <div key={c.label} style={{background:T.surface, padding:'16px 20px', borderRadius:12, borderBottom:`2px solid ${c.accent}28`}}>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:8}}>{c.label}</div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:28, color:T.ink, lineHeight:1, marginBottom:5}}>{c.val}</div>
-              <div style={{fontFamily:T.mono, fontSize:10, color:c.accent}}>{c.sub}</div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {subjects.length === 0 ? (
         <div style={{background:T.surface, padding:'48px 32px', borderRadius:12, textAlign:'center', maxWidth:480, margin:'0 auto'}}>
@@ -4013,23 +4000,68 @@ function SubjectsScreen({ profile, userData, onNav, onRequestSidebar }) {
         </div>
       ) : (
         <>
-          {busiestOpen > 0 && (
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', padding:'4px 0 10px'}}>
-              {busiest.short} has the most open work · {busiestOpen} assignment{busiestOpen !== 1 ? 's' : ''}
+          {/* Stat strip */}
+          <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:16}}>
+            {[
+              { label:'Enrolled', val:subjects.length, sub:`${graded.length} graded`, color: T.accent },
+              { label:'Open HW', val:openHw.length, sub: openHw.length === 1 ? 'assignment' : 'assignments', color: openHw.length > 0 ? '#b07020' : T.ink3 },
+              { label:'Quizzes', val:quizzes.length, sub:'scheduled', color:'#4285f4' },
+              { label:'Term GPA', val:gpaStr, sub: graded.length ? `${graded.length} of ${subjects.length} logged` : 'log grades to start', color:'#3a8a52' },
+            ].map(c => (
+              <div key={c.label} style={{background:T.surface, borderRadius:12, padding:'16px 20px', borderBottom:`2px solid ${c.color}30`}}>
+                <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:7}}>{c.label}</div>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:26, color:T.ink, lineHeight:1, marginBottom:4}}>{c.val}</div>
+                <div style={{fontFamily:T.mono, fontSize:9.5, color:c.color}}>{c.sub}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Spotlight row */}
+          {(topGpa || bottomGpa) && (
+            <div style={{display:'grid', gridTemplateColumns: topGpa && bottomGpa ? '1fr 1fr' : '1fr', gap:12, marginBottom:16}}>
+              {topGpa && (
+                <div style={{background:T.surface, borderRadius:12, padding:'14px 18px', display:'flex', alignItems:'center', gap:14, borderLeft:`3px solid #3a8a52`}}>
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{fontFamily:T.mono, fontSize:9, color:'#3a8a52', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:3}}>Top Performer</div>
+                    <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{topGpa.name}</div>
+                  </div>
+                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:'#3a8a52'}}>{grades[topGpa.id]}</div>
+                </div>
+              )}
+              {bottomGpa && (
+                <div style={{background:T.surface, borderRadius:12, padding:'14px 18px', display:'flex', alignItems:'center', gap:14, borderLeft:`3px solid #bf4a30`}}>
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{fontFamily:T.mono, fontSize:9, color:'#bf4a30', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:3}}>Needs Attention</div>
+                    <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{bottomGpa.name}</div>
+                  </div>
+                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:'#bf4a30'}}>{grades[bottomGpa.id]}</div>
+                </div>
+              )}
             </div>
           )}
-          <div className="shq-subjects-grid">
-            {subjects.map(s => {
+
+          {/* Subject table */}
+          <div style={{borderRadius:12, overflow:'hidden', border:`1px solid ${T.border}`}}>
+            {/* Table header */}
+            <div style={{display:'grid', gridTemplateColumns:'1fr 120px 80px 56px 64px 80px', padding:'8px 20px', background:T.surface, borderBottom:`1px solid ${T.border}`}}>
+              {['Subject', 'Progress', 'Trend', 'GPA', 'Grade', 'Work'].map((h, i) => (
+                <div key={h} style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', textAlign: i === 0 ? 'left' : 'center'}}>{h}</div>
+              ))}
+            </div>
+
+            {/* Rows */}
+            {subjects.map((s, idx) => {
               const hw = homework.filter(h => h.subj === s.id && !h.done);
               const qz = quizzes.filter(q => q.subj === s.id);
               const noteCount = notes.filter(n => n.subj === s.id).length;
-              const myGrade = grades[s.id] || (s.grade && s.grade !== '—' ? s.grade : null);
+              const myGrade = grades[s.id] || null;
               const hasGrade = !!myGrade;
-              const gpaVal = hasGrade ? GPA_MAP[myGrade] : null;
-              const sparkPts = gradeSparklinePoints(gradeHistory, s.id, 140, 28);
-              const gradeColor = hasGrade
-                ? (gpaVal >= 3.7 ? '#3a8a52' : gpaVal >= 3.0 ? T.accent : '#bf4a30')
+              const gpaVal = hasGrade ? (GPA_MAP[myGrade] ?? 0) : null;
+              const sparkPts = gradeSparklinePoints(gradeHistory, s.id, 80, 22);
+              const gradeColor = gpaVal != null
+                ? (gpaVal >= 3.7 ? '#3a8a52' : gpaVal >= 3.0 ? T.accent : gpaVal >= 2.0 ? '#b07020' : '#bf4a30')
                 : T.ink3;
+              const totalWork = hw.length + qz.length;
 
               return (
                 <div
@@ -4037,81 +4069,84 @@ function SubjectsScreen({ profile, userData, onNav, onRequestSidebar }) {
                   role="button"
                   tabIndex={0}
                   onClick={() => onNav?.('subject', s.id)}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNav?.('subject', s.id); } }}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNav?.('subject', s.id); }}}
                   style={{
-                    background:T.surface, padding:'22px 24px', borderRadius:12,
-                    borderLeft:`3px solid ${s.color}`, cursor:'pointer',
-                    transition:'box-shadow 0.15s, transform 0.15s',
+                    display:'grid', gridTemplateColumns:'1fr 120px 80px 56px 64px 80px',
+                    alignItems:'center', padding:'0 20px',
+                    background:T.surface, cursor:'pointer', transition:'background 0.12s',
+                    borderTop: idx > 0 ? `1px solid ${T.bl}` : 'none',
                   }}
-                  onMouseOver={e => { e.currentTarget.style.boxShadow = '0 8px 28px -12px rgba(24,21,14,0.14)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                  onMouseOut={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}
+                  onMouseOver={e => e.currentTarget.style.background = T.bg}
+                  onMouseOut={e => e.currentTarget.style.background = T.surface}
                 >
-                  <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:16}}>
-                    <div style={{minWidth:0}}>
-                      <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:8}}>
-                        <div style={{width:28, height:28, borderRadius:8, background:`${s.color}18`, border:`1.5px solid ${s.color}40`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
-                          <div style={{width:8, height:8, borderRadius:2, background:s.color}} />
-                        </div>
-                        <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.1em', textTransform:'uppercase'}}>{s.short || s.name}</div>
-                      </div>
-                      <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, lineHeight:1.15}}>{s.name}</div>
-                    </div>
-                    <div style={{textAlign:'right', flexShrink:0}}>
-                      <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:hasGrade ? 34 : 28, color:gradeColor, lineHeight:0.95, letterSpacing:'-0.02em'}}>
-                        {hasGrade ? myGrade : '—'}
-                      </div>
-                      <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginTop:4}}>
-                        {gpaVal != null ? `${gpaVal.toFixed(1)} GPA` : 'No grade'}
-                      </div>
+                  {/* Subject name */}
+                  <div style={{display:'flex', alignItems:'center', gap:10, padding:'14px 0'}}>
+                    <div style={{width:3, height:34, borderRadius:2, background:s.color, flexShrink:0}} />
+                    <div>
+                      <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink, lineHeight:1.2}}>{s.name}</div>
+                      <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginTop:2}}>{s.short}</div>
                     </div>
                   </div>
 
-                  {hasGrade && (
-                    <div style={{height:3, background:T.border, marginBottom: sparkPts ? 12 : 14, borderRadius:2, overflow:'hidden'}}>
-                      <div style={{width:`${Math.min((gpaVal / 4) * 100, 100)}%`, height:'100%', background:s.color, borderRadius:2, transition:'width 0.3s ease'}} />
+                  {/* Progress bar */}
+                  <div style={{padding:'0 8px'}}>
+                    <div style={{height:5, background:T.bl, borderRadius:3, overflow:'hidden'}}>
+                      <div style={{
+                        height:'100%',
+                        width: hasGrade ? `${Math.min((gpaVal / 4) * 100, 100)}%` : '0%',
+                        background: s.color, borderRadius:3, transition:'width 0.3s',
+                      }}/>
                     </div>
-                  )}
+                    {hasGrade && <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, marginTop:3, textAlign:'center'}}>{((gpaVal/4)*100).toFixed(0)}%</div>}
+                  </div>
 
-                  {sparkPts && (
-                    <div style={{marginBottom:14}}>
-                      <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:6}}>Grade trend</div>
-                      <svg width="100%" height={28} viewBox="0 0 140 28" preserveAspectRatio="none" style={{display:'block'}}>
-                        <polyline points={sparkPts} fill="none" stroke={s.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                  )}
+                  {/* Sparkline */}
+                  <div style={{display:'flex', justifyContent:'center', alignItems:'center'}}>
+                    {sparkPts
+                      ? <svg width={80} height={22} viewBox="0 0 80 22" style={{display:'block'}}>
+                          <polyline points={sparkPts} fill="none" stroke={s.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      : <div style={{width:40, height:1, background:T.border}} />
+                    }
+                  </div>
 
-                  <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:0, borderTop:`1px solid ${T.bl}`, paddingTop:14}}>
-                    {[
-                      ['HW open', hw.length, hw.length > 0],
-                      ['Quizzes', qz.length, false],
-                      ['Notes', noteCount, false],
-                    ].map(([label, val, warn], i) => (
-                      <div key={label} style={{textAlign:'center', borderLeft: i > 0 ? `1px solid ${T.bl}` : 'none', padding:'0 8px'}}>
-                        <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4}}>{label}</div>
-                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color: warn ? '#b07020' : T.ink, lineHeight:1}}>{val}</div>
-                      </div>
-                    ))}
+                  {/* GPA */}
+                  <div style={{textAlign:'center', fontFamily:T.mono, fontSize:12, color: gpaVal != null ? gradeColor : T.border, fontWeight:600}}>
+                    {gpaVal != null ? gpaVal.toFixed(1) : '—'}
+                  </div>
+
+                  {/* Grade */}
+                  <div style={{textAlign:'center', fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:gradeColor, lineHeight:1}}>
+                    {myGrade || '—'}
+                  </div>
+
+                  {/* Work */}
+                  <div style={{textAlign:'center'}}>
+                    {totalWork > 0
+                      ? <div style={{display:'inline-flex', alignItems:'center', gap:4, background:`${T.accent}12`, borderRadius:6, padding:'3px 8px'}}>
+                          <div style={{fontFamily:T.mono, fontSize:10, color: hw.length > 0 ? '#b07020' : T.ink3, fontWeight:600}}>{hw.length} HW</div>
+                          {qz.length > 0 && <div style={{fontFamily:T.mono, fontSize:10, color:'#4285f4', fontWeight:600}}>{qz.length} QZ</div>}
+                        </div>
+                      : <div style={{fontFamily:T.mono, fontSize:10, color:T.border}}>—</div>
+                    }
                   </div>
                 </div>
               );
             })}
 
+            {/* Add subject row */}
             {subjects.length < 10 && (
-              <button
-                type="button"
-                onClick={() => onRequestSidebar?.('addSubject')}
+              <button type="button" onClick={() => onRequestSidebar?.('addSubject')}
                 style={{
-                  background:'transparent', padding:'22px 24px', borderRadius:12,
-                  border:`1.5px dashed ${T.border}`, cursor:'pointer',
-                  display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                  gap:8, minHeight:180, transition:'border-color 0.15s, background 0.15s',
+                  width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                  padding:'14px 20px', background:'transparent', border:'none',
+                  borderTop:`1px solid ${T.bl}`, cursor:'pointer', transition:'background 0.12s',
                 }}
-                onMouseOver={e => { e.currentTarget.style.borderColor = T.accent; e.currentTarget.style.background = `${T.accent}08`; }}
-                onMouseOut={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = 'transparent'; }}
+                onMouseOver={e => { e.currentTarget.style.background = `${T.accent}06`; }}
+                onMouseOut={e => { e.currentTarget.style.background = 'transparent'; }}
               >
-                <div style={{width:32, height:32, borderRadius:8, border:`1px solid ${T.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:T.mono, fontSize:18, color:T.ink3}}>+</div>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.1em', textTransform:'uppercase'}}>Add subject</div>
+                <div style={{width:18, height:18, borderRadius:5, border:`1px solid ${T.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:T.mono, fontSize:13, color:T.ink3, lineHeight:1}}>+</div>
+                <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, letterSpacing:'0.1em', textTransform:'uppercase'}}>Add subject</div>
               </button>
             )}
           </div>
