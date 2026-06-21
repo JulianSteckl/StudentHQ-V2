@@ -51,7 +51,7 @@ button { cursor: pointer; font-family: inherit; }
 .shq-tools-mid-card { height:100%; display:flex; flex-direction:column; box-sizing:border-box; }
 .shq-tools-mid-body { flex:1; display:flex; flex-direction:column; justify-content:space-between; }
 .shq-tools-rec { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.shq-tools-table { overflow-x:auto; }
+.shq-tools-table { flex:1; overflow-x:auto; overflow-y:auto; min-height:0; }
 .shq-tools-table > div { min-width:560px; }
 .shq-tools-bottom { display:flex; gap:12px; align-items:stretch; }
 .shq-tools-main { flex:1; min-width:0; display:flex; flex-direction:column; }
