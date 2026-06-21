@@ -4456,18 +4456,10 @@ function ToolsScreen({ userData, onUpdate }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [toolOpens, onUpdate, validToolIds]);
 
-  const lastWeekOpens = (() => {
-    const now = Date.now();
-    const weekAgo = now - 7 * 86400000;
-    const twoWeeksAgo = now - 14 * 86400000;
-    return toolOpens.filter(o => o.at >= twoWeeksAgo && o.at < weekAgo).length;
-  })();
-  const weekDelta = weekOpens - lastWeekOpens;
-
   const statCards = [
-    { label:'THIS WEEK', val:String(weekOpens), sub: weekDelta > 0 ? `+${weekDelta} vs last week` : weekDelta < 0 ? `${weekDelta} vs last week` : 'Same as last week', accent:T.accent },
-    { label:'TOP TOOL', val:topToolEntry?.name || '—', sub: topToolEntry ? `${topToolEntry.sessions} session${topToolEntry.sessions === 1 ? '' : 's'} all time` : 'No sessions yet', accent:topToolEntry?.color || T.ink3 },
-    { label:'CONNECTED', val:`${connectedCount}/${allTools.length}`, sub: connectedCount > 0 ? `${Math.round((connectedCount/allTools.length)*100)}% of your toolkit` : 'Use a tool to track it', accent:'#3a8a52', progress: connectedCount/allTools.length },
+    { label:'THIS WEEK', val:String(weekOpens), sub: weekOpens > 0 ? (weekOpens === 1 ? 'open this week' : 'opens this week') : 'Open any tool to start', accent:T.accent },
+    { label:'TOP TOOL', val:topToolEntry?.name || '—', sub: topToolEntry ? `${topToolEntry.sessions} session${topToolEntry.sessions === 1 ? '' : 's'}` : 'No sessions yet', accent:topToolEntry?.color || T.ink3 },
+    { label:'CONNECTED', val:`${connectedCount}/${allTools.length}`, sub: connectedCount > 0 ? `${connectedCount} tool${connectedCount === 1 ? '' : 's'} tracked` : 'Use a tool to track it', accent:'#3a8a52' },
     { label:'LAST OPENED', val:lastTool?.name || '—', sub: lastOpen ? formatToolWhen(lastOpen.at) : 'No activity yet', accent:'#4285f4' },
   ];
 
@@ -4503,42 +4495,13 @@ function ToolsScreen({ userData, onUpdate }) {
         {/* Stat cards */}
         <div className="shq-tools-stats" style={{marginBottom:12}}>
           {statCards.map(c => (
-            <div key={c.label} style={{background:T.surface, padding:'16px 18px', borderRadius:12, borderLeft:`2.5px solid ${c.accent}`, position:'relative', overflow:'hidden'}}>
-              <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:8}}>{c.label}</div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:26, color:T.ink, lineHeight:1.1, marginBottom:6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{c.val}</div>
-              {c.progress != null
-                ? <div style={{height:2, background:T.bl, borderRadius:1, overflow:'hidden', marginBottom:5}}>
-                    <div style={{width:`${c.progress*100}%`, height:'100%', background:c.accent, borderRadius:1, transition:'width 0.4s ease'}} />
-                  </div>
-                : null}
-              <div style={{fontFamily:T.mono, fontSize:9, color: c.label === 'THIS WEEK' && weekDelta > 0 ? '#3a8a52' : c.label === 'THIS WEEK' && weekDelta < 0 ? '#bf4a30' : T.ink3}}>{c.sub}</div>
+            <div key={c.label} style={{background:T.surface, padding:'20px 22px', borderRadius:12, borderBottom:`2px solid ${c.accent}28`}}>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:12}}>{c.label}</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:30, color:T.ink, lineHeight:1.1, marginBottom:6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{c.val}</div>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{c.sub}</div>
             </div>
           ))}
         </div>
-
-        {/* Featured recommendation */}
-        {suggestions.length > 0 && (() => {
-          const sg = suggestions[0];
-          return (
-            <div style={{background:T.surface, borderRadius:12, padding:'14px 20px', marginBottom:12, display:'flex', alignItems:'center', gap:14, borderLeft:`2.5px solid ${T.accent}`}}>
-              <div style={{width:7, height:7, borderRadius:'50%', background:'#3a8a52', flexShrink:0, boxShadow:'0 0 0 3px rgba(58,138,82,0.15)'}} />
-              <ToolBrandIcon tool={sg.tool} size={32} />
-              <div style={{flex:1, minWidth:0}}>
-                <div style={{fontFamily:T.mono, fontSize:9, color:T.accent, letterSpacing:'0.13em', textTransform:'uppercase', marginBottom:3}}>Recommended Now</div>
-                <div style={{fontFamily:T.ui, fontSize:13, fontWeight:600, color:T.ink, marginBottom:1}}>{sg.tool.name}</div>
-                <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink3}}>{sg.msg}</div>
-              </div>
-              <button type="button" onClick={() => openTool(sg.tool)} style={{
-                padding:'7px 16px', border:`1.5px solid ${T.accent}`, background:T.accentSoft, color:T.accent,
-                fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8,
-                flexShrink:0, transition:'all 0.12s',
-              }}
-              onMouseOver={e => { e.currentTarget.style.background = T.accent; e.currentTarget.style.color = '#fff'; }}
-              onMouseOut={e => { e.currentTarget.style.background = T.accentSoft; e.currentTarget.style.color = T.accent; }}
-              >{sg.action} →</button>
-            </div>
-          );
-        })()}
 
         {/* Insights row */}
         <div className="shq-tools-mid" style={{marginBottom:12, background:'transparent'}}>
@@ -4553,22 +4516,17 @@ function ToolsScreen({ userData, onUpdate }) {
             <div className="shq-tools-mid-body" style={{justifyContent:'space-between'}}>
             {suggestions.length === 0
               ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3, lineHeight:1.5}}>You've tried every tool — keep exploring.</div>
-              : suggestions.slice(1).length === 0
-              ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3, lineHeight:1.5}}>One recommendation active — shown above.</div>
-              : suggestions.slice(1).map((sg, i, arr) => (
-              <div key={i} style={{display:'flex', alignItems:'center', gap:9, padding:'8px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
+              : suggestions.map((sg, i) => (
+              <div key={i} style={{display:'flex', alignItems:'center', gap:9, padding:'7px 0', borderBottom: i < suggestions.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
                 <ToolBrandIcon tool={sg.tool} size={22} />
                 <div style={{flex:1, minWidth:0}}>
-                  <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:2}}>
-                    <span style={{fontFamily:T.ui, fontSize:12, color:T.ink, fontWeight:500}}>{sg.tool.name}</span>
+                  <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:1}}>
+                    <span style={{fontFamily:T.ui, fontSize:11.5, color:T.ink, fontWeight:500}}>{sg.tool.name}</span>
+                    <span style={{fontFamily:T.mono, fontSize:10, padding:'1px 5px', background:T.bl, color:T.ink3, letterSpacing:'0.07em'}}>TIP</span>
                   </div>
                   <div style={{fontFamily:T.ui, fontSize:11, color:T.ink3, lineHeight:1.4}}>{sg.msg}</div>
                 </div>
-                <button type="button" onClick={() => openTool(sg.tool)}
-                  style={{fontFamily:T.mono, fontSize:10, color:T.accent, background:'none', border:'none', padding:'4px 0', flexShrink:0, cursor:'pointer', opacity:0.85, transition:'opacity 0.1s'}}
-                  onMouseOver={e => e.currentTarget.style.opacity='1'}
-                  onMouseOut={e => e.currentTarget.style.opacity='0.85'}
-                >{sg.action} →</button>
+                <button type="button" onClick={() => openTool(sg.tool)} style={{fontFamily:T.mono, fontSize:10, color:T.accent, background:'none', border:'none', padding:0, flexShrink:0, cursor:'pointer'}}>{sg.action} →</button>
               </div>
             ))}
             </div>
@@ -4723,32 +4681,30 @@ function ToolsScreen({ userData, onUpdate }) {
                       tabIndex={0}
                       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTool(tool); } }}
                       onClick={() => openTool(tool)}
-                      className="shq-tool-row"
-                      style={{display:'grid', gridTemplateColumns:TOOL_ROW_COLS, gap:8, alignItems:'center', padding:'11px 16px', background:T.surface, cursor:'pointer', transition:'background 0.12s', borderBottom: idx < filtered.length - 1 ? `1px solid ${T.bl}` : 'none', position:'relative'}}
-                      onMouseOver={e => { e.currentTarget.style.background = T.bl; const btn = e.currentTarget.querySelector('.shq-row-open'); if (btn) btn.style.opacity='1'; }}
-                      onMouseOut={e => { e.currentTarget.style.background = T.surface; const btn = e.currentTarget.querySelector('.shq-row-open'); if (btn) btn.style.opacity='0'; }}
+                      style={{display:'grid', gridTemplateColumns:TOOL_ROW_COLS, gap:8, alignItems:'center', padding:'12px 16px', background:T.surface, cursor:'pointer', transition:'background 0.1s', borderBottom: idx < filtered.length - 1 ? `1px solid ${T.bl}` : 'none'}}
+                      onMouseOver={e => e.currentTarget.style.background = T.bl}
+                      onMouseOut={e => e.currentTarget.style.background = T.surface}
                     >
                       <div style={{display:'flex', alignItems:'center', gap:11, minWidth:0}}>
-                        <ToolBrandIcon tool={tool} size={30} />
+                        <ToolBrandIcon tool={tool} size={28} />
                         <div style={{minWidth:0}}>
                           <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:2}}>
-                            <span style={{fontFamily:T.ui, fontSize:13, color:T.ink, fontWeight:600}}>{tool.name}</span>
-                            <span style={{fontFamily:T.mono, fontSize:9, padding:'1.5px 6px', background:T.bl, color:T.ink3, letterSpacing:'0.08em', borderRadius:3, border:`1px solid ${T.border}`}}>{tool.cat}</span>
+                            <span style={{fontFamily:T.ui, fontSize:13, color:T.ink, fontWeight:500}}>{tool.name}</span>
+                            <span style={{fontFamily:T.mono, fontSize:10, padding:'1.5px 5px', background:T.bl, color:T.ink3, letterSpacing:'0.07em', borderRadius:3}}>{tool.cat}</span>
                           </div>
                           <div style={{fontFamily:T.ui, fontSize:11, color:T.ink3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tool.desc}</div>
                         </div>
                       </div>
                       <div style={{display:'flex', justifyContent:'center', alignItems:'center'}}>
                         {sparkPts
-                          ? <svg width={56} height={20} viewBox="0 0 56 20" style={{display:'block'}}><polyline points={sparkPts} fill="none" stroke={tool.color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" opacity={0.85}/></svg>
-                          : <svg width={56} height={20} viewBox="0 0 56 20" style={{display:'block'}}><line x1={2} y1={10} x2={54} y2={10} stroke={T.border} strokeWidth={1} strokeDasharray="3 3"/></svg>
+                          ? <svg width={56} height={18} viewBox="0 0 56 18" style={{display:'block'}}><polyline points={sparkPts} fill="none" stroke={tool.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          : <svg width={56} height={18} viewBox="0 0 56 18" style={{display:'block'}}><line x1={2} y1={9} x2={54} y2={9} stroke={T.border} strokeWidth={1} strokeDasharray="2 2"/></svg>
                         }
                       </div>
-                      <div style={{fontFamily:T.mono, fontSize:12, color: sessions > 0 ? T.ink2 : T.ink3, textAlign:'center', fontWeight: sessions > 0 ? 600 : 400}}>{sessions || '—'}</div>
+                      <div style={{fontFamily:T.mono, fontSize:11, color:T.ink2, textAlign:'center'}}>{sessions}</div>
                       <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textAlign:'center'}}>{formatToolLastUsed(lastAt)}</div>
-                      <div style={{display:'flex', justifyContent:'center', alignItems:'center', position:'relative'}} onClick={e => e.stopPropagation()}>
+                      <div style={{display:'flex', justifyContent:'center'}} onClick={e => e.stopPropagation()}>
                         <TrendBadge trend={trend} />
-                        <span className="shq-row-open" style={{position:'absolute', right:0, fontFamily:T.mono, fontSize:9, color:T.accent, opacity:0, transition:'opacity 0.12s', whiteSpace:'nowrap', pointerEvents:'none', letterSpacing:'0.06em'}}>Open →</span>
                       </div>
                     </div>
                   );
@@ -4763,20 +4719,20 @@ function ToolsScreen({ userData, onUpdate }) {
             <div className="shq-tools-quick" style={{background:T.surface, borderRadius:12, padding:'16px 18px'}}>
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
                 <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Quick Launch</div>
-                <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, background:T.bl, padding:'2px 6px', borderRadius:4, border:`1px solid ${T.border}`}}>⌥1–4</div>
+                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>⌘1–4</div>
               </div>
               {QUICK_LAUNCH.map((ql, i) => (
                 <button key={i} type="button" onClick={() => openTool(ql.tool)}
-                  style={{display:'flex', alignItems:'center', gap:9, padding:'8px 6px', margin:'0 -6px', borderRadius:7, borderBottom: i < QUICK_LAUNCH.length - 1 ? `1px solid ${T.bl}` : 'none', cursor:'pointer', width:'calc(100% + 12px)', background:'none', border:'none', borderTop:'none', textAlign:'left', transition:'background 0.1s'}}
-                  onMouseOver={e => { e.currentTarget.style.background = T.bl; e.currentTarget.style.borderBottom = i < QUICK_LAUNCH.length - 1 ? `1px solid transparent` : 'none'; }}
-                  onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderBottom = i < QUICK_LAUNCH.length - 1 ? `1px solid ${T.bl}` : 'none'; }}
+                  style={{display:'flex', alignItems:'center', gap:9, padding:'7px 0', borderBottom: i < QUICK_LAUNCH.length - 1 ? `1px solid ${T.bl}` : 'none', cursor:'pointer', width:'100%', background:'none', borderLeft:'none', borderRight:'none', borderTop:'none', textAlign:'left'}}
+                  onMouseOver={e => e.currentTarget.style.background = T.bl}
+                  onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <ToolBrandIcon tool={ql.tool} size={24} />
+                  <ToolBrandIcon tool={ql.tool} size={22} />
                   <div style={{flex:1, minWidth:0}}>
-                    <div style={{fontFamily:T.ui, fontSize:12, color:T.ink, fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:1}}>{ql.label}</div>
-                    <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3}}>{ql.sub}</div>
+                    <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink, fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:1}}>{ql.label}</div>
+                    <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{ql.sub}</div>
                   </div>
-                  <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, flexShrink:0, background:T.bl, padding:'2px 5px', borderRadius:4, border:`1px solid ${T.border}`}}>{ql.key}</div>
+                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, flexShrink:0}}>{ql.key}</div>
                 </button>
               ))}
             </div>
@@ -4794,13 +4750,13 @@ function ToolsScreen({ userData, onUpdate }) {
                   if (!tool) return null;
                   return (
                     <button key={entry.id} type="button" onClick={() => openTool(tool)}
-                      style={{display:'flex', alignItems:'center', gap:8, padding:'5px 2px', borderBottom: i < arr.length - 1 ? `1px solid ${T.bl}` : 'none', width:'100%', background:'none', border:'none', borderTop:'none', borderLeft:'none', borderRight:'none', cursor:'pointer', textAlign:'left', transition:'opacity 0.1s'}}
-                      onMouseOver={e => e.currentTarget.style.opacity = '0.65'}
+                      style={{gap:8, padding:'0 2px', borderBottom: i < arr.length - 1 ? `1px solid ${T.bl}` : 'none', width:'100%', background:'none', border:'none', borderTop:'none', borderLeft:'none', borderRight:'none', cursor:'pointer', textAlign:'left'}}
+                      onMouseOver={e => e.currentTarget.style.opacity = '0.7'}
                       onMouseOut={e => e.currentTarget.style.opacity = '1'}
                     >
-                      <div style={{width:6, height:6, borderRadius:2, background:tool.color, flexShrink:0, opacity:0.9}} />
-                      <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontWeight:500}}>{tool.name}</div>
-                      <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, flexShrink:0, letterSpacing:'0.04em'}}>{formatToolWhen(entry.at)}</div>
+                      <div style={{width:5, height:5, borderRadius:1, background:tool.color, flexShrink:0}} />
+                      <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tool.name}</div>
+                      <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, flexShrink:0}}>{formatToolWhen(entry.at)}</div>
                     </button>
                   );
                 })}
