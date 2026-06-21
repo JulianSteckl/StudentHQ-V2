@@ -2563,6 +2563,7 @@ function buildSchedStudyPlan(homework, quizzes, subjectBy, seed = 0) {
 function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onScreenActionHandled }) {
   const subjects  = profile?.subjects || [];
   const subjectBy = makeSubjectBy(subjects);
+  const grades    = userData?.grades   || {};
   const homework  = userData?.homework || [];
   const quizzes   = userData?.quizzes  || [];
   const bellSchedule = userData?.schedule || [];
