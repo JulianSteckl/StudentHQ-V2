@@ -3530,9 +3530,9 @@ function ToolsScreen({ userData, onUpdate }) {
         {/* Stat cards */}
         <div className="shq-tools-stats" style={{marginBottom:12}}>
           {statCards.map(c => (
-            <div key={c.label} style={{background:T.surface, padding:'18px 20px', borderRadius:12, borderBottom:`2px solid ${c.accent}28`}}>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:10}}>{c.label}</div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, lineHeight:1.1, marginBottom:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{c.val}</div>
+            <div key={c.label} style={{background:T.surface, padding:'20px 22px', borderRadius:12, borderBottom:`2px solid ${c.accent}28`}}>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:12}}>{c.label}</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:30, color:T.ink, lineHeight:1.1, marginBottom:6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{c.val}</div>
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{c.sub}</div>
             </div>
           ))}
