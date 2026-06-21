@@ -3201,7 +3201,7 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
             {subjects.length >= 3 ? (() => {
               const radarSubjs = subjects.slice(0, 8);
               const n = radarSubjs.length;
-              const CX = 65, CY2 = 65, RAD = 44;
+              const CX = 85, CY2 = 85, RAD = 58;
               const angleStep = (2 * Math.PI) / n;
               const pt = (i, r) => [CX + r * Math.sin(i * angleStep), CY2 - r * Math.cos(i * angleStep)];
               const gridLines = [1,2,3,4].map(l => radarSubjs.map((_, i) => pt(i, RAD*l/4)).map(p=>p.join(',')).join(' '));
@@ -3209,7 +3209,7 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
               return (
                 <div style={{background:T.surface, borderRadius:12, padding:'14px 16px', display:'flex', alignItems:'center', gap:14}}>
                   <div style={{flexShrink:0}}>
-                    <svg width={130} height={130} viewBox="0 0 130 130">
+                    <svg width={170} height={170} viewBox="0 0 170 170">
                       {gridLines.map((pts,l) => <polygon key={l} points={pts} fill="none" stroke={T.border} strokeWidth={0.6} opacity={0.5}/>)}
                       {radarSubjs.map((_,i) => { const [x,y]=pt(i,RAD); return <line key={i} x1={CX} y1={CY2} x2={x} y2={y} stroke={T.border} strokeWidth={0.5} opacity={0.35}/>; })}
                       <polygon points={dataPoints.map(p=>p.join(',')).join(' ')} fill={`${T.accent}20`} stroke={T.accent} strokeWidth={1.5} strokeLinejoin="round"/>
@@ -3271,6 +3271,42 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
                 <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.7}}>
                   {insights || 'Insights appear once you log your first grade.'}
                 </div>
+              </div>
+              {/* Study Activity card */}
+              <div style={{background:T.surface, borderRadius:12, padding:'18px 22px'}}>
+                <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
+                  <div style={{width:6, height:6, borderRadius:'50%', background:'#b07020'}}/>
+                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Study Activity</div>
+                </div>
+                {(() => {
+                  const hwTotal = homework.length;
+                  const hwDone = homework.filter(h => h.done).length;
+                  const hwOpen = hwTotal - hwDone;
+                  const notesTotal = notes.length;
+                  const quizzesTotal = quizzes.length;
+                  const rows = [
+                    { label: 'Homework', done: hwDone, open: hwOpen, total: hwTotal, color: T.accent },
+                    { label: 'Notes', done: notesTotal, open: 0, total: notesTotal, color: '#4285f4' },
+                    { label: 'Quizzes', done: quizzesTotal, open: 0, total: quizzesTotal, color: '#b07020' },
+                  ];
+                  return (
+                    <div style={{display:'flex', flexDirection:'column', gap:10}}>
+                      {rows.map(r => (
+                        <div key={r.label}>
+                          <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
+                            <div style={{fontFamily:T.ui, fontSize:11, color:T.ink2}}>{r.label}</div>
+                            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>
+                              {r.label === 'Homework' ? `${r.done}/${r.total} done` : `${r.total}`}
+                            </div>
+                          </div>
+                          <div style={{height:5, background:T.bl, borderRadius:3, overflow:'hidden'}}>
+                            <div style={{height:'100%', width:`${r.total ? (r.done/r.total)*100 : 0}%`, background:r.color, borderRadius:3, transition:'width 0.3s'}}/>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>
