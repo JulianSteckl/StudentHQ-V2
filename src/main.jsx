@@ -2690,7 +2690,7 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
     <div className="screen-enter shq-screen-pad" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.13em', marginBottom: 6 }}>
             {schedTermLabel(now)} · {weekLabel}{isWeekend && weekOffset === 0 ? ' · Weekend' : ''}
@@ -2712,7 +2712,7 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
       </div>
 
       {/* Top section: 3-col — Bell | Stats+Urgent | Focus */}
-      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr 260px', gap: 10, marginBottom: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr 260px', gap: 12, marginBottom: 12 }}>
 
         {/* Bell schedule — vertical */}
         <div style={{ ...cardStyle, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
@@ -2920,13 +2920,13 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
       </div>
 
       {/* Week grid Mon–Fri */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 8, marginBottom: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10, marginBottom: 12 }}>
         {dayCards.map(d => (
           <div key={d.name} style={{
             ...cardStyle, padding: '16px 14px',
             background: d.isToday ? T.accentSoft : T.surface,
             borderTop: `3px solid ${d.isToday ? T.accent : T.border}`,
-            minHeight: 140, display: 'flex', flexDirection: 'column',
+            minHeight: 200, display: 'flex', flexDirection: 'column',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
               <div style={{ fontFamily: T.mono, fontSize: 9.5, color: d.isToday ? T.accent : T.ink3, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{d.name}</div>
@@ -2967,7 +2967,7 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
       </div>
 
       {/* Weekend row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
         {weekendCards.map(d => (
           <div key={d.name} style={{
             ...cardStyle, padding: '16px 18px',
@@ -3028,82 +3028,82 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
         const weakestPct = weakest ? Math.min((weakestGpa / 4.0) * 100, 100) : 0;
 
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
 
             {/* Streak / XP */}
-            <div style={{ ...cardStyle, padding: '14px 16px' }}>
-              <div style={{ fontFamily: T.mono, fontSize: 9, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.13em', marginBottom: 10 }}>Scholar Level</div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 10 }}>
-                <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 36, color: T.accent, lineHeight: 1, letterSpacing: '-0.02em' }}>{level}</div>
-                <div style={{ paddingBottom: 4 }}>
-                  <div style={{ fontFamily: T.ui, fontWeight: 600, fontSize: 12, color: T.ink }}>{levelTitle}</div>
-                  <div style={{ fontFamily: T.mono, fontSize: 9, color: T.ink3 }}>{sessions} focus sessions</div>
+            <div style={{ ...cardStyle, padding: '20px 22px' }}>
+              <div style={{ fontFamily: T.mono, fontSize: 9, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.13em', marginBottom: 16 }}>Scholar Level</div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, marginBottom: 16 }}>
+                <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 56, color: T.accent, lineHeight: 1, letterSpacing: '-0.02em' }}>{level}</div>
+                <div style={{ paddingBottom: 8 }}>
+                  <div style={{ fontFamily: T.ui, fontWeight: 600, fontSize: 15, color: T.ink }}>{levelTitle}</div>
+                  <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, marginTop: 2 }}>{sessions} focus sessions</div>
                 </div>
               </div>
-              <div style={{ fontFamily: T.mono, fontSize: 8.5, color: T.ink3, marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ fontFamily: T.mono, fontSize: 9, color: T.ink3, marginBottom: 6, display: 'flex', justifyContent: 'space-between' }}>
                 <span>XP {xp} / {XP_PER_LEVEL}</span>
                 <span>Lv {level + 1} →</span>
               </div>
-              <div style={{ height: 5, background: T.bl, borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${xpPct}%`, background: T.accent, borderRadius: 3, transition: 'width 0.6s ease' }} />
+              <div style={{ height: 7, background: T.bl, borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${xpPct}%`, background: T.accent, borderRadius: 4, transition: 'width 0.6s ease' }} />
               </div>
-              <div style={{ fontFamily: T.mono, fontSize: 9, color: T.ink3, marginTop: 7 }}>
+              <div style={{ fontFamily: T.mono, fontSize: 9.5, color: T.ink3, marginTop: 10 }}>
                 {XP_PER_LEVEL - xp} session{XP_PER_LEVEL - xp !== 1 ? 's' : ''} to next level
               </div>
             </div>
 
             {/* Exam countdown */}
-            <div style={{ ...cardStyle, padding: '14px 16px', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ fontFamily: T.mono, fontSize: 9, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.13em', marginBottom: 10 }}>Next Exam</div>
+            <div style={{ ...cardStyle, padding: '20px 22px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontFamily: T.mono, fontSize: 9, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.13em', marginBottom: 16 }}>Next Exam</div>
               {nextQuiz ? (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 8 }}>
-                    <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 36, color: daysUntil <= 2 ? '#bf4a30' : T.ink, lineHeight: 1, letterSpacing: '-0.02em' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, marginBottom: 12 }}>
+                    <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 56, color: daysUntil <= 2 ? '#bf4a30' : T.ink, lineHeight: 1, letterSpacing: '-0.02em' }}>
                       {daysUntil != null ? daysUntil : '?'}
                     </div>
-                    <div style={{ paddingBottom: 4, fontFamily: T.mono, fontSize: 9.5, color: T.ink3 }}>days away</div>
+                    <div style={{ paddingBottom: 8, fontFamily: T.mono, fontSize: 10, color: T.ink3 }}>days away</div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
-                    {countdownSubj && <div style={{ width: 7, height: 7, borderRadius: 2, background: countdownSubj.color, flexShrink: 0 }} />}
-                    <div style={{ fontFamily: T.ui, fontWeight: 600, fontSize: 12, color: T.ink }}>{nextQuiz.title}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                    {countdownSubj && <div style={{ width: 8, height: 8, borderRadius: 2, background: countdownSubj.color, flexShrink: 0 }} />}
+                    <div style={{ fontFamily: T.ui, fontWeight: 600, fontSize: 13, color: T.ink }}>{nextQuiz.title}</div>
                   </div>
-                  <div style={{ fontFamily: T.mono, fontSize: 9.5, color: T.ink3 }}>{countdownSubj?.name} · {nextQuiz.date}</div>
+                  <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3 }}>{countdownSubj?.name} · {nextQuiz.date}</div>
                   {daysUntil <= 2 && (
-                    <div style={{ marginTop: 8, background: '#bf4a3010', border: '1px solid #bf4a3025', borderRadius: 7, padding: '5px 9px', fontFamily: T.mono, fontSize: 9, color: '#bf4a30' }}>
+                    <div style={{ marginTop: 12, background: '#bf4a3010', border: '1px solid #bf4a3025', borderRadius: 8, padding: '7px 11px', fontFamily: T.mono, fontSize: 9.5, color: '#bf4a30' }}>
                       ⚠ Coming up fast — study tonight
                     </div>
                   )}
                 </>
               ) : (
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                  <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 13, color: T.ink3 }}>No exams scheduled yet.</div>
+                  <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 15, color: T.ink3 }}>No exams scheduled yet.</div>
                 </div>
               )}
             </div>
 
             {/* Weakest subject */}
-            <div style={{ ...cardStyle, padding: '14px 16px', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ fontFamily: T.mono, fontSize: 9, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.13em', marginBottom: 10 }}>Needs Work</div>
+            <div style={{ ...cardStyle, padding: '20px 22px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontFamily: T.mono, fontSize: 9, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.13em', marginBottom: 16 }}>Needs Work</div>
               {weakest ? (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: weakest.color, flexShrink: 0 }} />
-                    <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 16, color: T.ink }}>{weakest.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 2, background: weakest.color, flexShrink: 0 }} />
+                    <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 18, color: T.ink }}>{weakest.name}</div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 8 }}>
-                    <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 36, color: '#bf4a30', lineHeight: 1, letterSpacing: '-0.02em' }}>{grades[weakest.id]}</div>
-                    <div style={{ paddingBottom: 4, fontFamily: T.mono, fontSize: 9.5, color: T.ink3 }}>{weakestGpa?.toFixed(1)} GPA pts</div>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, marginBottom: 12 }}>
+                    <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 56, color: '#bf4a30', lineHeight: 1, letterSpacing: '-0.02em' }}>{grades[weakest.id]}</div>
+                    <div style={{ paddingBottom: 8, fontFamily: T.mono, fontSize: 10, color: T.ink3 }}>{weakestGpa?.toFixed(1)} GPA pts</div>
                   </div>
-                  <div style={{ height: 4, background: T.bl, borderRadius: 3, overflow: 'hidden', marginBottom: 8 }}>
+                  <div style={{ height: 6, background: T.bl, borderRadius: 3, overflow: 'hidden', marginBottom: 12 }}>
                     <div style={{ height: '100%', width: `${weakestPct}%`, background: '#bf4a30', borderRadius: 3 }} />
                   </div>
-                  <div style={{ fontFamily: T.ui, fontSize: 11, color: T.ink3, lineHeight: 1.4 }}>
+                  <div style={{ fontFamily: T.ui, fontSize: 12, color: T.ink3, lineHeight: 1.5 }}>
                     Even 30 minutes this weekend could move the needle.
                   </div>
                 </>
               ) : (
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                  <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 13, color: T.ink3 }}>Add grades to see your weakest subject.</div>
+                  <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 15, color: T.ink3 }}>Add grades to see your weakest subject.</div>
                 </div>
               )}
             </div>
