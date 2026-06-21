@@ -1839,6 +1839,7 @@ function NotesScreen({ profile, userData, onUpdate, onNav }) {
   const [search, setSearch] = useState('');
   const [editorOpen, setEditorOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const [previewId, setPreviewId] = useState(null);
   const searchRef = useRef(null);
 
   useEffect(() => {
@@ -1964,150 +1965,183 @@ function NotesScreen({ profile, userData, onUpdate, onNav }) {
     );
   }
 
-  const mostRecentNote = notes[0] || null;
-  const mostActiveSubj = mostRecentNote ? subjectBy(mostRecentNote.subj) : null;
-  const thisWeekNotes  = notes.length;
+  const mostRecentNote  = notes[0] || null;
+  const mostActiveSubj  = subjects.length ? subjects.reduce((a,b) => (notes.filter(n=>n.subj===b.id).length > notes.filter(n=>n.subj===a.id).length ? b : a)) : null;
   const filtered = search
     ? notes.filter(n => n.title.toLowerCase().includes(search.toLowerCase()) || (n.preview||'').toLowerCase().includes(search.toLowerCase()))
     : notes;
   const subjNotes = subjects.map(s => ({ subj:s, notes: notes.filter(n => n.subj === s.id) }));
+  const previewNote = notes.find(n => n.id === previewId) || filtered[0] || null;
+  const previewSubj = previewNote ? subjectBy(previewNote.subj) : null;
+  const maxSubjCount = Math.max(1, ...subjects.map(s => notes.filter(n=>n.subj===s.id).length));
 
   return (
-    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
-        {noteEditor}
-        {/* Header */}
-        <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:20}}>
-          <div>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:7}}>Notes</div>
-            <h1 style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:38, color:T.ink, margin:'0 0 5px', lineHeight:1.05}}>Notes.</h1>
-            <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>Your personal knowledge base.</div>
-          </div>
-          <button onClick={() => openNew()} style={{padding:'8px 18px', border:`1px solid ${T.border}`, background:T.surface, color:T.ink, fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', flexShrink:0, marginTop:4}}>+ New note</button>
-        </div>
+    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto', overflowX:'hidden'}}>
+      {noteEditor}
 
-        {/* 4 stat cards */}
-        <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:12}}>
-          {[
-            { label:'TOTAL NOTES',      val:notes.length,                                                                                    sub:`${subjects.length} subjects`,                                                                 accent:T.accent,                                   borderLeft:false },
-            { label:'ACTIVE SUBJECT',   val:mostActiveSubj ? mostActiveSubj.short : '—',                                                    sub:mostActiveSubj ? `${notes.filter(n=>n.subj===mostActiveSubj.id).length} notes` : 'no notes yet', accent:mostActiveSubj ? mostActiveSubj.color : T.ink3, borderLeft:true  },
-            { label:'LAST EDITED',      val:mostRecentNote ? mostRecentNote.date : '—',                                                     sub:mostRecentNote ? mostRecentNote.title.slice(0,20)+'…' : 'no notes yet',                          accent:'#2a60a0',                                  borderLeft:false },
-            { label:'KNOWLEDGE GROWTH', val:thisWeekNotes,                                                                                   sub:'notes total',                                                                                     accent:'#3a8a52',                                  borderLeft:false },
-          ].map(c => (
-            <div key={c.label} style={{background:T.surface, padding:'24px 20px', borderRadius:12, minHeight:100, borderBottom:`2px solid ${c.accent}28`, borderLeft: c.borderLeft ? `3px solid ${c.accent}` : 'none'}}>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>{c.label}</div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:c.label==='LAST EDITED'?24:34, color: c.label==='KNOWLEDGE GROWTH'?c.accent:T.ink, lineHeight:0.9, marginBottom:8}}>{c.val}</div>
-              <div style={{fontFamily:T.mono, fontSize:10, color:c.accent}}>{c.sub}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Search */}
-        <div style={{position:'relative', marginBottom:1}}>
-          <div style={{position:'absolute', left:16, top:'50%', transform:'translateY(-50%)', color:T.ink3, pointerEvents:'none'}}>
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3"/></svg>
+      {/* Header */}
+      <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:18}}>
+        <div>
+          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:7}}>Notes</div>
+          <h1 style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:36, color:T.ink, margin:'0 0 5px', lineHeight:1.05}}>Knowledge base.</h1>
+          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>
+            {notes.length === 0 ? 'No notes yet — start writing.' : `${notes.length} note${notes.length!==1?'s':''} across ${subjects.length} subject${subjects.length!==1?'s':''}`}
           </div>
-          <input ref={searchRef} value={search} onChange={e => setSearch(e.target.value)} placeholder="Search notes, subjects, tags…"
-            style={{width:'100%', padding:'11px 48px', background:T.surface, border:`1px solid ${T.border}`, fontFamily:T.ui, fontSize:13, color:T.ink, outline:'none', boxSizing:'border-box'}}
-          />
-          <div style={{position:'absolute', right:16, top:'50%', transform:'translateY(-50%)', fontFamily:T.mono, fontSize:10, color:T.ink3}}>⌘K</div>
         </div>
+        <button onClick={() => openNew()} style={{padding:'9px 20px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', flexShrink:0, borderRadius:8}}>+ New note</button>
+      </div>
 
-        {/* Recent Notes panel */}
-        <div style={{background:T.border, marginBottom:1}}>
-          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 16px', background:T.surface, borderBottom:`1px solid ${T.border}`}}>
-            <div style={{display:'flex', alignItems:'center', gap:7}}>
-              <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em'}}>Recent Notes</div>
-            </div>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{filtered.length}</div>
+      {/* Stat row */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:12}}>
+        {[
+          { label:'Notes',          val:notes.length,                                                                     color:T.accent,  sub:`${subjects.length} subjects` },
+          { label:'Most Active',    val:mostActiveSubj?.short||'—',                                                       color:mostActiveSubj?.color||T.ink3, sub:mostActiveSubj?`${notes.filter(n=>n.subj===mostActiveSubj.id).length} notes`:'no notes yet' },
+          { label:'Last Edited',    val:mostRecentNote?.date||'—',                                                        color:'#2a60a0', sub:mostRecentNote?mostRecentNote.title.slice(0,18)+(mostRecentNote.title.length>18?'…':''):'nothing yet' },
+          { label:'Coverage',       val:`${subjects.length ? Math.round((subjects.filter(s=>notes.some(n=>n.subj===s.id)).length/subjects.length)*100) : 0}%`, color:'#3a8a52', sub:'subjects have notes' },
+        ].map(c => (
+          <div key={c.label} style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'16px 18px', borderBottom:`2px solid ${c.color}30`}}>
+            <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:8}}>{c.label}</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:30, color:T.ink, lineHeight:1, marginBottom:5}}>{c.val}</div>
+            <div style={{fontFamily:T.mono, fontSize:9, color:c.color}}>{c.sub}</div>
           </div>
-          {filtered.length === 0 ? (
-            <div style={{background:T.surface, padding:'48px 24px', textAlign:'center'}}>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink2, marginBottom:6}}>{notes.length === 0 ? 'Nothing here yet' : 'No matching notes'}</div>
-              <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, marginBottom:18}}>{notes.length === 0 ? 'Create your first note to start building your knowledge base.' : 'Try a different search.'}</div>
-              {notes.length === 0 && <button onClick={() => openNew()} style={{padding:'9px 20px', border:`1px solid ${T.accent}`, background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>+ Create your first note</button>}
+        ))}
+      </div>
+
+      {/* Main: note list + preview */}
+      <div style={{display:'grid', gridTemplateColumns:'320px 1fr', gap:12, marginBottom:12}}>
+
+        {/* Left — note list */}
+        <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, display:'flex', flexDirection:'column', overflow:'hidden'}}>
+          {/* Search */}
+          <div style={{position:'relative', borderBottom:`1px solid ${T.border}`}}>
+            <div style={{position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color:T.ink3, pointerEvents:'none'}}>
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3"/></svg>
             </div>
-          ) : (
-          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))', gap:1}}>
-            {filtered.map(note => {
+            <input ref={searchRef} value={search} onChange={e => { setSearch(e.target.value); setPreviewId(null); }} placeholder="Search notes…"
+              style={{width:'100%', padding:'10px 40px 10px 32px', background:'transparent', border:'none', fontFamily:T.ui, fontSize:12, color:T.ink, outline:'none', boxSizing:'border-box'}} />
+            <div style={{position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', fontFamily:T.mono, fontSize:9, color:T.ink3}}>⌘K</div>
+          </div>
+          {/* List */}
+          <div style={{flex:1, overflowY:'auto'}}>
+            {filtered.length === 0 ? (
+              <div style={{padding:'32px 20px', textAlign:'center'}}>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink3, marginBottom:8}}>{notes.length===0 ? 'Nothing yet.' : 'No results.'}</div>
+                {notes.length === 0 && (
+                  <button onClick={() => openNew()} style={{padding:'7px 16px', border:`1px solid ${T.accent}`, background:'none', color:T.accent, fontFamily:T.mono, fontSize:9.5, cursor:'pointer', borderRadius:7}}>+ Create first note</button>
+                )}
+              </div>
+            ) : filtered.map(note => {
               const s = subjectBy(note.subj);
+              const isActive = (previewNote?.id === note.id);
               return (
-                <div key={note.id} onClick={() => setActive(note.id)} style={{background:T.surface, padding:'16px 18px', cursor:'pointer', borderRadius:12}}
-                  onMouseOver={e => e.currentTarget.style.background = T.bl}
-                  onMouseOut={e => e.currentTarget.style.background = T.surface}
-                >
-                  <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:9}}>
-                    <div style={{width:5, height:5, borderRadius:1, background:s.color}}/>
-                    <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{s.short}</span>
-                    <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginLeft:'auto'}}>{note.date}</span>
+                <div key={note.id}
+                  onClick={() => setPreviewId(note.id)}
+                  style={{padding:'12px 16px', borderBottom:`1px solid ${T.bl}`, cursor:'pointer', background: isActive ? T.accentSoft : 'transparent', borderLeft: isActive ? `2px solid ${T.accent}` : '2px solid transparent', transition:'background 0.1s'}}
+                  onMouseOver={e => { if (!isActive) e.currentTarget.style.background = T.bg; }}
+                  onMouseOut={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}>
+                  <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:5}}>
+                    <div style={{width:5, height:5, borderRadius:1, background:s.color, flexShrink:0}}/>
+                    <span style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em', flex:1}}>{s.short}</span>
+                    <span style={{fontFamily:T.mono, fontSize:9, color:T.ink3}}>{note.date}</span>
                   </div>
-                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink, marginBottom:6, lineHeight:1.3}}>{note.title}</div>
-                  <div style={{fontFamily:T.ui, fontSize:11, color:T.ink3, lineHeight:1.6, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical'}}>{note.preview}</div>
+                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink, marginBottom:3, lineHeight:1.3}}>{note.title}</div>
+                  <div style={{fontFamily:T.ui, fontSize:11, color:T.ink3, lineHeight:1.5, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical'}}>{note.preview}</div>
                 </div>
               );
             })}
           </div>
+        </div>
+
+        {/* Right — preview pane */}
+        <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, display:'flex', flexDirection:'column', overflow:'hidden', minHeight:320}}>
+          {previewNote ? (
+            <>
+              <div style={{padding:'16px 20px', borderBottom:`1px solid ${T.border}`, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                <div style={{display:'flex', alignItems:'center', gap:8}}>
+                  <div style={{width:6, height:6, borderRadius:1.5, background:previewSubj?.color||T.ink3}}/>
+                  <span style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em'}}>{previewSubj?.name} · {previewNote.date}</span>
+                </div>
+                <div style={{display:'flex', gap:6}}>
+                  <button onClick={() => openEdit(previewNote)} style={{padding:'5px 12px', border:`1px solid ${T.border}`, background:'none', color:T.ink2, fontFamily:T.mono, fontSize:9.5, cursor:'pointer', borderRadius:6}}>Edit</button>
+                  <button onClick={() => setActive(previewNote.id)} style={{padding:'5px 12px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:9.5, cursor:'pointer', borderRadius:6}}>Open →</button>
+                </div>
+              </div>
+              <div style={{padding:'22px 24px', flex:1, overflowY:'auto'}}>
+                <h2 style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:26, color:T.ink, margin:'0 0 16px', lineHeight:1.2}}>{previewNote.title}</h2>
+                <div style={{fontFamily:T.serif, fontSize:15.5, color:T.ink2, lineHeight:1.85, whiteSpace:'pre-wrap'}}>
+                  {previewNote.body || previewNote.preview || <span style={{color:T.ink3, fontStyle:'italic'}}>Empty note. Click Edit to add content.</span>}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:32, textAlign:'center'}}>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink3, marginBottom:8}}>Select a note to preview</div>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginBottom:20}}>or create a new one to get started</div>
+              <button onClick={() => openNew()} style={{padding:'8px 18px', border:`1px solid ${T.accent}`, background:'none', color:T.accent, fontFamily:T.mono, fontSize:10, cursor:'pointer', borderRadius:7}}>+ New note</button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom: Subject coverage + AI Workspace */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16}}>
+
+        {/* Subject coverage */}
+        <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'18px 20px'}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
+            <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em'}}>Subject Coverage</div>
+            <button onClick={() => openNew()} style={{fontFamily:T.mono, fontSize:9, color:T.accent, background:'none', border:`1px solid ${T.border}`, padding:'3px 10px', borderRadius:6, cursor:'pointer'}}>+ Note</button>
+          </div>
+          {subjects.length === 0 ? (
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3}}>Add subjects to see coverage.</div>
+          ) : (
+            <div style={{display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:'6px 20px'}}>
+              {subjNotes.map(({subj:s, notes:sn}) => (
+                <div key={s.id}>
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
+                    <div style={{display:'flex', alignItems:'center', gap:6}}>
+                      <div style={{width:6, height:6, borderRadius:1, background:s.color, flexShrink:0}}/>
+                      <span style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2}}>{s.name}</span>
+                    </div>
+                    <div style={{display:'flex', alignItems:'center', gap:6}}>
+                      <span style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3}}>{sn.length}</span>
+                      <button onClick={() => openNew(s.id)} style={{fontFamily:T.mono, fontSize:8.5, color:s.color, background:`${s.color}12`, border:`1px solid ${s.color}30`, padding:'1px 7px', borderRadius:10, cursor:'pointer'}}>+</button>
+                    </div>
+                  </div>
+                  <div style={{height:4, background:T.bl, borderRadius:2, overflow:'hidden', marginBottom:8}}>
+                    <div style={{height:'100%', width:`${(sn.length/maxSubjCount)*100}%`, background:s.color, borderRadius:2, opacity:0.7, minWidth: sn.length>0?'6px':'0'}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Subject Library */}
-        <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', padding:'9px 0 8px'}}>Subject Library · {subjects.length}</div>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(190px,1fr))', gap:12}}>
-          {subjNotes.map(({subj:s, notes:sn}) => (
-            <div key={s.id} style={{background:T.surface, padding:'15px 16px', borderRadius:12, borderLeft:`3px solid ${s.color}`}}>
-              <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:4}}>
-                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink, lineHeight:1.2}}>{s.name}</div>
-                <button onClick={() => { const first = sn[0]; if (first) setActive(first.id); else openNew(s.id); }} style={{fontFamily:T.mono, fontSize:10, color:T.ink3, background:'none', border:'none', cursor:'pointer', padding:0, flexShrink:0, marginLeft:6}}>Open →</button>
-              </div>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginBottom:7}}>{sn.length} notes</div>
-              {sn.length > 0 && <div style={{fontFamily:T.ui, fontSize:11, color:T.ink3, lineHeight:1.5, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical'}}>{sn[0].preview}</div>}
-              <button onClick={() => openNew(s.id)} style={{marginTop:9, fontFamily:T.mono, fontSize:10, color:s.color, background:`${s.color}14`, border:`1px solid ${s.color}35`, padding:'4px 10px', cursor:'pointer', letterSpacing:'0.07em'}}>+ Create note</button>
-            </div>
-          ))}
-        </div>
-
-        {/* Floating cards — Knowledge Insights + AI Workspace */}
-        <div className="shq-notes-panels" style={{marginTop:12}}>
-          <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
-            <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:14}}>
-              <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Knowledge Insights</div>
-            </div>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:3}}>Most Active</div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink, marginBottom:3}}>{mostActiveSubj?.name || '—'}</div>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginBottom:14}}>{mostActiveSubj ? notes.filter(n=>n.subj===mostActiveSubj.id).length : 0} notes</div>
-            {[['Last Edited', mostRecentNote?.date||'—'],['Total Notes',notes.length],['Subjects',subjects.length]].map(([label,val]) => (
-              <div key={label} style={{marginBottom:10}}>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em', marginBottom:2}}>{label}</div>
-                <div style={{fontFamily:T.ui, fontSize:12, color:T.ink2}}>{val}</div>
-              </div>
-            ))}
+        {/* AI Workspace */}
+        <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'18px 20px'}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
+            <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em'}}>AI Workspace</div>
+            <span style={{fontFamily:T.mono, fontSize:9, background:'rgba(108,99,255,0.1)', color:'#6c63ff', padding:'2px 8px', borderRadius:4}}>AI</span>
           </div>
-          <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
-            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:13}}>
-              <div style={{display:'flex', alignItems:'center', gap:6}}>
-                <div style={{width:6, height:6, borderRadius:'50%', background:'#6c63ff'}}/>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em'}}>AI Workspace</div>
-              </div>
-              <span style={{fontFamily:T.mono, fontSize:10, background:'rgba(108,99,255,0.1)', color:'#6c63ff', padding:'2px 6px'}}>AI</span>
-            </div>
+          <div style={{display:'flex', flexDirection:'column', gap:6}}>
             {AI_ACTIONS.map(a => (
-              <div key={a.id} role="button" tabIndex={0} onClick={() => runAiAction(a.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); runAiAction(a.id); } }}
-                style={{display:'flex', gap:9, alignItems:'flex-start', padding:'9px 0', borderBottom:`1px solid ${T.bl}`, cursor: notes.length ? 'pointer' : 'default', opacity: notes.length ? 1 : 0.45}}
-                onMouseOver={e => { if (notes.length) e.currentTarget.style.opacity='0.65'; }}
-                onMouseOut={e => { if (notes.length) e.currentTarget.style.opacity='1'; }}
-              >
-                <div style={{width:22, height:22, background:T.bl, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:3, flexShrink:0}}>
-                  <span style={{fontSize:11, color:'#6c63ff'}}>{a.ic}</span>
+              <button key={a.id} type="button" onClick={() => runAiAction(a.id)} disabled={!notes.length}
+                style={{display:'flex', alignItems:'center', gap:12, padding:'10px 12px', background:T.bg, border:`1px solid ${T.border}`, borderRadius:9, cursor: notes.length ? 'pointer' : 'default', textAlign:'left', width:'100%', opacity: notes.length ? 1 : 0.4}}
+                onMouseOver={e => { if (notes.length) e.currentTarget.style.background=T.bl; }}
+                onMouseOut={e => { if (notes.length) e.currentTarget.style.background=T.bg; }}>
+                <div style={{width:30, height:30, borderRadius:7, background:'rgba(108,99,255,0.08)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+                  <span style={{fontSize:13, color:'#6c63ff'}}>{a.ic}</span>
                 </div>
-                <div>
-                  <div style={{fontFamily:T.ui, fontSize:12, color:T.ink, fontWeight:500, marginBottom:2}}>{a.label}</div>
-                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{a.sub}</div>
+                <div style={{flex:1, textAlign:'left'}}>
+                  <div style={{fontFamily:T.ui, fontSize:12, color:T.ink, fontWeight:500, marginBottom:1}}>{a.label}</div>
+                  <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3}}>{a.sub}</div>
                 </div>
-              </div>
+                <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>→</span>
+              </button>
             ))}
           </div>
         </div>
+      </div>
     </div>
   );
 }
