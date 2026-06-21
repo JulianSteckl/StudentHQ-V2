@@ -3583,7 +3583,7 @@ function ToolsScreen({ userData, onUpdate }) {
             <div className="shq-tools-mid-body">
             {trackedTools.length === 0
               ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3, lineHeight:1.5}}>No usage data yet.</div>
-              : trackedTools.map((tool, i, arr) => (
+              : trackedTools.slice(0, 3).map((tool, i, arr) => (
               <div key={tool.id} style={{padding:'7px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
                 <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4}}>
                   <div style={{display:'flex', alignItems:'center', gap:6, minWidth:0}}>
