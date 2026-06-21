@@ -3730,7 +3730,7 @@ function ToolsScreen({ userData, onUpdate }) {
               <div className="shq-tools-activity-list">
               {recentOpens.length === 0
                 ? <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, lineHeight:1.7}}>No activity yet. Open a tool to start tracking.</div>
-                : recentOpens.slice(0, 5).map((entry, i, arr) => {
+                : recentOpens.slice(0, 6).map((entry, i, arr) => {
                   const tool = toolById(entry.toolId, allTools);
                   if (!tool) return null;
                   return (
