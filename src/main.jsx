@@ -4742,7 +4742,7 @@ function ToolsScreen({ userData, onUpdate }) {
                 <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Activity</div>
                 <div style={{fontFamily:T.mono, fontSize:10, color:'#3a8a52', letterSpacing:'0.08em'}}>Live</div>
               </div>
-              <div className="shq-tools-activity-list" style={{overflowY:'auto', maxHeight:220}}>
+              <div className="shq-tools-activity-list" style={{overflowY:'auto', maxHeight:248}}>
               {recentOpens.length === 0
                 ? <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, lineHeight:1.7}}>No activity yet. Open a tool to start tracking.</div>
                 : recentOpens.map((entry, i, arr) => {
