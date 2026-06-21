@@ -2966,62 +2966,151 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
       </div>
 
       {/* Weekend row */}
-      {(() => {
-        const nextWeekHW = openHW.filter(h => {
-          const idx = schedHomeworkDayIndex(h, weekStart, now, weekOffset);
-          return idx < 0 && !h.urgent;
-        }).slice(0, 4);
-        return (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-            {weekendCards.map(d => (
-              <div key={d.name} style={{
-                ...cardStyle, padding: '16px 18px',
-                background: d.isToday ? T.accentSoft : T.surface,
-                borderTop: `3px solid ${d.isToday ? T.accent : T.border}`,
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-                  <div style={{ fontFamily: T.mono, fontSize: 9.5, color: d.isToday ? T.accent : T.ink3, textTransform: 'uppercase', letterSpacing: '0.09em' }}>{d.name} {d.date}</div>
-                  {d.isToday && <div style={{ fontFamily: T.mono, fontSize: 8.5, color: T.accent, background: T.accentSoft, padding: '2px 6px', borderRadius: 4 }}>TODAY</div>}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+        {weekendCards.map(d => (
+          <div key={d.name} style={{
+            ...cardStyle, padding: '16px 18px',
+            background: d.isToday ? T.accentSoft : T.surface,
+            borderTop: `3px solid ${d.isToday ? T.accent : T.border}`,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+              <div style={{ fontFamily: T.mono, fontSize: 9.5, color: d.isToday ? T.accent : T.ink3, textTransform: 'uppercase', letterSpacing: '0.09em' }}>{d.name} {d.date}</div>
+              {d.isToday && <div style={{ fontFamily: T.mono, fontSize: 8.5, color: T.accent, background: T.accentSoft, padding: '2px 6px', borderRadius: 4 }}>TODAY</div>}
+            </div>
+            {d.dayHW.length > 0 ? d.dayHW.map(hw => {
+              const s = subjectBy(hw.subj);
+              return (
+                <div key={hw.id || hw.title} style={{ display: 'flex', gap: 7, alignItems: 'flex-start', marginBottom: 6 }}>
+                  <div style={{ width: 3, height: 3, borderRadius: 1, background: s.color, marginTop: 5, flexShrink: 0 }} />
+                  <div style={{ fontFamily: T.ui, fontSize: 11.5, color: T.ink2 }}>{hw.title}</div>
                 </div>
+              );
+            }) : (
+              <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 13, color: T.ink3 }}>All clear.</div>
+            )}
+          </div>
+        ))}
+      </div>
 
-                {/* Assigned HW */}
-                {d.dayHW.length > 0 && (
-                  <div style={{ marginBottom: 12 }}>
-                    {d.dayHW.map(hw => {
-                      const s = subjectBy(hw.subj);
-                      return (
-                        <div key={hw.id || hw.title} style={{ display: 'flex', gap: 7, alignItems: 'flex-start', marginBottom: 6 }}>
-                          <div style={{ width: 3, height: 3, borderRadius: 1, background: s.color, marginTop: 5, flexShrink: 0 }} />
-                          <div style={{ fontFamily: T.ui, fontSize: 11.5, color: T.ink2 }}>{hw.title}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+      {/* Bottom 3-col: Streak/XP · Exam countdown · Weakest subject */}
+      {(() => {
+        // Streak & XP
+        const XP_PER_LEVEL = 10;
+        const level = Math.floor(sessions / XP_PER_LEVEL) + 1;
+        const xp = sessions % XP_PER_LEVEL;
+        const xpPct = (xp / XP_PER_LEVEL) * 100;
+        const LEVEL_TITLES = ['Freshman','Sophomore','Junior','Senior','Honor Roll','Valedictorian','Scholar','Academic','Magna','Summa'];
+        const levelTitle = LEVEL_TITLES[Math.min(level - 1, LEVEL_TITLES.length - 1)];
 
-                {/* Upcoming next week */}
-                {nextWeekHW.length > 0 && (
-                  <div style={{ borderTop: `1px solid ${T.bl}`, paddingTop: 10 }}>
-                    <div style={{ fontFamily: T.mono, fontSize: 8.5, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 7 }}>Coming up</div>
-                    {nextWeekHW.map(hw => {
-                      const s = subjectBy(hw.subj);
-                      return (
-                        <div key={hw.id || hw.title} style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 5 }}>
-                          <div style={{ width: 3, height: 3, borderRadius: 1, background: s.color, flexShrink: 0 }} />
-                          <div style={{ fontFamily: T.ui, fontSize: 11, color: T.ink3, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{hw.title}</div>
-                          {hw.due && <div style={{ fontFamily: T.mono, fontSize: 8.5, color: T.ink3, flexShrink: 0 }}>{hw.due}</div>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+        // Countdown: find next quiz (soonest weekday)
+        const DOW_ORDER = { Mon:1, Tue:2, Wed:3, Thu:4, Fri:5 };
+        const todayDow = now.getDay(); // 0=Sun,6=Sat
+        const sortedQuizzes = [...quizzes].sort((a,b) => (DOW_ORDER[a.date]||99) - (DOW_ORDER[b.date]||99));
+        const nextQuiz = sortedQuizzes.find(q => DOW_ORDER[q.date] != null) || sortedQuizzes[0];
+        let daysUntil = null;
+        if (nextQuiz && DOW_ORDER[nextQuiz.date] != null) {
+          const targetDow = DOW_ORDER[nextQuiz.date]; // 1–5
+          let diff = targetDow - todayDow;
+          if (diff <= 0) diff += 7;
+          daysUntil = diff;
+        } else if (nextQuiz?.date === 'Next Week') {
+          daysUntil = 7;
+        }
+        const countdownSubj = nextQuiz ? subjectBy(nextQuiz.subj) : null;
 
-                {/* Nothing at all */}
-                {d.dayHW.length === 0 && nextWeekHW.length === 0 && (
-                  <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 13, color: T.ink3 }}>All clear — enjoy the weekend.</div>
-                )}
+        // Weakest subject
+        const gradedSubjs = subjects.filter(s => grades[s.id] && GPA_MAP[grades[s.id]] != null);
+        const weakest = gradedSubjs.length
+          ? gradedSubjs.reduce((a,b) => (GPA_MAP[grades[b.id]]||0) < (GPA_MAP[grades[a.id]]||0) ? b : a)
+          : null;
+        const weakestGpa = weakest ? (GPA_MAP[grades[weakest.id]] || 0) : null;
+        const weakestPct = weakest ? Math.min((weakestGpa / 4.0) * 100, 100) : 0;
+
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
+
+            {/* Streak / XP */}
+            <div style={{ ...cardStyle, padding: '18px 20px' }}>
+              <div style={{ fontFamily: T.mono, fontSize: 9, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.13em', marginBottom: 14 }}>Scholar Level</div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, marginBottom: 14 }}>
+                <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 48, color: T.accent, lineHeight: 1, letterSpacing: '-0.02em' }}>{level}</div>
+                <div style={{ paddingBottom: 6 }}>
+                  <div style={{ fontFamily: T.ui, fontWeight: 600, fontSize: 13, color: T.ink }}>{levelTitle}</div>
+                  <div style={{ fontFamily: T.mono, fontSize: 9.5, color: T.ink3 }}>{sessions} focus sessions</div>
+                </div>
               </div>
-            ))}
+              <div style={{ fontFamily: T.mono, fontSize: 8.5, color: T.ink3, marginBottom: 5, display: 'flex', justifyContent: 'space-between' }}>
+                <span>XP {xp} / {XP_PER_LEVEL}</span>
+                <span>Lv {level + 1} →</span>
+              </div>
+              <div style={{ height: 6, background: T.bl, borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${xpPct}%`, background: T.accent, borderRadius: 3, transition: 'width 0.6s ease' }} />
+              </div>
+              <div style={{ fontFamily: T.mono, fontSize: 9, color: T.ink3, marginTop: 10 }}>
+                {XP_PER_LEVEL - xp} session{XP_PER_LEVEL - xp !== 1 ? 's' : ''} to next level
+              </div>
+            </div>
+
+            {/* Exam countdown */}
+            <div style={{ ...cardStyle, padding: '18px 20px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontFamily: T.mono, fontSize: 9, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.13em', marginBottom: 14 }}>Next Exam</div>
+              {nextQuiz ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, marginBottom: 10 }}>
+                    <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 48, color: daysUntil <= 2 ? '#bf4a30' : T.ink, lineHeight: 1, letterSpacing: '-0.02em' }}>
+                      {daysUntil != null ? daysUntil : '?'}
+                    </div>
+                    <div style={{ paddingBottom: 6 }}>
+                      <div style={{ fontFamily: T.mono, fontSize: 9.5, color: T.ink3 }}>days away</div>
+                    </div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+                      {countdownSubj && <div style={{ width: 8, height: 8, borderRadius: 2, background: countdownSubj.color, flexShrink: 0 }} />}
+                      <div style={{ fontFamily: T.ui, fontWeight: 600, fontSize: 13, color: T.ink }}>{nextQuiz.title}</div>
+                    </div>
+                    <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3 }}>{countdownSubj?.name} · {nextQuiz.date}</div>
+                  </div>
+                  {daysUntil <= 2 && (
+                    <div style={{ marginTop: 10, background: '#bf4a3010', border: '1px solid #bf4a3025', borderRadius: 7, padding: '6px 10px', fontFamily: T.mono, fontSize: 9.5, color: '#bf4a30' }}>
+                      ⚠ Coming up fast — study tonight
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+                  <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 15, color: T.ink3 }}>No exams scheduled yet.</div>
+                </div>
+              )}
+            </div>
+
+            {/* Weakest subject */}
+            <div style={{ ...cardStyle, padding: '18px 20px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontFamily: T.mono, fontSize: 9, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.13em', marginBottom: 14 }}>Needs Work</div>
+              {weakest ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 2, background: weakest.color, flexShrink: 0 }} />
+                    <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 20, color: T.ink }}>{weakest.name}</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 12 }}>
+                    <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 48, color: '#bf4a30', lineHeight: 1, letterSpacing: '-0.02em' }}>{grades[weakest.id]}</div>
+                    <div style={{ paddingBottom: 6, fontFamily: T.mono, fontSize: 9.5, color: T.ink3 }}>{weakestGpa?.toFixed(1)} GPA pts</div>
+                  </div>
+                  <div style={{ height: 5, background: T.bl, borderRadius: 3, overflow: 'hidden', marginBottom: 10 }}>
+                    <div style={{ height: '100%', width: `${weakestPct}%`, background: '#bf4a30', borderRadius: 3 }} />
+                  </div>
+                  <div style={{ fontFamily: T.ui, fontSize: 11.5, color: T.ink3, lineHeight: 1.5 }}>
+                    Even 30 minutes this weekend could move the needle.
+                  </div>
+                </>
+              ) : (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+                  <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 15, color: T.ink3 }}>Add grades to see your weakest subject.</div>
+                </div>
+              )}
+            </div>
+
           </div>
         );
       })()}
