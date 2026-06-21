@@ -2958,9 +2958,11 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
 
 /* ── 7. Grades ──────────────────────────────────────────── */
 function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) {
-  const subjects   = profile?.subjects || [];
-  const homework   = userData?.homework || [];
-  const grades     = userData?.grades   || {};
+  const subjects     = profile?.subjects || [];
+  const homework     = userData?.homework || [];
+  const notes        = userData?.notes    || [];
+  const quizzes      = userData?.quizzes  || [];
+  const grades       = userData?.grades   || {};
   const gradeHistory = userData?.gradeHistory || [];
   const GRADE_OPTS = ['A+','A','A−','B+','B','B−','C+','C','C−','D','F'];
 
