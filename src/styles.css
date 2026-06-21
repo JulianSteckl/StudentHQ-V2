@@ -59,9 +59,9 @@ button { cursor: pointer; font-family: inherit; }
 .shq-tools-table { overflow-x:auto; }
 .shq-tools-side { width:240px; display:flex; flex-direction:column; flex-shrink:0; align-self:flex-start; gap:12px; }
 .shq-tools-quick { flex-shrink:0; }
-.shq-tools-activity { flex:1; display:flex; flex-direction:column; min-height:0; }
-.shq-tools-activity-list { flex:1; display:flex; flex-direction:column; min-height:0; }
-.shq-tools-activity-list > button { flex:1; min-height:28px; display:flex; align-items:center; }
+.shq-tools-activity { display:flex; flex-direction:column; }
+.shq-tools-activity-list { display:flex; flex-direction:column; }
+.shq-tools-activity-list > button { min-height:28px; display:flex; align-items:center; }
 .shq-notes-panels { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .shq-fc-modes { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
 .shq-fc-rating { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
