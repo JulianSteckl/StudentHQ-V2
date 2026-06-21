@@ -1459,142 +1459,235 @@ function HomeworkScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
     subj: s, open: open.filter(h => h.subj === s.id).length,
   })).filter(x => x.open > 0);
 
-  const COLS = [
-    { label:'URGENT',    color:'#bf4a30', items: urgent   },
-    { label:'THIS WEEK', color:T.accent,  items: thisWeek },
-    { label:'UPCOMING',  color:'#4285f4', items: upcoming },
-    { label:'COMPLETED', color:'#3a8a52', items: done     },
-  ];
 
-  const Card = ({hw}) => {
+  const HWRow = ({ hw, subjectBy, onToggle }) => {
     const s = subjectBy(hw.subj);
     return (
-      <div style={{background:T.bl, borderLeft:`2px solid ${s.color}`, padding:'8px 10px', marginBottom:6, cursor:'pointer'}}
-        onClick={() => hw.id && toggleDone(hw.id)}
-        onMouseOver={e => e.currentTarget.style.background = T.border}
-        onMouseOut={e => e.currentTarget.style.background = T.bl}
-        title="Click to toggle done"
-      >
-        <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, marginBottom:3}}>
-          <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink, lineHeight:1.3, textDecoration: hw.done ? 'line-through' : 'none', opacity: hw.done ? 0.5 : 1}}>{hw.title}</div>
-          {hw.urgent && !hw.done && (
-            <span style={{flexShrink:0, fontFamily:T.mono, fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'#bf4a30', border:'1px solid #bf4a3040', background:'#bf4a300f', padding:'2px 6px', borderRadius:999}}>Urgent</span>
-          )}
+      <div onClick={() => hw.id && onToggle(hw.id)}
+        style={{display:'flex', alignItems:'center', gap:12, padding:'9px 10px', borderRadius:8, cursor:'pointer', marginBottom:4, background: hw.done ? 'transparent' : T.bg, border:`1px solid ${hw.done ? 'transparent' : T.border}`, transition:'background 0.12s'}}
+        onMouseOver={e=>e.currentTarget.style.background=T.bl}
+        onMouseOut={e=>e.currentTarget.style.background = hw.done ? 'transparent' : T.bg}
+        title="Click to toggle done">
+        {/* Checkbox */}
+        <div style={{width:16, height:16, borderRadius:4, border:`1.5px solid ${hw.done ? '#3a8a52' : T.border}`, background: hw.done ? '#3a8a52' : 'transparent', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.12s'}}>
+          {hw.done && <span style={{color:'#fff', fontSize:9, fontWeight:700, lineHeight:1}}>✓</span>}
         </div>
-        <div style={{display:'flex', justifyContent:'space-between'}}>
-          <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{s.short}</span>
-          <span style={{fontFamily:T.mono, fontSize:10, color: hw.urgent ? '#bf4a30' : T.ink3}}>{hw.due}</span>
+        {/* Subject dot */}
+        <div style={{width:7, height:7, borderRadius:2, background:s.color, flexShrink:0, opacity: hw.done ? 0.4 : 1}}/>
+        {/* Title */}
+        <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink, flex:1, textDecoration: hw.done ? 'line-through' : 'none', opacity: hw.done ? 0.45 : 1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{hw.title}</div>
+        {/* Meta */}
+        <div style={{display:'flex', alignItems:'center', gap:8, flexShrink:0}}>
+          {hw.est && !hw.done && <span style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3}}>{hw.est}</span>}
+          {hw.urgent && !hw.done && <span style={{fontFamily:T.mono, fontSize:9, color:'#bf4a30', border:'1px solid #bf4a3030', padding:'1px 6px', borderRadius:999}}>urgent</span>}
+          <span style={{fontFamily:T.mono, fontSize:9.5, color: hw.urgent && !hw.done ? '#bf4a30' : T.ink3}}>{hw.due}</span>
         </div>
       </div>
     );
   };
 
+  const mostLoadedSubj = hwBySubject.length ? hwBySubject.reduce((a,b)=>b.open>a.open?b:a) : null;
+
   return (
-    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
-        <AddHomeworkModal open={showAdd} onClose={() => setShowAdd(false)} onSave={addHomework} subjects={subjects} />
-        {/* Header */}
-        <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:20}}>
-          <div>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:6}}>Workload · This Week</div>
-            <h1 style={{margin:'0 0 5px', lineHeight:1.1}}>
-              <span style={{fontFamily:T.ui, fontWeight:700, fontSize:28, color:T.ink}}>Homework, </span>
-              <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:30, color:T.ink}}>all of it.</span>
-            </h1>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.05em'}}>
-              {open.length === 0 ? 'Nothing due — enjoy the break ✓' : `${open.length} assignments open · ${urgent.length} urgent`}
-            </div>
+    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto', overflowX:'hidden'}}>
+      <AddHomeworkModal open={showAdd} onClose={() => setShowAdd(false)} onSave={addHomework} subjects={subjects} />
+
+      {/* Header */}
+      <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:18}}>
+        <div>
+          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:6}}>Workload · This Week</div>
+          <h1 style={{margin:'0 0 5px', lineHeight:1.1}}>
+            <span style={{fontFamily:T.ui, fontWeight:700, fontSize:28, color:T.ink}}>Homework, </span>
+            <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:30, color:T.ink}}>all of it.</span>
+          </h1>
+          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>
+            {open.length === 0 ? 'All clear — nothing open right now.' : `${open.length} open · ${urgent.length} urgent · ${estDisplay} estimated`}
           </div>
-          <button onClick={() => setShowAdd(true)} style={{padding:'7px 18px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', flexShrink:0}}>+ Add</button>
         </div>
+        <button onClick={() => setShowAdd(true)} style={{padding:'9px 20px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', flexShrink:0, borderRadius:8}}>+ Add</button>
+      </div>
 
-        {/* 5 stat cards */}
-        <div className="shq-hw-stats" style={{marginBottom:12}}>
-          {[
-            { label:'OPEN WORK',   val:open.length,         sub:'assignments',                               accent:T.accent  },
-            { label:'URGENT',      val:urgent.length,       sub:'need attention',                            accent:'#bf4a30' },
-            { label:'DUE TODAY',   val:tonight.length,      sub:'assignments',                               accent:'#b07020' },
-            { label:'EST. TIME',   val:estDisplay,          sub:'remaining',                                 accent:'#2a60a0' },
-            { label:'COMPLETION',  val:`${completionPct}%`, sub:`${done.length} of ${homework.length} done`, accent:'#3a8a52' },
-          ].map(c => (
-            <div key={c.label} style={{background:T.surface, padding:'24px 20px', borderRadius:12, minHeight:100, borderBottom:`2px solid ${c.accent}28`}}>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:10}}>{c.label}</div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:34, color:T.ink, lineHeight:0.9, marginBottom:8}}>{c.val}</div>
-              <div style={{fontFamily:T.mono, fontSize:10, color:c.accent}}>{c.sub}</div>
+      {/* Top row: 5 stat cards */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, marginBottom:12}}>
+        {[
+          { label:'Open',       val:open.length,         color:T.accent,   sub:'assignments' },
+          { label:'Urgent',     val:urgent.length,       color:'#bf4a30',  sub:'need attention' },
+          { label:'Due Today',  val:tonight.length,      color:'#b07020',  sub:'due tonight' },
+          { label:'Est. Time',  val:estDisplay,          color:'#2a60a0',  sub:'remaining' },
+          { label:'Done',       val:`${completionPct}%`, color:'#3a8a52',  sub:`${done.length} of ${homework.length}` },
+        ].map(c => (
+          <div key={c.label} style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'16px 18px', borderBottom:`2px solid ${c.color}30`}}>
+            <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:8}}>{c.label}</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:32, color:T.ink, lineHeight:1, marginBottom:5}}>{c.val}</div>
+            <div style={{fontFamily:T.mono, fontSize:9, color:c.color}}>{c.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Main area: Assignment list + sidebar */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr 280px', gap:12, marginBottom:12}}>
+
+        {/* Assignment list — grouped */}
+        <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'18px 20px'}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
+            <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em'}}>Assignments</div>
+            <button onClick={() => setShowAdd(true)} style={{fontFamily:T.mono, fontSize:9, color:T.accent, background:'none', border:`1px solid ${T.border}`, padding:'3px 10px', borderRadius:6, cursor:'pointer'}}>+ Add</button>
+          </div>
+
+          {homework.length === 0 ? (
+            <div style={{textAlign:'center', padding:'40px 0'}}>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink3, marginBottom:6}}>Nothing here yet.</div>
+              <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, marginBottom:16}}>Add an assignment to get started.</div>
+              <button onClick={() => setShowAdd(true)} style={{padding:'7px 18px', border:`1px solid ${T.accent}`, background:'none', color:T.accent, fontFamily:T.mono, fontSize:9.5, cursor:'pointer', borderRadius:7}}>+ Add first assignment</button>
             </div>
-          ))}
-        </div>
-
-        {/* Board label */}
-        <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', padding:'10px 0 8px'}}>Assignment Board</div>
-
-        {/* Kanban */}
-        <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12}}>
-          {COLS.map(col => (
-            <div key={col.label} ref={col.label === 'URGENT' ? urgentColRef : null} style={{background:T.surface, borderRadius:12, minHeight:180}}>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderBottom:`1px solid ${T.bl}`}}>
-                <div style={{display:'flex', alignItems:'center', gap:6}}>
-                  <div style={{width:6, height:6, borderRadius:'50%', background:col.color}}/>
-                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em'}}>{col.label}</div>
-                </div>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{col.items.length}</div>
-              </div>
-              <div style={{padding:'9px 10px'}}>
-                {col.items.length === 0
-                  ? <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', textAlign:'center', padding:'22px 0', opacity:0.35}}>EMPTY</div>
-                  : col.items.map(h => <Card key={h.title} hw={h}/>)
-                }
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Floating panel cards */}
-        <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginTop:12}}>
-          {/* By Subject */}
-          <div style={{background:T.surface, borderRadius:12, padding:'20px 22px'}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:14}}>Homework by Subject</div>
-            {hwBySubject.length === 0
-              ? <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>No assignments</div>
-              : hwBySubject.map(x => (
-                  <div key={x.subj.id} style={{display:'flex', alignItems:'center', gap:10, marginBottom:10}}>
-                    <div style={{width:28, height:28, borderRadius:'50%', background:`${x.subj.color}18`, border:`1.5px solid ${x.subj.color}50`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
-                      <div style={{width:7, height:7, borderRadius:'50%', background:x.subj.color}}/>
-                    </div>
-                    <div style={{fontFamily:T.ui, fontSize:12, color:T.ink2, flex:1}}>{x.subj.short}</div>
-                    <div style={{fontFamily:T.mono, fontSize:11, color:T.accent, fontWeight:700}}>{x.open}</div>
+          ) : (
+            <>
+              {/* Urgent */}
+              {urgent.length > 0 && (
+                <div style={{marginBottom:18}} ref={urgentColRef}>
+                  <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:8}}>
+                    <div style={{width:6, height:6, borderRadius:'50%', background:'#bf4a30'}}/>
+                    <div style={{fontFamily:T.mono, fontSize:9, color:'#bf4a30', textTransform:'uppercase', letterSpacing:'0.11em'}}>Urgent · {urgent.length}</div>
                   </div>
-                ))
-            }
+                  {urgent.map(h => <HWRow key={h.id||h.title} hw={h} subjectBy={subjectBy} onToggle={toggleDone}/>)}
+                </div>
+              )}
+              {/* Open */}
+              {open.filter(h=>!h.urgent).length > 0 && (
+                <div style={{marginBottom:18}}>
+                  <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:8}}>
+                    <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
+                    <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em'}}>Open · {open.filter(h=>!h.urgent).length}</div>
+                  </div>
+                  {open.filter(h=>!h.urgent).map(h => <HWRow key={h.id||h.title} hw={h} subjectBy={subjectBy} onToggle={toggleDone}/>)}
+                </div>
+              )}
+              {/* Completed */}
+              {done.length > 0 && (
+                <div>
+                  <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:8}}>
+                    <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52'}}/>
+                    <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em'}}>Completed · {done.length}</div>
+                  </div>
+                  {done.map(h => <HWRow key={h.id||h.title} hw={h} subjectBy={subjectBy} onToggle={toggleDone}/>)}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Sidebar */}
+        <div style={{display:'flex', flexDirection:'column', gap:10}}>
+          {/* Progress ring */}
+          <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'18px 20px', display:'flex', alignItems:'center', gap:16}}>
+            <div style={{position:'relative', width:64, height:64, flexShrink:0}}>
+              <svg width={64} height={64} viewBox="-32 -32 64 64" style={{transform:'rotate(-90deg)'}}>
+                <circle r={26} fill="none" stroke={T.bl} strokeWidth={5}/>
+                <circle r={26} fill="none" stroke={'#3a8a52'} strokeWidth={5}
+                  strokeDasharray={`${(completionPct/100)*2*Math.PI*26} ${2*Math.PI*26}`}
+                  strokeLinecap="round" style={{transition:'stroke-dasharray 0.6s ease'}}/>
+              </svg>
+              <div style={{position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center'}}>
+                <div style={{fontFamily:T.mono, fontSize:11, color:T.ink, letterSpacing:'-0.01em'}}>{completionPct}%</div>
+              </div>
+            </div>
+            <div>
+              <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:4}}>Completion</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink}}>{done.length} done, {open.length} left</div>
+              {open.length === 0 && <div style={{fontFamily:T.mono, fontSize:9, color:'#3a8a52', marginTop:4}}>All clear ✓</div>}
+            </div>
           </div>
 
-          {/* Quick Actions */}
-          <div style={{background:T.surface, borderRadius:12, padding:'20px 22px'}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:14}}>Quick Actions</div>
+          {/* By subject */}
+          <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'16px 18px', flex:1}}>
+            <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:12}}>By Subject</div>
+            {hwBySubject.length === 0 ? (
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3}}>No open work.</div>
+            ) : hwBySubject.map(x => (
+              <div key={x.subj.id} style={{marginBottom:12}}>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:5}}>
+                  <div style={{display:'flex', alignItems:'center', gap:7}}>
+                    <div style={{width:7, height:7, borderRadius:1, background:x.subj.color, flexShrink:0}}/>
+                    <div style={{fontFamily:T.ui, fontSize:12, color:T.ink2}}>{x.subj.name}</div>
+                  </div>
+                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{x.open}</div>
+                </div>
+                <div style={{height:4, background:T.bl, borderRadius:2, overflow:'hidden'}}>
+                  <div style={{height:'100%', width:`${Math.min((x.open/Math.max(open.length,1))*100,100)}%`, background:x.subj.color, borderRadius:2, opacity:0.75}}/>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Heaviest subject callout */}
+          {mostLoadedSubj && (
+            <div style={{background:T.accentSoft, borderRadius:12, border:`1px solid ${T.accent}25`, padding:'14px 16px'}}>
+              <div style={{fontFamily:T.mono, fontSize:9, color:T.accent, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:6}}>Most work due</div>
+              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:4}}>
+                <div style={{width:8, height:8, borderRadius:2, background:mostLoadedSubj.subj.color}}/>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink}}>{mostLoadedSubj.subj.name}</div>
+              </div>
+              <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3}}>{mostLoadedSubj.open} open assignment{mostLoadedSubj.open!==1?'s':''}</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom row: Est. breakdown + Quick actions */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16}}>
+        {/* Time estimate breakdown */}
+        <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'18px 20px'}}>
+          <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:14}}>Time Estimates</div>
+          {open.filter(h=>h.est).length === 0 ? (
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3}}>Add time estimates when creating assignments to see a breakdown here.</div>
+          ) : (
+            <div style={{display:'flex', flexDirection:'column', gap:9}}>
+              {open.filter(h=>h.est).map(h => {
+                const s = subjectBy(h.subj);
+                const m = (() => { let x=0; const hr=h.est.match(/(\d+)\s*hr/); const mn=h.est.match(/(\d+)\s*min/); if(hr)x+=parseInt(hr[1])*60; if(mn)x+=parseInt(mn[1]); return x||30; })();
+                const pct = Math.min((m/Math.max(totalMin,1))*100,100);
+                return (
+                  <div key={h.id||h.title}>
+                    <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
+                      <div style={{display:'flex', alignItems:'center', gap:7}}>
+                        <div style={{width:5, height:5, borderRadius:1, background:s.color, flexShrink:0}}/>
+                        <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:220}}>{h.title}</div>
+                      </div>
+                      <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, flexShrink:0, marginLeft:8}}>{h.est}</div>
+                    </div>
+                    <div style={{height:3, background:T.bl, borderRadius:2, overflow:'hidden'}}>
+                      <div style={{height:'100%', width:`${pct}%`, background:s.color, borderRadius:2, opacity:0.6}}/>
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{borderTop:`1px solid ${T.bl}`, paddingTop:8, display:'flex', justifyContent:'space-between'}}>
+                <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3}}>Total</div>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink}}>{estDisplay}</div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Quick actions */}
+        <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'18px 20px'}}>
+          <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:14}}>Quick Actions</div>
+          <div style={{display:'flex', flexDirection:'column', gap:6}}>
             {QUICK_ACTIONS.map(({ ic, label, run }) => (
-              <div key={label} role="button" tabIndex={0} onClick={run} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); run(); } }}
-                style={{display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:`1px solid ${T.bl}`, cursor:'pointer'}}
-                onMouseOver={e => e.currentTarget.style.opacity='0.6'}
-                onMouseOut={e => e.currentTarget.style.opacity='1'}
-              >
-                <div style={{width:28, height:28, borderRadius:'50%', background:T.accentSoft, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
-                  <span style={{fontFamily:T.mono, fontSize:11, color:T.accent, fontWeight:700}}>{ic}</span>
+              <button key={label} type="button" onClick={run}
+                style={{display:'flex', alignItems:'center', gap:12, padding:'10px 12px', background:T.bg, border:`1px solid ${T.border}`, borderRadius:9, cursor:'pointer', textAlign:'left', width:'100%'}}
+                onMouseOver={e=>e.currentTarget.style.background=T.bl}
+                onMouseOut={e=>e.currentTarget.style.background=T.bg}>
+                <div style={{width:28, height:28, borderRadius:7, background:T.accentSoft, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+                  <span style={{fontFamily:T.mono, fontSize:11, color:T.accent}}>{ic}</span>
                 </div>
                 <span style={{fontFamily:T.ui, fontSize:12, color:T.ink2}}>{label}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* This Week */}
-          <div style={{background:T.surface, borderRadius:12, padding:'20px 22px'}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:14}}>This Week</div>
-            {[['COMPLETED', done.length],['OPEN', open.length],['AVG. COMPLETION','1.3d early'],['MOST ACTIVE', open.length>0?subjectBy(open[0].subj).short:'—']].map(([l,v]) => (
-              <div key={l} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'9px 0', borderBottom:`1px solid ${T.bl}`}}>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{l}</div>
-                <div style={{fontFamily:T.mono, fontSize:11, color: l==='AVG. COMPLETION'?T.accent:T.ink, fontWeight:600}}>{v}</div>
-              </div>
+                <span style={{fontFamily:T.mono, fontSize:9, color:T.ink3, marginLeft:'auto'}}>→</span>
+              </button>
             ))}
           </div>
         </div>
+      </div>
     </div>
   );
 }
