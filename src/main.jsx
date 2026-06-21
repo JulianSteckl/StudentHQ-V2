@@ -5731,7 +5731,7 @@ function SetupFlow({ onComplete, onBack, initialData }) {
       `}</style>
 
       {/* Progress bar */}
-      <div style={{display:'flex', alignItems:'center', padding:'0 52px', height:52, flexShrink:0, borderBottom:`1px solid ${T.border}`, background:T.surface, gap:0}}>
+      <div style={{display:'flex', alignItems:'center', padding:'0 52px', height:52, flexShrink:0, borderBottom:`1px solid ${T.border}`, background:T.bg, gap:0}}>
         <div style={{width:28, height:28, borderRadius:6, background:`linear-gradient(135deg,${T.accent},#9a7828)`, display:'flex', alignItems:'center', justifyContent:'center', marginRight:20, flexShrink:0}}>
           <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:'#fff', lineHeight:1}}>S</span>
         </div>
@@ -5946,7 +5946,7 @@ function SetupFlow({ onComplete, onBack, initialData }) {
         </div>
 
         {/* Right — preview & checklist */}
-        <div style={{width:380, flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', overflowY:'auto', borderLeft:`1px solid ${T.border}`, padding:'48px 36px', gap:24, position:'relative', background:T.surface}}>
+        <div style={{width:380, flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', overflowY:'auto', borderLeft:`1px solid ${T.border}`, padding:'48px 36px', gap:24, position:'relative', background:T.bg}}>
           {/* Decorative label */}
           <div style={{position:'absolute', top:24, left:36, fontFamily:T.mono, fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:T.ink3}}>Live preview</div>
           <DashboardPreview />
@@ -5956,7 +5956,7 @@ function SetupFlow({ onComplete, onBack, initialData }) {
       </div>
 
       {/* Footer */}
-      <div style={{display:'flex', alignItems:'center', padding:'16px 52px', flexShrink:0, borderTop:`1px solid ${T.border}`, background:T.surface, position:'relative'}}>
+      <div style={{display:'flex', alignItems:'center', padding:'16px 52px', flexShrink:0, borderTop:`1px solid ${T.border}`, background:T.bg, position:'relative'}}>
         <button onClick={goBack} style={{background:'none', border:'none', padding:0, cursor:'pointer', fontSize:13, color:T.ink3, fontFamily:T.ui, letterSpacing:'0.01em'}}>← Back</button>
         <span style={{position:'absolute', left:'50%', transform:'translateX(-50%)', fontFamily:T.mono, fontSize:9, letterSpacing:'0.22em', color:T.ink3+'80', textTransform:'uppercase', userSelect:'none'}}>ANNO MMXXVI</span>
         <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:24}}>
