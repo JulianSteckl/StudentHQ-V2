@@ -5697,105 +5697,117 @@ function SetupFlow({ onComplete, onBack, initialData }) {
     </div>
   );
 
-  const inputStyle = {width:'100%', padding:'10px 14px', border:`1px solid ${T.border}`, background:T.bg, fontFamily:T.ui, fontSize:14, color:T.ink, outline:'none', boxSizing:'border-box', borderRadius:6};
+  const inputStyle = {width:'100%', padding:'12px 16px', border:`1px solid ${T.border}`, background:T.surface, fontFamily:T.ui, fontSize:14, color:T.ink, outline:'none', boxSizing:'border-box', borderRadius:8, transition:'border-color 0.15s'};
 
   return (
     <div style={{
-      position:'fixed', inset:0, zIndex:900, background:T.surface,
+      position:'fixed', inset:0, zIndex:900, background:T.bg,
       display:'flex', flexDirection:'column', fontFamily:T.ui,
-      opacity: exit ? 0 : 1, transform: exit ? 'scale(0.97)' : 'scale(1)',
+      opacity: exit ? 0 : 1, transform: exit ? 'scale(0.98)' : 'scale(1)',
       transition: exit ? 'opacity 0.35s ease, transform 0.35s ease' : 'none',
     }}>
       <style>{`
         .shq-ob-input::placeholder{color:${T.ink3}}
         .shq-ob-select option{background:${T.surface}}
-        .shq-yr-btn:hover{border-color:${T.accent}!important}
+        .shq-yr-btn:hover{border-color:${T.accent}!important; color:${T.accent}!important;}
+        .shq-next-btn:hover{opacity:0.88}
+        .shq-add-class-btn:hover{border-color:${T.accent}!important; color:${T.accent}!important;}
         @keyframes shq-page-out-fwd {
-          0%   { opacity:1; transform:translateX(0) rotateY(0); }
-          100% { opacity:0; transform:translateX(-60px) rotateY(-8deg); }
+          0%   { opacity:1; transform:translateX(0); }
+          100% { opacity:0; transform:translateX(-48px); }
         }
         @keyframes shq-page-out-back {
-          0%   { opacity:1; transform:translateX(0) rotateY(0); }
-          100% { opacity:0; transform:translateX(60px) rotateY(8deg); }
+          0%   { opacity:1; transform:translateX(0); }
+          100% { opacity:0; transform:translateX(48px); }
         }
         @keyframes shq-page-in-fwd {
-          0%   { opacity:0; transform:translateX(60px) rotateY(6deg); }
-          100% { opacity:1; transform:translateX(0) rotateY(0); }
+          0%   { opacity:0; transform:translateX(48px); }
+          100% { opacity:1; transform:translateX(0); }
         }
         @keyframes shq-page-in-back {
-          0%   { opacity:0; transform:translateX(-60px) rotateY(-6deg); }
-          100% { opacity:1; transform:translateX(0) rotateY(0); }
+          0%   { opacity:0; transform:translateX(-48px); }
+          100% { opacity:1; transform:translateX(0); }
         }
       `}</style>
 
-      {/* Stepped progress bar */}
-      <div style={{display:'flex', alignItems:'center', gap:0, padding:'0 48px', height:44, flexShrink:0, borderBottom:`1px solid ${T.border}`, background:T.surface}}>
-        {STEP_LABELS.map((label, i) => {
-          const s = i + 1;
-          const done = step > s;
-          const active = step === s;
-          return (
-            <React.Fragment key={s}>
-              <div style={{display:'flex', alignItems:'center', gap:8}}>
-                <div style={{
-                  width:22, height:22, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
-                  background: done ? T.accent : active ? T.accentSoft : T.bl,
-                  border: active ? `1.5px solid ${T.accent}` : done ? `1.5px solid ${T.accent}` : `1px solid ${T.border}`,
-                  transition:'all 0.25s',
-                }}>
-                  {done
-                    ? <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 6l2.5 2.5 4.5-5"/></svg>
-                    : <span style={{fontFamily:T.mono, fontSize:10, color: active ? T.accent : T.ink3}}>{s}</span>
-                  }
+      {/* Progress bar */}
+      <div style={{display:'flex', alignItems:'center', padding:'0 52px', height:52, flexShrink:0, borderBottom:`1px solid ${T.border}`, background:T.surface, gap:0}}>
+        <div style={{width:28, height:28, borderRadius:6, background:`linear-gradient(135deg,${T.accent},#9a7828)`, display:'flex', alignItems:'center', justifyContent:'center', marginRight:20, flexShrink:0}}>
+          <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:'#fff', lineHeight:1}}>S</span>
+        </div>
+        <div style={{flex:1, display:'flex', alignItems:'center', gap:0}}>
+          {STEP_LABELS.map((label, i) => {
+            const s = i + 1;
+            const done = step > s;
+            const active = step === s;
+            return (
+              <React.Fragment key={s}>
+                <div style={{display:'flex', alignItems:'center', gap:8}}>
+                  <div style={{
+                    width:20, height:20, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+                    background: done ? T.accent : active ? T.accent : T.bl,
+                    border: done || active ? `none` : `1px solid ${T.border}`,
+                    transition:'all 0.25s',
+                  }}>
+                    {done
+                      ? <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 6l2.5 2.5 4.5-5"/></svg>
+                      : <span style={{fontFamily:T.mono, fontSize:9, color: active ? '#fff' : T.ink3, fontWeight:600}}>{s}</span>
+                    }
+                  </div>
+                  <span style={{fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.14em', textTransform:'uppercase', color: active ? T.ink : done ? T.ink3 : T.ink3, fontWeight: active ? 600 : 400}}>{label}</span>
                 </div>
-                <span style={{fontFamily:T.mono, fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color: active ? T.accent : done ? T.ink2 : T.ink3, fontWeight: active ? 500 : 400}}>{label}</span>
-              </div>
-              {s < 3 && <div style={{flex:1, height:1, background: done ? T.accent : T.border, margin:'0 16px', transition:'background 0.3s'}} />}
-            </React.Fragment>
-          );
-        })}
+                {s < 3 && <div style={{flex:1, height:1, background: done ? T.accent+'60' : T.border, margin:'0 20px', transition:'background 0.4s'}} />}
+              </React.Fragment>
+            );
+          })}
+        </div>
       </div>
 
       {/* Two-column body */}
       <div style={{flex:1, minHeight:0, display:'flex', overflow:'hidden'}}>
 
         {/* Left — form */}
-        <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-start', overflowY:'auto', padding:'56px 48px 40px', position:'relative', backgroundImage:`radial-gradient(${T.border} 1px, transparent 1px)`, backgroundSize:'20px 20px', backgroundPosition:'10px 10px'}}>
+        <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', overflowY:'auto', padding:'48px 64px', position:'relative', backgroundImage:`radial-gradient(${T.border} 1px, transparent 1px)`, backgroundSize:'24px 24px'}}>
 
-
-
-          <div style={{maxWidth:480, position:'relative', zIndex:1, perspective:'800px',
-            animation: animDir === 'forward' ? 'shq-page-out-fwd 0.3s ease forwards'
-                     : animDir === 'back' ? 'shq-page-out-back 0.3s ease forwards'
-                     : animDir === 'enter-forward' ? 'shq-page-in-fwd 0.35s ease forwards'
-                     : animDir === 'enter-back' ? 'shq-page-in-back 0.35s ease forwards'
+          <div style={{width:'100%', maxWidth:460, position:'relative', zIndex:1,
+            animation: animDir === 'forward' ? 'shq-page-out-fwd 0.28s ease forwards'
+                     : animDir === 'back' ? 'shq-page-out-back 0.28s ease forwards'
+                     : animDir === 'enter-forward' ? 'shq-page-in-fwd 0.32s ease forwards'
+                     : animDir === 'enter-back' ? 'shq-page-in-back 0.32s ease forwards'
                      : 'none',
           }}>
             {/* Step 1 */}
             {step===1 && (
               <>
-                <h2 style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:42, lineHeight:1.1, margin:'0 0 28px', color:T.ink}}>
+                <div style={{fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:T.accent, marginBottom:16}}>Step 1 of 3</div>
+                <h2 style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:52, lineHeight:1.05, margin:'0 0 10px', color:T.ink, letterSpacing:'-0.01em'}}>
                   Let's set up your <em style={{color:T.accent}}>dashboard.</em>
                 </h2>
-                <div style={{marginBottom:22}}>
-                  <div style={{fontFamily:T.mono, fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink3, marginBottom:10}}>What's your name?</div>
+                <p style={{fontFamily:T.ui, fontSize:13.5, color:T.ink3, margin:'0 0 36px', lineHeight:1.6}}>Takes about 2 minutes. Everything can be changed later.</p>
+
+                <div style={{marginBottom:24}}>
+                  <div style={{fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:T.ink3, marginBottom:10}}>What's your name?</div>
                   <input autoFocus className="shq-ob-input" value={name} onChange={e => setName(e.target.value)}
                     onKeyDown={e => { if (e.key==='Enter' && canNext1) goNext(); }}
                     placeholder="e.g. Julian" style={inputStyle}
                     onFocus={e => e.target.style.borderColor=T.accent}
                     onBlur={e => e.target.style.borderColor=T.border} />
                 </div>
-                <div style={{marginBottom:0}}>
-                  <div style={{fontFamily:T.mono, fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink3, marginBottom:10}}>What year are you in?</div>
-                  <div style={{display:'flex', gap:8}}>
-                    {[['freshman','Freshman'],['sophomore','Sophomore'],['junior','Junior'],['senior','Senior']].map(([k,l]) => (
+
+                <div>
+                  <div style={{fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:T.ink3, marginBottom:12}}>What year are you in?</div>
+                  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
+                    {[['freshman','Freshman','First year'],['sophomore','Sophomore','Second year'],['junior','Junior','Third year'],['senior','Senior','Fourth year']].map(([k,l,sub]) => (
                       <button key={k} className="shq-yr-btn" onClick={() => setGrade(k)} style={{
-                        flex:1, height:40, borderRadius:6, fontSize:12.5, cursor:'pointer',
+                        padding:'14px 18px', borderRadius:8, fontSize:13, cursor:'pointer', textAlign:'left',
                         border: grade===k ? `1.5px solid ${T.accent}` : `1px solid ${T.border}`,
-                        background: grade===k ? T.accentSoft : T.bg,
+                        background: grade===k ? T.accentSoft : T.surface,
                         color: grade===k ? T.accent : T.ink2,
-                        fontFamily:T.ui, fontWeight: grade===k ? 500 : 400, transition:'all 0.12s',
-                      }}>{l}</button>
+                        fontFamily:T.ui, fontWeight: grade===k ? 600 : 400, transition:'all 0.12s',
+                      }}>
+                        <div style={{fontWeight: grade===k ? 600 : 500, marginBottom:2}}>{l}</div>
+                        <div style={{fontFamily:T.mono, fontSize:9, color: grade===k ? T.accent+'80' : T.ink3, letterSpacing:'0.06em'}}>{sub}</div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -5805,82 +5817,70 @@ function SetupFlow({ onComplete, onBack, initialData }) {
             {/* Step 2 */}
             {step===2 && (
               <>
-                <h2 style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:42, lineHeight:1.1, margin:'0 0 28px', color:T.ink}}>
+                <div style={{fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:T.accent, marginBottom:16}}>Step 2 of 3</div>
+                <h2 style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:52, lineHeight:1.05, margin:'0 0 10px', color:T.ink, letterSpacing:'-0.01em'}}>
                   Tell us about your <em style={{color:T.accent}}>school.</em>
                 </h2>
-                <div style={{marginBottom:22}}>
-                  <div style={{fontFamily:T.mono, fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink3, marginBottom:10}}>School name</div>
+                <p style={{fontFamily:T.ui, fontSize:13.5, color:T.ink3, margin:'0 0 36px', lineHeight:1.6}}>We'll use this to track your semester and keep your calendar accurate.</p>
+
+                <div style={{marginBottom:20}}>
+                  <div style={{fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:T.ink3, marginBottom:10}}>School name</div>
                   <input autoFocus className="shq-ob-input" value={school} onChange={e => setSchool(e.target.value)}
                     onKeyDown={e => { if (e.key==='Enter' && canNext2) goNext(); }}
                     placeholder="e.g. Lincoln High School" style={inputStyle}
                     onFocus={e => e.target.style.borderColor=T.accent}
                     onBlur={e => e.target.style.borderColor=T.border} />
                 </div>
-                <div style={{marginBottom:36}}>
-                  <div style={{fontFamily:T.mono, fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:T.ink3, marginBottom:10}}>When does your school year start?</div>
+
+                <div style={{marginBottom:32}}>
+                  <div style={{fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.16em', textTransform:'uppercase', color:T.ink3, marginBottom:10}}>When does your school year start?</div>
                   <div style={{display:'flex', gap:10}}>
                     <select className="shq-ob-select" value={startM} onChange={e => setStartM(Number(e.target.value))}
-                      style={{...inputStyle, flex:2, padding:'10px 14px', cursor:'pointer', appearance:'none'}}>
+                      style={{...inputStyle, flex:2, cursor:'pointer', appearance:'none'}}>
                       {MONTHS.map((m,i) => <option key={i} value={i}>{m}</option>)}
                     </select>
                     <select className="shq-ob-select" value={startY} onChange={e => setStartY(Number(e.target.value))}
-                      style={{...inputStyle, flex:1, padding:'10px 14px', cursor:'pointer', appearance:'none'}}>
+                      style={{...inputStyle, flex:1, cursor:'pointer', appearance:'none'}}>
                       {[CY-1,CY,CY+1].map(y => <option key={y} value={y}>{y}</option>)}
                     </select>
                   </div>
                 </div>
 
-                {/* Ornamental rule */}
-                <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:28}}>
-                  <div style={{flex:1, height:1, background:T.border}} />
-                  <div style={{width:4, height:4, borderRadius:'50%', background:T.accent, opacity:0.5}} />
-                  <div style={{flex:1, height:1, background:T.border}} />
-                </div>
-
                 {/* Semester timeline */}
-                <div style={{marginBottom:24}}>
-                  <div style={{fontFamily:T.mono, fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', color:T.ink3, marginBottom:14}}>Your semester at a glance</div>
-                  <div style={{display:'flex', gap:3, marginBottom:10}}>
-                    {Array.from({length:5}, (_,i) => {
+                <div style={{padding:'20px', border:`1px solid ${T.border}`, background:T.surface, borderRadius:10}}>
+                  <div style={{fontFamily:T.mono, fontSize:9, letterSpacing:'0.18em', textTransform:'uppercase', color:T.ink3, marginBottom:14}}>Semester at a glance</div>
+                  <div style={{display:'flex', gap:4, marginBottom:12}}>
+                    {Array.from({length:6}, (_,i) => {
                       const m = (startM + i) % 12;
                       return (
-                        <div key={i} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4}}>
-                          <div style={{width:'100%', height:28, borderRadius:5, background: i===0 ? `linear-gradient(135deg, ${T.accent}18, ${T.accent}30)` : T.bg, border:`1px solid ${i===0 ? T.accent+'40' : T.border}`, display:'flex', alignItems:'center', justifyContent:'center'}}>
-                            {i===0 && <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}} />}
+                        <div key={i} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:5}}>
+                          <div style={{width:'100%', height:32, borderRadius:6, background: i===0 ? `linear-gradient(135deg, ${T.accent}20, ${T.accent}38)` : T.bg, border:`1px solid ${i===0 ? T.accent+'50' : T.border}`, display:'flex', alignItems:'center', justifyContent:'center'}}>
+                            {i===0 && <div style={{width:7, height:7, borderRadius:'50%', background:T.accent}} />}
+                            {i===5 && <div style={{width:7, height:7, borderRadius:2, background:T.ink3+'60'}} />}
                           </div>
-                          <span style={{fontFamily:T.mono, fontSize:10, color: i===0 ? T.accent : T.ink3, letterSpacing:'0.08em', textTransform:'uppercase'}}>{MONTHS[m].slice(0,3)}</span>
+                          <span style={{fontFamily:T.mono, fontSize:8, color: i===0 ? T.accent : T.ink3, letterSpacing:'0.06em', textTransform:'uppercase'}}>{MONTHS[m].slice(0,3)}</span>
                         </div>
                       );
                     })}
                   </div>
-                  <div style={{fontFamily:T.ui, fontSize:10.5, color:T.ink3, textAlign:'center'}}>
-                    {school.trim() ? school.trim() : 'Your school'}'s year begins {MONTHS[startM]} {startY}
+                  <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink3, textAlign:'center'}}>
+                    {school.trim() || 'Your school'}'s year begins <strong style={{color:T.ink, fontWeight:500}}>{MONTHS[startM]} {startY}</strong>
                   </div>
                 </div>
 
-                {/* Why this matters */}
-                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
+                {/* Feature grid */}
+                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginTop:16}}>
                   {[
-                    {ic:'◷', title:'Smart deadlines', desc:'We\'ll track assignment dates relative to your semester calendar'},
-                    {ic:'◈', title:'Term-aware GPA', desc:'Grades reset each term so your GPA stays accurate and current'},
-                    {ic:'▤', title:'Week numbering', desc:'See "Week 3 of 16" so you always know where you stand'},
-                    {ic:'☆', title:'Break detection', desc:'We\'ll account for holidays and breaks in your planning'},
+                    {title:'Smart deadlines', desc:'Assignment dates track your semester calendar'},
+                    {title:'Week numbering', desc:'"Week 3 of 16" so you always know where you stand'},
+                    {title:'Term-aware GPA', desc:'Grades reset each term for accurate tracking'},
+                    {title:'Break detection', desc:'Holidays and breaks accounted for automatically'},
                   ].map(item => (
-                    <div key={item.title} style={{padding:'14px 16px', border:`1px solid ${T.border}`, background:T.bg, borderRadius:8, display:'flex', gap:10, alignItems:'flex-start'}}>
-                      <span style={{fontSize:14, lineHeight:1, flexShrink:0, opacity:0.5}}>{item.ic}</span>
-                      <div>
-                        <div style={{fontFamily:T.ui, fontSize:11, fontWeight:500, color:T.ink, marginBottom:3}}>{item.title}</div>
-                        <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, lineHeight:1.5, letterSpacing:'0.02em'}}>{item.desc}</div>
-                      </div>
+                    <div key={item.title} style={{padding:'12px 14px', border:`1px solid ${T.border}`, background:T.surface, borderRadius:8}}>
+                      <div style={{fontFamily:T.ui, fontSize:11, fontWeight:600, color:T.ink, marginBottom:3}}>{item.title}</div>
+                      <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, lineHeight:1.5, letterSpacing:'0.02em'}}>{item.desc}</div>
                     </div>
                   ))}
-                </div>
-
-                {/* Pull quote */}
-                <div style={{marginTop:24, padding:'16px 0', borderTop:`1px solid ${T.border}`}}>
-                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink3, lineHeight:1.6, textAlign:'center', letterSpacing:'-0.01em'}}>
-                    "Your semester, organized in one place."
-                  </div>
                 </div>
               </>
             )}
@@ -5888,78 +5888,84 @@ function SetupFlow({ onComplete, onBack, initialData }) {
             {/* Step 3 */}
             {step===3 && (
               <>
-                <h2 style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:42, lineHeight:1.1, margin:'0 0 10px', color:T.ink}}>
+                <div style={{fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.2em', textTransform:'uppercase', color:T.accent, marginBottom:16}}>Step 3 of 3</div>
+                <h2 style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:52, lineHeight:1.05, margin:'0 0 10px', color:T.ink, letterSpacing:'-0.01em'}}>
                   What classes are you <em style={{color:T.accent}}>taking?</em>
                 </h2>
-                <p style={{fontFamily:T.ui, fontSize:13, color:T.ink3, margin:'0 0 22px', lineHeight:1.6}}>Add up to 10. You can always change these later.</p>
+                <p style={{fontFamily:T.ui, fontSize:13.5, color:T.ink3, margin:'0 0 28px', lineHeight:1.6}}>Add up to 10. You can always change these later.</p>
 
-                <div style={{display:'flex', flexDirection:'column', gap:8, maxHeight:240, overflowY:'auto', paddingRight:4, marginBottom:16}}>
+                <div style={{display:'flex', flexDirection:'column', gap:8, maxHeight:280, overflowY:'auto', paddingRight:4, marginBottom:14}}>
                   {subjects.map((s,i) => (
                     <div key={s.tid} style={{display:'flex', alignItems:'center', gap:8}}>
                       <div style={{position:'relative', flexShrink:0}}>
                         <div onClick={() => setPicker(picker===s.tid ? null : s.tid)}
-                          style={{width:28, height:28, borderRadius:5, background:s.color, cursor:'pointer', border:`2px solid rgba(0,0,0,0.12)`}} />
+                          style={{width:32, height:32, borderRadius:7, background:s.color, cursor:'pointer', border:`2px solid rgba(0,0,0,0.1)`, flexShrink:0}} />
                         {picker===s.tid && (
-                          <div style={{position:'absolute', top:34, left:0, zIndex:10, background:T.surface, border:`1px solid ${T.border}`, borderRadius:8, padding:8, display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:5, boxShadow:'0 8px 24px rgba(24,21,14,0.14)'}}>
+                          <div style={{position:'absolute', top:38, left:0, zIndex:10, background:T.surface, border:`1px solid ${T.border}`, borderRadius:10, padding:10, display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6, boxShadow:'0 12px 32px rgba(24,21,14,0.16)'}}>
                             {PRESET_COLORS.map(c => (
                               <div key={c} onClick={() => { updateSubj(s.tid,{color:c}); setPicker(null); }}
-                                style={{width:22, height:22, borderRadius:4, background:c, cursor:'pointer', outline: s.color===c ? `2px solid ${T.accent}` : 'none', outlineOffset:1}} />
+                                style={{width:24, height:24, borderRadius:5, background:c, cursor:'pointer', outline: s.color===c ? `2px solid ${T.accent}` : 'none', outlineOffset:1}} />
                             ))}
                           </div>
                         )}
                       </div>
                       <input className="shq-ob-input" value={s.name} onChange={e => updateSubj(s.tid,{name:e.target.value})}
-                        placeholder={`Class ${i+1} (e.g. AP Biology)`}
+                        placeholder={`Class ${i+1} — e.g. AP Biology`}
                         style={{...inputStyle, flex:1}}
                         onFocus={e => e.target.style.borderColor=T.accent}
                         onBlur={e => e.target.style.borderColor=T.border} />
                       {subjects.length > 1 && (
                         <button onClick={() => removeSubj(s.tid)}
-                          style={{border:0, background:'transparent', color:T.ink3, cursor:'pointer', fontSize:18, padding:'0 4px', flexShrink:0}}>×</button>
+                          style={{border:0, background:'transparent', color:T.ink3, cursor:'pointer', fontSize:20, padding:'0 4px', flexShrink:0, lineHeight:1}}>×</button>
                       )}
                     </div>
                   ))}
                 </div>
                 {subjects.length < 10 && (
-                  <button onClick={addSubj} style={{padding:'7px 14px', borderRadius:6, fontSize:12.5, border:`1px solid ${T.border}`, background:'transparent', color:T.ink3, fontFamily:T.ui, cursor:'pointer', alignSelf:'flex-start'}}>
+                  <button className="shq-add-class-btn" onClick={addSubj} style={{padding:'9px 16px', borderRadius:7, fontSize:12.5, border:`1px solid ${T.border}`, background:T.surface, color:T.ink3, fontFamily:T.ui, cursor:'pointer', alignSelf:'flex-start', transition:'all 0.12s'}}>
                     + Add another class
                   </button>
                 )}
 
-                {/* Ornamental rule */}
-                <div style={{display:'flex', alignItems:'center', gap:12, marginTop:24, marginBottom:20}}>
-                  <div style={{flex:1, height:1, background:T.border}} />
-                  <div style={{width:4, height:4, borderRadius:'50%', background:T.accent, opacity:0.5}} />
-                  <div style={{flex:1, height:1, background:T.border}} />
-                </div>
-
-                {/* Pull quote */}
-                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink3, lineHeight:1.6, textAlign:'center', letterSpacing:'-0.01em'}}>
-                  "Almost there — one step away from your dashboard."
-                </div>
+                {validSubjects.length > 0 && (
+                  <div style={{marginTop:24, padding:'16px 18px', background:T.accentSoft, border:`1px solid ${T.accent}30`, borderRadius:10}}>
+                    <div style={{fontFamily:T.mono, fontSize:9, letterSpacing:'0.16em', textTransform:'uppercase', color:T.accent, marginBottom:8}}>Your lineup</div>
+                    <div style={{display:'flex', flexWrap:'wrap', gap:6}}>
+                      {validSubjects.map((s,i) => (
+                        <div key={i} style={{display:'flex', alignItems:'center', gap:5, padding:'4px 10px', borderRadius:20, background:T.surface, border:`1px solid ${T.border}`}}>
+                          <div style={{width:6, height:6, borderRadius:'50%', background:s.color, flexShrink:0}} />
+                          <span style={{fontFamily:T.ui, fontSize:11, color:T.ink2}}>{s.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>
         </div>
 
         {/* Right — preview & checklist */}
-        <div style={{width:420, flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-start', overflowY:'auto', borderLeft:`1px solid ${T.border}`, padding:'56px 36px 32px', gap:20, position:'relative', background:`linear-gradient(180deg, ${T.surface} 0%, ${T.bg} 100%)`}}>
+        <div style={{width:380, flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', overflowY:'auto', borderLeft:`1px solid ${T.border}`, padding:'48px 36px', gap:24, position:'relative', background:T.surface}}>
+          {/* Decorative label */}
+          <div style={{position:'absolute', top:24, left:36, fontFamily:T.mono, fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:T.ink3}}>Live preview</div>
           <DashboardPreview />
+          <div style={{width:'100%', height:1, background:T.border}} />
           <UnlockChecklist />
         </div>
       </div>
 
       {/* Footer */}
-      <div style={{display:'flex', alignItems:'center', padding:'18px 48px', flexShrink:0, borderTop:`1px solid ${T.border}`, position:'relative'}}>
-        <button onClick={goBack} style={{background:'none', border:'none', padding:0, cursor:'pointer', fontSize:13.5, color:T.ink3, fontFamily:T.ui}}>← Back</button>
-        <span style={{position:'absolute', left:'50%', transform:'translateX(-50%)', fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.22em', color:T.ink3, textTransform:'uppercase'}}>ANNO MMXXVI</span>
-        <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:28}}>
-          <span style={{fontFamily:T.mono, fontSize:10, letterSpacing:'0.16em', color:T.ink3, textTransform:'uppercase'}}>Printed for one reader</span>
-          <button onClick={goNext} disabled={!canProceed} style={{
-            height:42, padding:'0 26px', borderRadius:6, border:'none', cursor: canProceed ? 'pointer' : 'default',
+      <div style={{display:'flex', alignItems:'center', padding:'16px 52px', flexShrink:0, borderTop:`1px solid ${T.border}`, background:T.surface, position:'relative'}}>
+        <button onClick={goBack} style={{background:'none', border:'none', padding:0, cursor:'pointer', fontSize:13, color:T.ink3, fontFamily:T.ui, letterSpacing:'0.01em'}}>← Back</button>
+        <span style={{position:'absolute', left:'50%', transform:'translateX(-50%)', fontFamily:T.mono, fontSize:9, letterSpacing:'0.22em', color:T.ink3+'80', textTransform:'uppercase', userSelect:'none'}}>ANNO MMXXVI</span>
+        <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:24}}>
+          <span style={{fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.16em', color:T.ink3, textTransform:'uppercase'}}>Printed for one reader</span>
+          <button className="shq-next-btn" onClick={goNext} disabled={!canProceed} style={{
+            height:44, padding:'0 28px', borderRadius:8, border:'none', cursor: canProceed ? 'pointer' : 'default',
             background: canProceed ? T.accent : T.bl,
-            color: canProceed ? T.surface : T.ink3,
-            fontFamily:T.ui, fontSize:13.5, fontWeight:500, transition:'all 0.15s',
+            color: canProceed ? '#fff' : T.ink3,
+            fontFamily:T.ui, fontSize:13.5, fontWeight:500, transition:'all 0.15s', letterSpacing:'0.01em',
           }}>{nextLabel}</button>
         </div>
       </div>
