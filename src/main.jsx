@@ -4439,8 +4439,9 @@ function ToolsScreen({ userData, onUpdate }) {
   useEffect(() => {
     const onKey = (e) => {
       if (!e.altKey) return;
-      const n = Number(e.key);
-      if (n < 1 || n > 4) return;
+      const codeMap = {'Digit1':1,'Digit2':2,'Digit3':3,'Digit4':4};
+      const n = codeMap[e.code];
+      if (!n) return;
       e.preventDefault();
       const ql = QUICK_LAUNCH[n - 1];
       if (!ql?.tool?.id) return;
@@ -4547,7 +4548,7 @@ function ToolsScreen({ userData, onUpdate }) {
             <div className="shq-tools-mid-body">
             {trackedTools.length === 0
               ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3, lineHeight:1.5}}>No usage data yet.</div>
-              : trackedTools.slice(0, 3).map((tool, i, arr) => (
+              : trackedTools.map((tool, i, arr) => (
               <div key={tool.id} style={{padding:'7px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
                 <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4}}>
                   <div style={{display:'flex', alignItems:'center', gap:6, minWidth:0}}>
