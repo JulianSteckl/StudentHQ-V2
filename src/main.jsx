@@ -1699,58 +1699,220 @@ function QuizzesScreen({ profile, userData, onUpdate }) {
   const quizzes   = userData?.quizzes || [];
   const [showAdd, setShowAdd] = useState(false);
 
-  const addQuiz = (item) => {
-    onUpdate && onUpdate({ quizzes: [...quizzes, item] });
+  const addQuiz = (item) => onUpdate && onUpdate({ quizzes: [...quizzes, item] });
+  const deleteQuiz = (idx) => {
+    if (!window.confirm('Remove this quiz?')) return;
+    onUpdate && onUpdate({ quizzes: quizzes.filter((_,i) => i !== idx) });
   };
 
   const cc = (c) => c >= 0.75 ? '#3a8a52' : c >= 0.55 ? '#b07020' : '#bf4a30';
-  const cl = (c) => c >= 0.75 ? 'strong' : c >= 0.55 ? 'fair' : 'weak';
+  const cl = (c) => c >= 0.75 ? 'Strong' : c >= 0.55 ? 'Fair' : 'Needs work';
+
+  const DOW_ORDER = { Mon:1, Tue:2, Wed:3, Thu:4, Fri:5 };
+  const todayDow = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
+  const daysUntil = (d) => {
+    const t = DOW_ORDER[todayDow] || 0;
+    const target = DOW_ORDER[d];
+    if (!target) return 99;
+    const diff = target - t;
+    return diff > 0 ? diff : diff + 7;
+  };
+
+  const sorted = [...quizzes].sort((a,b) => daysUntil(a.date) - daysUntil(b.date));
+  const next = sorted[0] || null;
+  const nextSubj = next ? subjectBy(next.subj) : null;
+  const avgConf = quizzes.length ? quizzes.reduce((s,q)=>s+q.confidence,0)/quizzes.length : 0;
+  const needsWork = quizzes.filter(q=>q.confidence < 0.55);
+  const strong = quizzes.filter(q=>q.confidence >= 0.75);
+
+  // Subject readiness — average confidence per subject across quizzes
+  const subjReadiness = subjects.map(s => {
+    const qs = quizzes.filter(q=>q.subj===s.id);
+    return { subj:s, count:qs.length, avg: qs.length ? qs.reduce((acc,q)=>acc+q.confidence,0)/qs.length : null };
+  }).filter(x=>x.count>0);
+
   return (
-    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
+    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto', overflowX:'hidden'}}>
       <AddQuizModal open={showAdd} onClose={() => setShowAdd(false)} onSave={addQuiz} subjects={subjects} />
-      <PageHeader eyebrow={`${quizzes.length} upcoming`} title="Quizzes" right={
-        <button type="button" onClick={() => setShowAdd(true)} style={{padding:'8px 18px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>+ Add quiz</button>
-      } />
-      <Hr />
-      {quizzes.length === 0 && (
-        <div style={{background:T.surface, borderRadius:12, padding:'40px 32px', textAlign:'center', marginBottom:16}}>
-          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, marginBottom:8}}>No quizzes scheduled yet.</div>
-          <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink3, lineHeight:1.6, marginBottom:18}}>Add quiz dates to track readiness and topics to review.</div>
-          <button type="button" onClick={() => setShowAdd(true)} style={{padding:'9px 22px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>+ Add your first quiz</button>
+
+      {/* Header */}
+      <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:18}}>
+        <div>
+          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:7}}>Upcoming</div>
+          <h1 style={{margin:'0 0 5px', lineHeight:1.1}}>
+            <span style={{fontFamily:T.ui, fontWeight:700, fontSize:28, color:T.ink}}>Quiz </span>
+            <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:30, color:T.ink}}>tracker.</span>
+          </h1>
+          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>
+            {quizzes.length === 0 ? 'No quizzes scheduled yet.' : `${quizzes.length} quiz${quizzes.length!==1?'zes':''} · avg readiness ${Math.round(avgConf*100)}%`}
+          </div>
         </div>
-      )}
-      <div style={{display:'flex', flexDirection:'column', gap:12}}>
-        {quizzes.map(q => {
-          const s = subjectBy(q.subj);
-          const pct = Math.round(q.confidence * 100);
-          return (
-            <div key={q.title} style={{background:T.surface, padding:'26px 32px', display:'grid', gridTemplateColumns:'1fr auto', gap:20, alignItems:'start', borderRadius:12}}>
-              <div>
-                <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:11}}>
-                  <div style={{width:7, height:7, borderRadius:2, background:s.color}} />
-                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase'}}>{s.name}</div>
-                </div>
-                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink, lineHeight:1.25, marginBottom:14}}>{q.title}</div>
-                <div style={{display:'flex', flexWrap:'wrap', gap:7}}>
-                  {(q.topics || []).map(t => (
-                    <span key={t} style={{fontFamily:T.mono, fontSize:10, color:T.ink2, background:T.bl, padding:'3px 9px', letterSpacing:'0.02em'}}>{t}</span>
-                  ))}
-                </div>
-              </div>
-              <div style={{textAlign:'right', flexShrink:0, minWidth:96}}>
-                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:32, color:T.accent, lineHeight:1, letterSpacing:'-0.02em', marginBottom:10}}>{q.date}</div>
-                <div style={{display:'flex', alignItems:'center', gap:7, justifyContent:'flex-end', marginBottom:4}}>
-                  <div style={{width:64, height:2.5, background:T.border, borderRadius:2, overflow:'hidden'}}>
-                    <div style={{width:`${pct}%`, height:'100%', background:cc(q.confidence), borderRadius:2}} />
+        <button onClick={() => setShowAdd(true)} style={{padding:'9px 20px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>+ Add quiz</button>
+      </div>
+
+      {/* Stat row */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:12}}>
+        {[
+          { label:'Scheduled',   val:quizzes.length,         color:T.accent,  sub:'quizzes total' },
+          { label:'Next up',     val:next ? next.date : '—', color:nextSubj?.color||T.ink3, sub:next ? next.title.slice(0,20)+(next.title.length>20?'…':'') : 'nothing upcoming' },
+          { label:'Needs work',  val:needsWork.length,       color:'#bf4a30', sub:`${needsWork.length===0?'all looking good':'below 55% confidence'}` },
+          { label:'Ready',       val:strong.length,          color:'#3a8a52', sub:'above 75% confidence' },
+        ].map(c => (
+          <div key={c.label} style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'16px 18px', borderBottom:`2px solid ${c.color}30`}}>
+            <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:8}}>{c.label}</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:30, color:T.ink, lineHeight:1, marginBottom:5}}>{c.val}</div>
+            <div style={{fontFamily:T.mono, fontSize:9, color:c.color}}>{c.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Main: quiz list + sidebar */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr 280px', gap:12, marginBottom:12}}>
+
+        {/* Quiz list */}
+        <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'18px 20px'}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
+            <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em'}}>All Quizzes</div>
+            <button onClick={() => setShowAdd(true)} style={{fontFamily:T.mono, fontSize:9, color:T.accent, background:'none', border:`1px solid ${T.border}`, padding:'3px 10px', borderRadius:6, cursor:'pointer'}}>+ Add</button>
+          </div>
+
+          {quizzes.length === 0 ? (
+            <div style={{textAlign:'center', padding:'50px 0'}}>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink3, marginBottom:8}}>No quizzes yet.</div>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginBottom:18}}>Add a quiz to start tracking your readiness.</div>
+              <button onClick={() => setShowAdd(true)} style={{padding:'8px 18px', border:`1px solid ${T.accent}`, background:'none', color:T.accent, fontFamily:T.mono, fontSize:10, cursor:'pointer', borderRadius:7}}>+ Add first quiz</button>
+            </div>
+          ) : (
+            <div style={{display:'flex', flexDirection:'column', gap:10}}>
+              {sorted.map((q, idx) => {
+                const s = subjectBy(q.subj);
+                const pct = Math.round(q.confidence * 100);
+                const due = daysUntil(q.date);
+                const isNext = idx === 0;
+                return (
+                  <div key={idx} style={{display:'grid', gridTemplateColumns:'1fr auto', gap:16, alignItems:'center', padding:'14px 16px', borderRadius:10, background: isNext ? T.accentSoft : T.bg, border:`1px solid ${isNext ? T.accent+'30' : T.border}`}}>
+                    <div>
+                      <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
+                        <div style={{width:6, height:6, borderRadius:1.5, background:s.color, flexShrink:0}}/>
+                        <span style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em'}}>{s.name}</span>
+                        {isNext && <span style={{fontFamily:T.mono, fontSize:9, color:T.accent, background:`${T.accent}15`, padding:'1px 7px', borderRadius:10}}>Next up</span>}
+                      </div>
+                      <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:T.ink, marginBottom:8, lineHeight:1.25}}>{q.title}</div>
+                      <div style={{display:'flex', flexWrap:'wrap', gap:5}}>
+                        {(q.topics||[]).map(t => (
+                          <span key={t} style={{fontFamily:T.mono, fontSize:9, color:T.ink2, background:T.bl, padding:'2px 8px', borderRadius:4}}>{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{textAlign:'right', flexShrink:0}}>
+                      <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.accent, marginBottom:5}}>{q.date}</div>
+                      <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, marginBottom:8}}>{due === 0 ? 'today' : due === 1 ? 'tomorrow' : `in ${due} days`}</div>
+                      {/* Confidence bar */}
+                      <div style={{display:'flex', alignItems:'center', gap:6, justifyContent:'flex-end', marginBottom:3}}>
+                        <div style={{width:70, height:4, background:T.bl, borderRadius:2, overflow:'hidden'}}>
+                          <div style={{width:`${pct}%`, height:'100%', background:cc(q.confidence), borderRadius:2}}/>
+                        </div>
+                        <span style={{fontFamily:T.mono, fontSize:9.5, color:cc(q.confidence), fontWeight:600}}>{pct}%</span>
+                      </div>
+                      <div style={{fontFamily:T.mono, fontSize:9, color:cc(q.confidence), textTransform:'uppercase', letterSpacing:'0.09em', marginBottom:8}}>{cl(q.confidence)}</div>
+                      <button onClick={() => deleteQuiz(quizzes.indexOf(q))} style={{fontFamily:T.mono, fontSize:9, color:T.ink3, background:'none', border:'none', cursor:'pointer', padding:0, opacity:0.5}}
+                        onMouseOver={e=>e.currentTarget.style.opacity='1'} onMouseOut={e=>e.currentTarget.style.opacity='0.5'}>Remove</button>
+                    </div>
                   </div>
-                  <span style={{fontFamily:T.mono, fontSize:10, color:cc(q.confidence)}}>{pct}%</span>
-                </div>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em'}}>{cl(q.confidence)}</div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar */}
+        <div style={{display:'flex', flexDirection:'column', gap:10}}>
+
+          {/* Next quiz spotlight */}
+          {next ? (
+            <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'18px 20px'}}>
+              <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:12}}>Next Quiz</div>
+              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:8}}>
+                <div style={{width:8, height:8, borderRadius:2, background:nextSubj?.color||T.ink3}}/>
+                <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase'}}>{nextSubj?.name}</div>
+              </div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink, marginBottom:6, lineHeight:1.3}}>{next.title}</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:30, color:T.accent, lineHeight:1, marginBottom:6}}>{next.date}</div>
+              <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, marginBottom:12}}>
+                {daysUntil(next.date) === 0 ? 'Today — good luck!' : daysUntil(next.date) === 1 ? 'Tomorrow' : `${daysUntil(next.date)} days away`}
+              </div>
+              <div style={{height:5, background:T.bl, borderRadius:3, overflow:'hidden'}}>
+                <div style={{height:'100%', width:`${Math.round(next.confidence*100)}%`, background:cc(next.confidence), borderRadius:3, transition:'width 0.5s ease'}}/>
+              </div>
+              <div style={{fontFamily:T.mono, fontSize:9, color:cc(next.confidence), marginTop:5}}>{Math.round(next.confidence*100)}% ready · {cl(next.confidence)}</div>
+            </div>
+          ) : (
+            <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'18px 20px', textAlign:'center'}}>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink3, marginBottom:8}}>No upcoming quizzes.</div>
+              <button onClick={() => setShowAdd(true)} style={{fontFamily:T.mono, fontSize:9.5, color:T.accent, background:'none', border:`1px solid ${T.accent}40`, padding:'5px 12px', borderRadius:6, cursor:'pointer'}}>+ Schedule one</button>
+            </div>
+          )}
+
+          {/* Avg readiness ring */}
+          <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'16px 20px', display:'flex', alignItems:'center', gap:16}}>
+            <div style={{position:'relative', width:56, height:56, flexShrink:0}}>
+              <svg width={56} height={56} viewBox="-28 -28 56 56" style={{transform:'rotate(-90deg)'}}>
+                <circle r={22} fill="none" stroke={T.bl} strokeWidth={5}/>
+                <circle r={22} fill="none" stroke={cc(avgConf)} strokeWidth={5}
+                  strokeDasharray={`${(avgConf)*2*Math.PI*22} ${2*Math.PI*22}`}
+                  strokeLinecap="round" style={{transition:'stroke-dasharray 0.6s ease'}}/>
+              </svg>
+              <div style={{position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center'}}>
+                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink}}>{Math.round(avgConf*100)}%</div>
               </div>
             </div>
-          );
-        })}
+            <div>
+              <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:4}}>Avg Readiness</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink}}>{quizzes.length > 0 ? cl(avgConf) : 'No data'}</div>
+              {quizzes.length > 0 && <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, marginTop:2}}>across {quizzes.length} quiz{quizzes.length!==1?'zes':''}</div>}
+            </div>
+          </div>
+
+          {/* Subject readiness */}
+          {subjReadiness.length > 0 && (
+            <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'16px 20px', flex:1}}>
+              <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:12}}>By Subject</div>
+              {subjReadiness.map(({subj:s, count, avg}) => (
+                <div key={s.id} style={{marginBottom:12}}>
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:5}}>
+                    <div style={{display:'flex', alignItems:'center', gap:6}}>
+                      <div style={{width:6, height:6, borderRadius:1, background:s.color}}/>
+                      <div style={{fontFamily:T.ui, fontSize:12, color:T.ink2}}>{s.name}</div>
+                    </div>
+                    <span style={{fontFamily:T.mono, fontSize:9.5, color:cc(avg)}}>{Math.round(avg*100)}%</span>
+                  </div>
+                  <div style={{height:4, background:T.bl, borderRadius:2, overflow:'hidden'}}>
+                    <div style={{height:'100%', width:`${avg*100}%`, background:cc(avg), borderRadius:2, opacity:0.8}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Bottom: topics bank */}
+      {quizzes.some(q=>(q.topics||[]).length>0) && (
+        <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'18px 20px', marginBottom:16}}>
+          <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:14}}>Topics to Review</div>
+          <div style={{display:'flex', flexWrap:'wrap', gap:7}}>
+            {[...new Set(quizzes.flatMap(q=>q.topics||[]))].map(t => {
+              const qs = quizzes.filter(q=>(q.topics||[]).includes(t));
+              const avgT = qs.reduce((a,q)=>a+q.confidence,0)/qs.length;
+              return (
+                <span key={t} style={{fontFamily:T.mono, fontSize:10, color:cc(avgT), background:`${cc(avgT)}10`, border:`1px solid ${cc(avgT)}30`, padding:'4px 10px', borderRadius:20}}>
+                  {t}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
