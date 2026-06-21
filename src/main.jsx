@@ -4017,7 +4017,7 @@ function SubjectsScreen({ profile, userData, onNav, onRequestSidebar }) {
           </div>
 
           {/* Subject cards */}
-          <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:14}}>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12}}>
             {subjects.map(s => {
               const hw        = homework.filter(h => h.subj === s.id && !h.done);
               const allHw     = homework.filter(h => h.subj === s.id);
@@ -4027,11 +4027,10 @@ function SubjectsScreen({ profile, userData, onNav, onRequestSidebar }) {
               const myGrade   = grades[s.id] || null;
               const hasGrade  = !!myGrade;
               const gpaVal    = hasGrade ? (GPA_MAP[myGrade] ?? 0) : null;
-              const sparkPts  = gradeSparklinePoints(gradeHistory, s.id, 160, 32);
+              const sparkPts  = gradeSparklinePoints(gradeHistory, s.id, 120, 28);
               const gradeColor = gpaVal != null
                 ? (gpaVal >= 3.7 ? '#3a8a52' : gpaVal >= 3.0 ? T.accent : gpaVal >= 2.0 ? '#b07020' : '#bf4a30')
                 : T.ink3;
-              const hwPct = allHw.length > 0 ? (doneHw / allHw.length) * 100 : 0;
 
               return (
                 <div
@@ -4040,70 +4039,60 @@ function SubjectsScreen({ profile, userData, onNav, onRequestSidebar }) {
                   tabIndex={0}
                   onClick={() => onNav?.('subject', s.id)}
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNav?.('subject', s.id); }}}
-                  style={{background:T.surface, borderRadius:14, overflow:'hidden', cursor:'pointer', transition:'box-shadow 0.15s, transform 0.15s'}}
-                  onMouseOver={e => { e.currentTarget.style.boxShadow='0 8px 32px -12px rgba(24,21,14,0.16)'; e.currentTarget.style.transform='translateY(-2px)'; }}
+                  style={{
+                    background:T.surface, borderRadius:12, overflow:'hidden',
+                    cursor:'pointer', transition:'box-shadow 0.15s, transform 0.15s',
+                    borderTop:`3px solid ${s.color}`,
+                  }}
+                  onMouseOver={e => { e.currentTarget.style.boxShadow='0 6px 24px -8px rgba(24,21,14,0.14)'; e.currentTarget.style.transform='translateY(-2px)'; }}
                   onMouseOut={e => { e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='none'; }}
                 >
-                  {/* Color header band */}
-                  <div style={{height:5, background:s.color, width:'100%'}} />
+                  <div style={{padding:'14px 16px 14px'}}>
+                    {/* Subject name + grade */}
+                    <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8, marginBottom:10}}>
+                      <div style={{minWidth:0}}>
+                        <div style={{fontFamily:T.mono, fontSize:9, color:s.color, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:4}}>{s.short}</div>
+                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink, lineHeight:1.25, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.name}</div>
+                      </div>
+                      <div style={{textAlign:'right', flexShrink:0}}>
+                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:hasGrade ? 24 : 18, color:gradeColor, lineHeight:1}}>{hasGrade ? myGrade : '—'}</div>
+                        {gpaVal != null && <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, marginTop:2}}>{gpaVal.toFixed(1)} GPA</div>}
+                      </div>
+                    </div>
 
-                  <div style={{padding:'18px 20px 16px'}}>
-                    {/* Top: abbrev badge + grade */}
-                    <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:14}}>
-                      <div>
-                        <div style={{display:'inline-block', background:`${s.color}18`, border:`1px solid ${s.color}40`, borderRadius:5, padding:'2px 7px', marginBottom:7}}>
-                          <span style={{fontFamily:T.mono, fontSize:9, color:s.color, textTransform:'uppercase', letterSpacing:'0.1em'}}>{s.short}</span>
+                    {/* GPA bar */}
+                    <div style={{height:3, background:T.bl, borderRadius:2, overflow:'hidden', marginBottom: sparkPts ? 10 : 14}}>
+                      <div style={{height:'100%', width: hasGrade ? `${Math.min((gpaVal/4)*100,100)}%` : '0%', background:s.color, borderRadius:2, transition:'width 0.4s'}}/>
+                    </div>
+
+                    {/* Sparkline — only if history exists */}
+                    {sparkPts && (
+                      <div style={{marginBottom:12}}>
+                        <svg width="100%" height={28} viewBox="0 0 120 28" preserveAspectRatio="none" style={{display:'block'}}>
+                          <polyline points={sparkPts} fill="none" stroke={s.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.75}/>
+                        </svg>
+                      </div>
+                    )}
+
+                    {/* Stats — compact pills */}
+                    <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
+                      <div style={{
+                        display:'flex', alignItems:'center', gap:4, padding:'3px 7px',
+                        background: hw.length > 0 ? '#b0702014' : T.bl,
+                        borderRadius:5, flex:1, minWidth:0,
+                      }}>
+                        <div style={{width:5, height:5, borderRadius:'50%', background: hw.length > 0 ? '#b07020' : T.ink3, flexShrink:0}}/>
+                        <div style={{fontFamily:T.mono, fontSize:9, color: hw.length > 0 ? '#b07020' : T.ink3, whiteSpace:'nowrap'}}>
+                          {hw.length > 0 ? `${hw.length} due` : allHw.length > 0 ? `${doneHw}/${allHw.length} HW` : '0 HW'}
                         </div>
-                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink, lineHeight:1.2}}>{s.name}</div>
                       </div>
-                      <div style={{textAlign:'right', flexShrink:0, marginLeft:8}}>
-                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:hasGrade ? 30 : 22, color:gradeColor, lineHeight:0.95}}>{hasGrade ? myGrade : '—'}</div>
-                        {gpaVal != null && <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, marginTop:4}}>{gpaVal.toFixed(1)} pts</div>}
+                      <div style={{display:'flex', alignItems:'center', gap:4, padding:'3px 7px', background:T.bl, borderRadius:5}}>
+                        <div style={{width:5, height:5, borderRadius:'50%', background: qz.length > 0 ? '#4285f4' : T.ink3, flexShrink:0}}/>
+                        <div style={{fontFamily:T.mono, fontSize:9, color: qz.length > 0 ? '#4285f4' : T.ink3}}>{qz.length} QZ</div>
                       </div>
-                    </div>
-
-                    {/* GPA progress bar */}
-                    <div style={{marginBottom:12}}>
-                      <div style={{height:4, background:T.bl, borderRadius:3, overflow:'hidden'}}>
-                        <div style={{height:'100%', width: hasGrade ? `${Math.min((gpaVal/4)*100,100)}%` : '0%', background:s.color, borderRadius:3, transition:'width 0.4s'}}/>
-                      </div>
-                    </div>
-
-                    {/* Sparkline */}
-                    <div style={{marginBottom:14, height:32}}>
-                      {sparkPts
-                        ? <svg width="100%" height={32} viewBox="0 0 160 32" preserveAspectRatio="none" style={{display:'block'}}>
-                            <polyline points={sparkPts} fill="none" stroke={s.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.8}/>
-                          </svg>
-                        : <div style={{display:'flex', alignItems:'center', height:'100%'}}>
-                            <div style={{width:'100%', height:1, background:T.bl}}/>
-                          </div>
-                      }
-                    </div>
-
-                    {/* Stats footer */}
-                    <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', borderTop:`1px solid ${T.bl}`, paddingTop:12, gap:0}}>
-                      {/* HW */}
-                      <div style={{textAlign:'center', padding:'0 6px'}}>
-                        <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:5}}>Homework</div>
-                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color: hw.length > 0 ? '#b07020' : T.ink, lineHeight:1, marginBottom:4}}>
-                          {hw.length > 0 ? hw.length : doneHw > 0 ? '✓' : '0'}
-                        </div>
-                        {allHw.length > 0 && (
-                          <div style={{height:2, background:T.bl, borderRadius:2, overflow:'hidden'}}>
-                            <div style={{height:'100%', width:`${hwPct}%`, background: hw.length > 0 ? '#b07020' : '#3a8a52', borderRadius:2}}/>
-                          </div>
-                        )}
-                      </div>
-                      {/* Quizzes */}
-                      <div style={{textAlign:'center', padding:'0 6px', borderLeft:`1px solid ${T.bl}`}}>
-                        <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:5}}>Quizzes</div>
-                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color: qz.length > 0 ? '#4285f4' : T.ink, lineHeight:1}}>{qz.length}</div>
-                      </div>
-                      {/* Notes */}
-                      <div style={{textAlign:'center', padding:'0 6px', borderLeft:`1px solid ${T.bl}`}}>
-                        <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:5}}>Notes</div>
-                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink, lineHeight:1}}>{noteCount}</div>
+                      <div style={{display:'flex', alignItems:'center', gap:4, padding:'3px 7px', background:T.bl, borderRadius:5}}>
+                        <div style={{width:5, height:5, borderRadius:'50%', background:T.ink3, flexShrink:0}}/>
+                        <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3}}>{noteCount} notes</div>
                       </div>
                     </div>
                   </div>
@@ -4115,16 +4104,16 @@ function SubjectsScreen({ profile, userData, onNav, onRequestSidebar }) {
             {subjects.length < 10 && (
               <button type="button" onClick={() => onRequestSidebar?.('addSubject')}
                 style={{
-                  background:'transparent', borderRadius:14, border:`1.5px dashed ${T.border}`,
+                  background:'transparent', borderRadius:12, border:`1.5px dashed ${T.border}`,
                   cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center',
-                  justifyContent:'center', gap:10, minHeight:220,
+                  justifyContent:'center', gap:8, minHeight:160,
                   transition:'border-color 0.15s, background 0.15s',
                 }}
                 onMouseOver={e => { e.currentTarget.style.borderColor=T.accent; e.currentTarget.style.background=`${T.accent}06`; }}
                 onMouseOut={e => { e.currentTarget.style.borderColor=T.border; e.currentTarget.style.background='transparent'; }}
               >
-                <div style={{width:34, height:34, borderRadius:9, border:`1px solid ${T.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:T.mono, fontSize:20, color:T.ink3, lineHeight:1}}>+</div>
-                <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase'}}>Add Subject</div>
+                <div style={{width:28, height:28, borderRadius:7, border:`1px solid ${T.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:T.mono, fontSize:18, color:T.ink3, lineHeight:1}}>+</div>
+                <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase'}}>Add Subject</div>
               </button>
             )}
           </div>
