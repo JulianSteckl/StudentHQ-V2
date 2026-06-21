@@ -2020,10 +2020,63 @@ function NotesScreen({ profile, userData, onUpdate, onNav }) {
 }
 
 /* ── 5. Flashcards ──────────────────────────────────────── */
-function FlashcardEditorModal({ open, onClose, onSave, subjects, initial }) {
+const DECK_COLORS = ['#b8943a','#3a8a52','#2a60a0','#9254de','#bf4a30','#c06030','#1e8a8a','#5a5240'];
+
+function DeckCreateModal({ open, onClose, onSave, subjects }) {
+  const [name, setName] = useState('');
+  const [subjId, setSubjId] = useState('');
+  const [color, setColor] = useState(DECK_COLORS[0]);
+  const [closing, setClosing] = useState(false);
+  const panelRef = useRef(null);
+  const dismiss = useCallback(() => { setClosing(true); setTimeout(onClose, 320); }, [onClose]);
+  useModalA11y(open, dismiss, panelRef);
+  useEffect(() => { if (open) { setName(''); setSubjId(''); setColor(DECK_COLORS[0]); setClosing(false); } }, [open]);
+  if (!open) return null;
+  const submit = () => {
+    if (!name.trim()) return;
+    onSave({ name: name.trim(), subjId, color });
+    dismiss();
+  };
+  return ReactDOM.createPortal(
+    <div onMouseDown={e => { if (e.target === e.currentTarget) dismiss(); }} style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(24,21,14,0.25)', opacity:0, animation:`shq-modal-fade-${closing?'out':'in'} ${closing?'0.28s':'0.35s'} ease forwards`}}>
+      <div ref={panelRef} role="dialog" aria-modal="true" tabIndex={-1} className="shq-modal-box" style={{width:420, maxWidth:'92vw', background:T.surface, border:`1px solid ${T.border}`, borderRadius:16, padding:'32px 28px 24px', position:'relative', outline:'none', boxShadow:'0 24px 80px -16px rgba(24,21,14,0.18)', opacity:0, animation:`shq-modal-slide-${closing?'down':'up'} ${closing?'0.26s':'0.4s'} cubic-bezier(0.16,1,0.3,1) ${closing?'0s':'0.05s'} forwards`}}>
+        <button aria-label="Close" onClick={dismiss} style={{position:'absolute', top:14, right:16, border:'none', background:'none', color:T.ink3, fontSize:18, cursor:'pointer', padding:4, lineHeight:1}}>×</button>
+        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, marginBottom:20}}>New <span style={{color:T.accent}}>deck</span></div>
+        <label style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', display:'block', marginBottom:6}}>Deck Name</label>
+        <input value={name} onChange={e=>setName(e.target.value)} autoFocus placeholder="e.g. Chapter 5 — Newton's Laws"
+          style={{width:'100%', padding:'10px 12px', border:`1px solid ${T.border}`, borderRadius:9, fontFamily:T.ui, fontSize:13, color:T.ink, background:T.bg, outline:'none', boxSizing:'border-box', marginBottom:18}}
+          onFocus={e=>e.target.style.borderColor=T.accent} onBlur={e=>e.target.style.borderColor=T.border} />
+        {subjects.length > 0 && (
+          <>
+            <label style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', display:'block', marginBottom:8}}>Subject <span style={{opacity:0.5}}>(optional)</span></label>
+            <div style={{display:'flex', gap:6, flexWrap:'wrap', marginBottom:18}}>
+              {subjects.map(s => {
+                const sel = subjId === s.id;
+                return <button key={s.id} type="button" onClick={()=>setSubjId(sel ? '' : s.id)} style={{display:'flex', alignItems:'center', gap:5, padding:'4px 10px', border:`1px solid ${sel?s.color:T.border}`, background:sel?s.color+'14':T.bg, borderRadius:20, cursor:'pointer', fontFamily:T.ui, fontSize:11, color:sel?T.ink:T.ink3}}><span style={{width:6,height:6,borderRadius:'50%',background:s.color}}/>{s.short}</button>;
+              })}
+            </div>
+          </>
+        )}
+        <label style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', display:'block', marginBottom:8}}>Color</label>
+        <div style={{display:'flex', gap:8, marginBottom:22}}>
+          {DECK_COLORS.map(c => (
+            <button key={c} type="button" onClick={()=>setColor(c)} style={{width:24, height:24, borderRadius:'50%', background:c, border:`2px solid ${color===c?T.ink:'transparent'}`, cursor:'pointer', padding:0, outline:'none'}}/>
+          ))}
+        </div>
+        <div style={{display:'flex', gap:10, justifyContent:'flex-end'}}>
+          <button onClick={dismiss} style={{padding:'8px 18px', border:`1px solid ${T.border}`, background:'transparent', borderRadius:9, fontFamily:T.mono, fontSize:10, color:T.ink3, cursor:'pointer'}}>Cancel</button>
+          <button onClick={submit} disabled={!name.trim()} style={{padding:'8px 20px', border:'none', background:name.trim()?T.accent:T.border, borderRadius:9, fontFamily:T.mono, fontSize:10, color:'#fff', cursor:name.trim()?'pointer':'default', fontWeight:600}}>Create deck</button>
+        </div>
+      </div>
+    </div>, document.body
+  );
+}
+
+function FlashcardEditorModal({ open, onClose, onSave, subjects, decks = [], initial }) {
   const [q, setQ] = useState('');
   const [a, setA] = useState('');
   const [subj, setSubj] = useState('');
+  const [deckId, setDeckId] = useState('');
   const [closing, setClosing] = useState(false);
   const panelRef = useRef(null);
   const dismiss = useCallback(() => { setClosing(true); setTimeout(onClose, 320); }, [onClose]);
@@ -2033,6 +2086,7 @@ function FlashcardEditorModal({ open, onClose, onSave, subjects, initial }) {
       setQ(initial?.q || '');
       setA(initial?.a || '');
       setSubj(initial?.subj || subjects[0]?.id || '');
+      setDeckId(initial?.deckId || '');
       setClosing(false);
     }
   }, [open, initial, subjects]);
@@ -2043,7 +2097,7 @@ function FlashcardEditorModal({ open, onClose, onSave, subjects, initial }) {
   const isEdit = !!(initial && initial.id);
   const submit = () => {
     if (!q.trim() || !a.trim()) return;
-    onSave({ q: q.trim(), a: a.trim(), subj: subj || subjects[0]?.id || '' });
+    onSave({ q: q.trim(), a: a.trim(), subj: subj || subjects[0]?.id || '', deckId: deckId || null });
     dismiss();
   };
 
@@ -2065,7 +2119,7 @@ function FlashcardEditorModal({ open, onClose, onSave, subjects, initial }) {
           onFocus={e=>e.target.style.borderColor=T.accent} onBlur={e=>e.target.style.borderColor=T.border} />
 
         {subjects.length > 0 && (
-          <div style={{marginBottom:24}}>
+          <div style={{marginBottom:16}}>
             <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:8}}>Subject</div>
             <div style={{display:'flex', gap:7, flexWrap:'wrap'}}>
               {subjects.map(s => {
@@ -2074,6 +2128,22 @@ function FlashcardEditorModal({ open, onClose, onSave, subjects, initial }) {
                   <button key={s.id} onClick={()=>setSubj(s.id)} style={{display:'flex', alignItems:'center', gap:6, padding:'5px 11px', border:`1px solid ${sel ? s.color : T.border}`, background: sel ? s.color+'14' : T.bg, borderRadius:20, cursor:'pointer', fontFamily:T.ui, fontSize:11, color: sel ? T.ink : T.ink3}}>
                     <span style={{width:7, height:7, borderRadius:'50%', background:s.color}} />
                     {s.short}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {decks.length > 0 && (
+          <div style={{marginBottom:24}}>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:8}}>Deck <span style={{opacity:0.5, textTransform:'lowercase', letterSpacing:0}}>(optional)</span></div>
+            <div style={{display:'flex', gap:7, flexWrap:'wrap'}}>
+              {decks.map(d => {
+                const sel = deckId === d.id;
+                return (
+                  <button key={d.id} onClick={()=>setDeckId(sel ? '' : d.id)} style={{display:'flex', alignItems:'center', gap:6, padding:'5px 11px', border:`1px solid ${sel ? d.color : T.border}`, background: sel ? d.color+'14' : T.bg, borderRadius:20, cursor:'pointer', fontFamily:T.ui, fontSize:11, color: sel ? T.ink : T.ink3}}>
+                    <span style={{width:7, height:7, borderRadius:2, background:d.color}} />
+                    {d.name}
                   </button>
                 );
               })}
@@ -2098,7 +2168,9 @@ function FlashcardsScreen({ profile, userData, onUpdate, screenAction, onScreenA
   const quizzes    = userData?.quizzes    || [];
   const grades     = userData?.grades     || {};
   const flashCards = userData?.flashcards || [];
+  const userDecks  = userData?.decks      || [];
   const [mode, setMode] = useState(null);
+  const [deckEditorOpen, setDeckEditorOpen] = useState(false);
   const [qi, setQi]     = useState(0);
   const [fl, setFl]     = useState(false);
   const [recall, setRecall]     = useState('');
@@ -2135,23 +2207,32 @@ function FlashcardsScreen({ profile, userData, onUpdate, screenAction, onScreenA
     return { statement: other?.q || 'This term is unrelated to the question.', isTrue: false };
   }, [flashCards, qi, card.a, card.q]);
 
-  const openNew  = (subjId) => { setEditTarget(subjId ? { subj: subjId } : null); setEditorOpen(true); };
+  const openNew  = (subjId, deckId) => { setEditTarget((subjId || deckId) ? { subj: subjId||'', deckId: deckId||'' } : null); setEditorOpen(true); };
   const openEditCard = (c)  => { setEditTarget(c); setEditorOpen(true); };
-  const saveCard = ({ q, a, subj }) => {
+  const saveCard = ({ q, a, subj, deckId }) => {
     const now = Date.now();
     if (editTarget && editTarget.id) {
-      onUpdate({ flashcards: flashCards.map(c => c.id === editTarget.id ? { ...c, q, a, subj, updatedAt: now } : c) });
+      onUpdate({ flashcards: flashCards.map(c => c.id === editTarget.id ? { ...c, q, a, subj, deckId: deckId||null, updatedAt: now } : c) });
     } else {
-      const newCard = { id: 'f-' + now.toString(36) + Math.random().toString(36).slice(2,5), q, a, subj: subj || subjects[0]?.id || '', createdAt: now, updatedAt: now };
+      const newCard = { id: 'f-' + now.toString(36) + Math.random().toString(36).slice(2,5), q, a, subj: subj || subjects[0]?.id || '', deckId: deckId||null, createdAt: now, updatedAt: now };
       onUpdate({ flashcards: [...flashCards, newCard] });
     }
+  };
+  const saveDeck = ({ name, subjId, color }) => {
+    const now = Date.now();
+    const newDeck = { id: 'd-' + now.toString(36) + Math.random().toString(36).slice(2,5), name, subjId: subjId||'', color, createdAt: now };
+    onUpdate({ decks: [...userDecks, newDeck] });
+  };
+  const deleteDeck = (id) => {
+    if (!window.confirm('Delete this deck? Cards in it will keep their subject assignment.')) return;
+    onUpdate({ decks: userDecks.filter(d => d.id !== id), flashcards: flashCards.map(c => c.deckId === id ? { ...c, deckId: null } : c) });
   };
   const deleteCard = (id) => {
     if (!window.confirm('Delete this flashcard?')) return;
     onUpdate({ flashcards: flashCards.filter(c => c.id !== id) });
     setQi(0);
   };
-  const cardEditor = <FlashcardEditorModal open={editorOpen} onClose={() => setEditorOpen(false)} onSave={saveCard} subjects={subjects} initial={editTarget} />;
+  const cardEditor = <FlashcardEditorModal open={editorOpen} onClose={() => setEditorOpen(false)} onSave={saveCard} subjects={subjects} decks={userDecks} initial={editTarget} />;
   const backBtn = (
     <button onClick={() => { setMode(null); setFl(false); setQi(0); setRecall(''); setRevealed(false); setPicked(null); }} style={{display:'flex', alignItems:'center', gap:7, background:'none', border:'none', padding:0, fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase', cursor:'pointer'}}>
       <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><path d="M8 2L4 6l4 4"/></svg>
@@ -2368,13 +2449,13 @@ function FlashcardsScreen({ profile, userData, onUpdate, screenAction, onScreenA
     );
   }
 
-  // All subjects as decks (including empty ones)
+  // Subject tiles + custom deck tiles
   const allDecks = subjects.map(s => ({
-    subj: s,
-    cards: flashCards.filter(c => c.subj === s.id),
+    id: s.id, name: s.name, short: s.short, color: s.color, isSubject: true,
+    cards: flashCards.filter(c => c.subj === s.id && !c.deckId),
   }));
   const decksBySubj = allDecks.filter(d => d.cards.length > 0);
-  const ungrouped = flashCards.filter(c => !subjects.find(s => s.id === c.subj));
+  const ungrouped = flashCards.filter(c => !subjects.find(s => s.id === c.subj) && !c.deckId);
 
   // Suggested mode — only when cards exist
   const suggestedMode = flashCards.length === 0 ? null
@@ -2434,44 +2515,74 @@ function FlashcardsScreen({ profile, userData, onUpdate, screenAction, onScreenA
 
         {/* Decks shelf */}
         <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'18px 20px'}}>
+          <DeckCreateModal open={deckEditorOpen} onClose={() => setDeckEditorOpen(false)} onSave={saveDeck} subjects={subjects} />
           <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
             <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em'}}>Your Decks</div>
-            <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3}}>{decksBySubj.length} of {subjects.length} started</div>
+            <button onClick={() => setDeckEditorOpen(true)} style={{fontFamily:T.mono, fontSize:9, color:T.accent, background:'none', border:`1px solid ${T.border}`, padding:'3px 10px', borderRadius:6, cursor:'pointer'}}>+ New deck</button>
           </div>
-          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))', gap:10}}>
-            {allDecks.map(({subj:s, cards:dc}) => {
-              const isEmpty = dc.length === 0;
-              return (
-                <div key={s.id} onClick={() => openNew(s.id)}
-                  style={{borderRadius:10, border:`1px solid ${isEmpty ? T.border : T.border}`, borderTop:`3px solid ${isEmpty ? T.border : s.color}`, padding:'14px 14px 12px', cursor:'pointer', background: isEmpty ? T.bg : T.bg, opacity: isEmpty ? 0.6 : 1}}
-                  onMouseOver={e=>{e.currentTarget.style.background=T.bl; e.currentTarget.style.opacity='1';}}
-                  onMouseOut={e=>{e.currentTarget.style.background=T.bg; e.currentTarget.style.opacity=isEmpty?'0.6':'1';}}>
-                  <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:6}}>{s.short}</div>
-                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink, marginBottom:8, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.name}</div>
-                  {isEmpty ? (
-                    <div style={{fontFamily:T.mono, fontSize:9, color:T.accent}}>+ Start deck</div>
-                  ) : (
-                    <>
-                      <div style={{display:'flex', alignItems:'baseline', gap:5}}>
-                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:s.color, lineHeight:1}}>{dc.length}</div>
-                        <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3}}>cards</div>
-                      </div>
-                      <div style={{height:3, background:T.bl, borderRadius:2, overflow:'hidden', marginTop:8}}>
-                        <div style={{height:'100%', width:`${Math.min((dc.length/Math.max(flashCards.length,1))*100,100)}%`, background:s.color, borderRadius:2, opacity:0.7}}/>
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-            {ungrouped.length > 0 && (
-              <div style={{borderRadius:10, border:`1px solid ${T.border}`, borderTop:`3px solid ${T.ink3}`, padding:'14px 14px 12px', background:T.bg}}>
-                <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:6}}>Misc</div>
-                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink3, lineHeight:1}}>{ungrouped.length}</div>
-                <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, marginTop:4}}>cards</div>
+
+          {/* Subject tiles */}
+          {subjects.length > 0 && (
+            <>
+              <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8, opacity:0.6}}>By Subject</div>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))', gap:8, marginBottom:16}}>
+                {allDecks.map(d => {
+                  const isEmpty = d.cards.length === 0;
+                  return (
+                    <div key={d.id} onClick={() => openNew(d.id)}
+                      style={{borderRadius:9, border:`1px solid ${T.border}`, borderTop:`3px solid ${isEmpty ? T.border : d.color}`, padding:'12px 12px 10px', cursor:'pointer', background:T.bg, opacity: isEmpty ? 0.55 : 1}}
+                      onMouseOver={e=>{e.currentTarget.style.background=T.bl; e.currentTarget.style.opacity='1';}}
+                      onMouseOut={e=>{e.currentTarget.style.background=T.bg; e.currentTarget.style.opacity=isEmpty?'0.55':'1';}}>
+                      <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5}}>{d.short}</div>
+                      <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink, marginBottom:6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{d.name}</div>
+                      {isEmpty
+                        ? <div style={{fontFamily:T.mono, fontSize:8.5, color:T.accent}}>+ Add cards</div>
+                        : <div style={{display:'flex', alignItems:'baseline', gap:4}}><span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:d.color, lineHeight:1}}>{d.cards.length}</span><span style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3}}> cards</span></div>
+                      }
+                    </div>
+                  );
+                })}
               </div>
-            )}
-          </div>
+            </>
+          )}
+
+          {/* Custom deck tiles */}
+          {userDecks.length > 0 && (
+            <>
+              <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8, opacity:0.6}}>Custom Decks</div>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))', gap:8, marginBottom:16}}>
+                {userDecks.map(d => {
+                  const dc = flashCards.filter(c => c.deckId === d.id);
+                  return (
+                    <div key={d.id} style={{borderRadius:9, border:`1px solid ${T.border}`, borderTop:`3px solid ${d.color}`, padding:'12px 12px 10px', background:T.bg, position:'relative'}}>
+                      <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:5}}>
+                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1, marginRight:6}}>{d.name}</div>
+                        <button onClick={()=>deleteDeck(d.id)} style={{fontFamily:T.mono, fontSize:9, color:T.ink3, background:'none', border:'none', cursor:'pointer', padding:0, flexShrink:0, opacity:0.5}}>×</button>
+                      </div>
+                      {d.subjId && subjects.find(s=>s.id===d.subjId) && (
+                        <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, marginBottom:6, opacity:0.7}}>{subjects.find(s=>s.id===d.subjId).short}</div>
+                      )}
+                      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                        <div style={{display:'flex', alignItems:'baseline', gap:4}}>
+                          <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:d.color, lineHeight:1}}>{dc.length}</span>
+                          <span style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3}}> cards</span>
+                        </div>
+                        <button onClick={() => openNew('', d.id)} style={{fontFamily:T.mono, fontSize:8.5, color:d.color, background:'none', border:`1px solid ${d.color}40`, padding:'2px 8px', borderRadius:5, cursor:'pointer'}}>+ Add</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {subjects.length === 0 && userDecks.length === 0 && (
+            <div style={{textAlign:'center', padding:'28px 0'}}>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink3, marginBottom:6}}>No decks yet</div>
+              <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, marginBottom:14}}>Create a deck to start organizing your cards by topic.</div>
+              <button onClick={() => setDeckEditorOpen(true)} style={{padding:'7px 16px', border:`1px solid ${T.accent}`, background:'none', color:T.accent, fontFamily:T.mono, fontSize:9.5, cursor:'pointer', borderRadius:7}}>+ Create your first deck</button>
+            </div>
+          )}
 
           {/* Recent cards list */}
           {flashCards.length > 0 && (
