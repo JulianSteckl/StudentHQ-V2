@@ -3157,78 +3157,81 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
             <button type="button" onClick={() => onRequestSidebar?.('addSubject')} style={{padding:'9px 22px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>+ Add your first subject</button>
           </div>
         ) : (
-        <div className="shq-grades-table" style={{borderRadius:12, overflow:'hidden'}}>
+        <div className="shq-grades-table" style={{borderRadius:12, overflow:'hidden', border:`1px solid ${T.border}`}}>
         {/* Table header */}
-        <div style={{display:'grid', gridTemplateColumns:'1fr 120px 72px 80px 100px', gap:8, padding:'7px 0 7px 16px', background:T.surface, borderBottom:`1px solid ${T.border}`}}>
-          {['SUBJECT','TREND','GPA','GRADE','SET'].map((h,i) => (
-            <div key={h} style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', textAlign: i>0 ? 'center' : 'left'}}>{h}</div>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 110px 60px 72px 90px', padding:'8px 16px', background:T.surface, borderBottom:`1px solid ${T.border}`}}>
+          {['Subject','Trend','GPA','Grade',''].map((h,i) => (
+            <div key={h+i} style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', textAlign: i>0 ? 'center' : 'left'}}>{h}</div>
           ))}
         </div>
 
         {/* Subject rows */}
-        <div style={{display:'flex', flexDirection:'column', gap:12, padding:'12px 0'}}>
-          {subjects.map(s => {
-            const hw      = homework.filter(h => h.subj === s.id);
+        <div style={{display:'flex', flexDirection:'column'}}>
+          {subjects.map((s, idx) => {
+            const hw        = homework.filter(h => h.subj === s.id);
             const openCount = hw.filter(h => !h.done).length;
-            const myGrade = grades[s.id] || '';
-            const hasGrade = !!myGrade;
+            const noteCount = notes.filter(n => n.subj === s.id).length;
+            const quizCount = quizzes.filter(q => q.subj === s.id).length;
+            const myGrade   = grades[s.id] || '';
+            const hasGrade  = !!myGrade;
+            const gpaVal    = hasGrade ? (GPA_MAP[myGrade] ?? 0) : null;
+            const gradeColor = gpaVal != null
+              ? (gpaVal >= 3.7 ? '#3a8a52' : gpaVal >= 3.0 ? T.accent : gpaVal >= 2.0 ? '#b07020' : '#bf4a30')
+              : T.ink3;
             return (
               <div key={s.id} id={`grade-row-${s.id}`}
-                style={{display:'grid', gridTemplateColumns:'1fr 120px 72px 80px 100px', gap:8, background:T.surface, alignItems:'center', cursor:'pointer', transition:'background 0.15s', borderRadius:8, borderLeft:`3px solid ${s.color}`}}
+                style={{display:'grid', gridTemplateColumns:'1fr 110px 60px 72px 90px', alignItems:'center', padding:'0 16px', background:T.surface, cursor:'pointer', transition:'background 0.13s', borderTop: idx > 0 ? `1px solid ${T.bl}` : 'none'}}
                 onClick={() => onNav?.('subject', s.id)}
-                onMouseOver={e => { e.currentTarget.style.background = `${s.color}0a`; }}
-                onMouseOut={e => { e.currentTarget.style.background = T.surface; }}
+                onMouseOver={e => e.currentTarget.style.background = T.bg}
+                onMouseOut={e => e.currentTarget.style.background = T.surface}
               >
-                {/* Subject */}
-                <div style={{padding:'14px 14px'}}>
-                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:T.ink, marginBottom:3}}>{s.name}</div>
-                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>
-                    {openCount > 0 ? <span style={{color:'#b07020'}}>{openCount} open</span> : `${hw.length} total`}
-                    <span style={{opacity:0.6}}> · {hw.length === 1 ? 'assignment' : 'assignments'}</span>
+                {/* Subject name + meta */}
+                <div style={{display:'flex', alignItems:'center', gap:12, padding:'13px 0'}}>
+                  <div style={{width:3, height:36, borderRadius:2, background:s.color, flexShrink:0}} />
+                  <div>
+                    <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink, lineHeight:1.2, marginBottom:3}}>{s.name}</div>
+                    <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.08em', display:'flex', gap:8}}>
+                      {openCount > 0
+                        ? <span style={{color:'#b07020'}}>{openCount} open hw</span>
+                        : <span>{hw.length} hw</span>}
+                      <span style={{opacity:0.5}}>·</span>
+                      <span>{quizCount} quiz</span>
+                      <span style={{opacity:0.5}}>·</span>
+                      <span>{noteCount} notes</span>
+                    </div>
                   </div>
                 </div>
                 {/* Sparkline */}
-                <div style={{display:'flex', justifyContent:'center', alignItems:'center', minHeight:18}}>
+                <div style={{display:'flex', justifyContent:'center', alignItems:'center'}}>
                   {(() => {
                     const pts = gradeSparklinePoints(gradeHistory, s.id);
-                    if (!pts) return <span style={{fontFamily:T.mono, fontSize:10, color:T.border}}>—</span>;
+                    if (!pts) return <span style={{fontFamily:T.mono, fontSize:11, color:T.border}}>—</span>;
                     return (
-                      <svg width={108} height={18} viewBox="0 0 108 18" style={{overflow:'visible'}}>
+                      <svg width={90} height={20} viewBox="0 0 108 18" style={{overflow:'visible'}}>
                         <polyline points={pts} fill="none" stroke={s.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     );
                   })()}
                 </div>
-                {/* GPA points */}
-                <div style={{fontFamily:T.mono, fontSize:12, color: hasGrade ? T.ink2 : T.border, textAlign:'center', fontWeight: hasGrade ? 500 : 400}}>{hasGrade ? (GPA_MAP[myGrade] ?? '—').toFixed(1) : '—'}</div>
+                {/* GPA */}
+                <div style={{fontFamily:T.mono, fontSize:12, color: hasGrade ? T.ink2 : T.border, textAlign:'center', fontWeight:500}}>
+                  {gpaVal != null ? gpaVal.toFixed(1) : '—'}
+                </div>
                 {/* Grade badge */}
                 <div style={{display:'flex', justifyContent:'center'}}>
-                  <div style={{
-                    background: hasGrade ? `${s.color}18` : T.bl,
-                    border: `1.5px solid ${hasGrade ? s.color+'50' : T.border}`,
-                    padding:'4px 11px', borderRadius:6,
-                    fontFamily:T.mono, fontSize:11, color: hasGrade ? s.color : T.ink3, fontWeight:700,
-                    letterSpacing:'0.04em',
-                  }}>{myGrade || '—'}</div>
+                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize: hasGrade ? 22 : 14, color: hasGrade ? gradeColor : T.border, fontWeight:400, lineHeight:1}}>
+                    {myGrade || '—'}
+                  </div>
                 </div>
                 {/* Grade setter */}
                 <div style={{display:'flex', justifyContent:'center'}} onClick={e => e.stopPropagation()}>
-                  <select
-                    value={myGrade}
-                    onChange={e => setGrade(s.id, e.target.value)}
+                  <select value={myGrade} onChange={e => setGrade(s.id, e.target.value)}
                     aria-label={`Set grade for ${s.name}`}
-                    style={{
-                      background: hasGrade ? T.surface : T.accentSoft,
-                      border:`1.5px solid ${hasGrade ? T.border : T.accent}`,
-                      padding:'5px 10px', fontFamily:T.mono, fontSize:10,
-                      color: hasGrade ? T.ink3 : T.accent, cursor:'pointer',
-                      appearance:'none', textAlign:'center', width:70, borderRadius:8,
-                      transition:'border-color 0.12s',
-                    }}
-                    onMouseOver={e => { e.currentTarget.style.borderColor = s.color; }}
-                    onMouseOut={e => { e.currentTarget.style.borderColor = hasGrade ? T.border : T.accent; }}
+                    style={{background: hasGrade ? T.bl : T.accentSoft, border:`1.5px solid ${hasGrade ? T.border : T.accent}`, padding:'5px 10px', fontFamily:T.mono, fontSize:10, color: hasGrade ? T.ink3 : T.accent, cursor:'pointer', appearance:'none', textAlign:'center', width:72, borderRadius:8, transition:'border-color 0.12s'}}
+                    onMouseOver={e => e.currentTarget.style.borderColor = s.color}
+                    onMouseOut={e => e.currentTarget.style.borderColor = hasGrade ? T.border : T.accent}
                   >
-                    <option value="">Set</option>
+                    <option value="">{hasGrade ? 'Change' : 'Set'}</option>
                     {GRADE_OPTS.map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
                 </div>
@@ -3239,8 +3242,8 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
 
         {/* Footer */}
         <div style={{display:'flex', justifyContent:'space-between', padding:'7px 16px', background:T.surface, borderTop:`1px solid ${T.border}`}}>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{subjects.length} {subjects.length === 1 ? 'subject' : 'subjects'} · use SET to log grades</div>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{graded.length} of {subjects.length} graded</div>
+          <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{subjects.length} {subjects.length === 1 ? 'subject' : 'subjects'} · use Set to log grades</div>
+          <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{graded.length} of {subjects.length} graded</div>
         </div>
         </div>
         )}
