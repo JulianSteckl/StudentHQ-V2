@@ -3012,35 +3012,32 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
 
   const month = new Date().getMonth();
   const termLabel = month <= 4 ? 'Spring' : month <= 7 ? 'Summer' : 'Fall';
-  const Rg = 22, circg = 2 * Math.PI * Rg;
+  const Rg = 28, circg = 2 * Math.PI * Rg;
 
-  const recentUpdates = normalizeGradeHistory(gradeHistory)
-    .slice(0, 4)
-    .map(h => ({ ...h, subj: subjects.find(s => s.id === h.subjectId) }))
-    .filter(h => h.subj);
-
-  const insights = buildGradeInsights(subjects, grades);
   const { buckets: gradeMix, total: gradedCount } = gradeDistribution(subjects, grades);
+  const totalOpenHw  = homework.filter(h => !h.done).length;
+  const totalQuizzes = quizzes.length;
+  const totalNotes   = notes.length;
 
   const GpaRing = ({ value, max, label, sub, color }) => {
     const num = parseFloat(value) || 0;
     const frac = Math.min(num / max, 1);
     return (
-      <div style={{background:T.surface, borderRadius:12, padding:'12px 16px', display:'flex', alignItems:'center', gap:12, borderBottom:`2px solid ${color}28`, width:260, flexShrink:0}}>
-        <div style={{position:'relative', flexShrink:0, width:56, height:56}}>
-          <svg width={56} height={56} viewBox="-28 -28 56 56" style={{transform:'rotate(-90deg)'}}>
-            <circle r={Rg} fill="none" stroke={T.border} strokeWidth={3.5}/>
-            <circle r={Rg} fill="none" stroke={color} strokeWidth={3.5}
+      <div style={{background:T.surface, borderRadius:14, padding:'18px 22px', display:'flex', alignItems:'center', gap:18, borderBottom:`2px solid ${color}28`, width:320, flexShrink:0}}>
+        <div style={{position:'relative', flexShrink:0, width:72, height:72}}>
+          <svg width={72} height={72} viewBox="-36 -36 72 72" style={{transform:'rotate(-90deg)'}}>
+            <circle r={Rg} fill="none" stroke={T.border} strokeWidth={4}/>
+            <circle r={Rg} fill="none" stroke={color} strokeWidth={4}
               strokeDasharray={`${frac*circg} ${circg}`} strokeLinecap="round"/>
           </svg>
           <div style={{position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'}}>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink, lineHeight:1}}>{value}</div>
-            <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3}}>/{max.toFixed(1)}</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:T.ink, lineHeight:1}}>{value}</div>
+            <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3}}>/{max.toFixed(1)}</div>
           </div>
         </div>
         <div style={{minWidth:0}}>
-          <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:4}}>{label}</div>
-          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:T.ink, lineHeight:1.2, marginBottom:3}}>{gpaStandingLabel(Math.min(num, 4))}</div>
+          <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:5}}>{label}</div>
+          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, lineHeight:1.2, marginBottom:4}}>{gpaStandingLabel(Math.min(num, 4))}</div>
           <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3}}>{sub}</div>
         </div>
       </div>
@@ -3100,77 +3097,69 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
         </div>
       ) : (
         <>
-          {/* Subject cards — 3-col, compact */}
-          <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10, marginBottom:12}}>
+          {/* Info strip */}
+          <div style={{display:'flex', gap:10, marginBottom:12, flexWrap:'wrap'}}>
+            {[
+              { label:'Open HW', value: totalOpenHw, color: totalOpenHw > 0 ? '#b07020' : T.ink2 },
+              { label:'Quizzes', value: totalQuizzes, color: T.ink2 },
+              { label:'Notes', value: totalNotes, color: T.ink2 },
+              { label:'Graded', value: `${gradedCount}/${subjects.length}`, color: gradedCount === subjects.length ? '#3a8a52' : T.ink2 },
+              ...(['A','B','C','D','F'].filter(l => gradeMix[l] > 0).map(l => ({
+                label: `${l}s`, value: gradeMix[l],
+                color: l==='A'?'#3a8a52':l==='B'?T.accent:l==='C'?'#b07020':'#bf4a30'
+              }))),
+            ].map(({ label, value, color }) => (
+              <div key={label} style={{background:T.surface, borderRadius:9, padding:'8px 14px', display:'flex', flexDirection:'column', alignItems:'center', gap:2, minWidth:56}}>
+                <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em'}}>{label}</div>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color, lineHeight:1}}>{value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Subject cards — 4-col, minimal */}
+          <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:8, marginBottom:12}}>
             {subjects.map(s => {
-              const hw        = homework.filter(h => h.subj === s.id);
-              const openCount = hw.filter(h => !h.done).length;
-              const noteCount = notes.filter(n => n.subj === s.id).length;
-              const quizCount = quizzes.filter(q => q.subj === s.id).length;
-              const myGrade   = grades[s.id] || '';
-              const hasGrade  = !!myGrade;
-              const gpaVal    = hasGrade ? (GPA_MAP[myGrade] ?? 0) : null;
-              const sparkPts  = gradeSparklinePoints(gradeHistory, s.id, 100, 18);
+              const myGrade  = grades[s.id] || '';
+              const hasGrade = !!myGrade;
+              const gpaVal   = hasGrade ? (GPA_MAP[myGrade] ?? 0) : null;
               const gradeColor = gpaVal != null
                 ? (gpaVal >= 3.7 ? '#3a8a52' : gpaVal >= 3.0 ? T.accent : gpaVal >= 2.0 ? '#b07020' : '#bf4a30')
                 : T.ink3;
 
               return (
                 <div key={s.id} id={`grade-row-${s.id}`}
-                  style={{background:T.surface, borderRadius:12, overflow:'hidden', cursor:'pointer', transition:'box-shadow 0.15s, transform 0.12s'}}
+                  style={{background:T.surface, borderRadius:10, overflow:'hidden', cursor:'pointer', transition:'box-shadow 0.15s, transform 0.12s'}}
                   onClick={() => onNav?.('subject', s.id)}
-                  onMouseOver={e => { e.currentTarget.style.boxShadow = '0 4px 18px -6px rgba(24,21,14,0.12)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseOver={e => { e.currentTarget.style.boxShadow = '0 4px 14px -4px rgba(24,21,14,0.12)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                   onMouseOut={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}
                 >
                   <div style={{height:3, background:s.color}} />
-                  <div style={{padding:'13px 15px'}}>
+                  <div style={{padding:'10px 12px'}}>
                     {/* Name + grade */}
-                    <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8, marginBottom:8}}>
-                      <div style={{minWidth:0}}>
-                        <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:2}}>{s.short || s.name}</div>
-                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink, lineHeight:1.25, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.name}</div>
+                    <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:6, marginBottom:hasGrade ? 7 : 10}}>
+                      <div style={{minWidth:0, flex:1}}>
+                        <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em', marginBottom:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.short || s.name}</div>
+                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink, lineHeight:1.2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.name}</div>
                       </div>
-                      <div style={{textAlign:'right', flexShrink:0}}>
-                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:hasGrade ? 28 : 20, color:gradeColor, lineHeight:0.95}}>{myGrade || '—'}</div>
-                        {gpaVal != null && <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, marginTop:2}}>{gpaVal.toFixed(1)} pts</div>}
-                      </div>
+                      <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:hasGrade ? 22 : 16, color:gradeColor, lineHeight:1, flexShrink:0}}>{myGrade || '—'}</div>
                     </div>
 
                     {/* Grade bar */}
                     {hasGrade && (
-                      <div style={{height:2, background:T.border, borderRadius:2, overflow:'hidden', marginBottom: sparkPts ? 7 : 10}}>
+                      <div style={{height:2, background:T.border, borderRadius:2, overflow:'hidden', marginBottom:8}}>
                         <div style={{width:`${Math.min((gpaVal/4)*100,100)}%`, height:'100%', background:gradeColor, borderRadius:2}} />
                       </div>
                     )}
-
-                    {/* Sparkline */}
-                    {sparkPts && (
-                      <div style={{marginBottom:10}}>
-                        <svg width="100%" height={18} viewBox="0 0 100 18" preserveAspectRatio="none" style={{display:'block'}}>
-                          <polyline points={sparkPts} fill="none" stroke={s.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </div>
-                    )}
-
-                    {/* Mini stats */}
-                    <div style={{display:'flex', borderTop:`1px solid ${T.bl}`, paddingTop:9, marginBottom:10}}>
-                      {[['HW', openCount, openCount > 0 ? '#b07020' : T.ink], ['Quiz', quizCount, T.ink], ['Notes', noteCount, T.ink]].map(([label, val, col], i) => (
-                        <div key={label} style={{flex:1, textAlign:'center', borderLeft: i > 0 ? `1px solid ${T.bl}` : 'none'}}>
-                          <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:1}}>{label}</div>
-                          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:col, lineHeight:1}}>{val}</div>
-                        </div>
-                      ))}
-                    </div>
 
                     {/* Grade setter */}
                     <div onClick={e => e.stopPropagation()}>
                       <select value={myGrade} onChange={e => setGrade(s.id, e.target.value)}
                         aria-label={`Set grade for ${s.name}`}
-                        style={{width:'100%', background: hasGrade ? T.bl : T.accentSoft, border:`1.5px solid ${hasGrade ? T.border : T.accent}`, padding:'5px 8px', fontFamily:T.mono, fontSize:9.5, color: hasGrade ? T.ink3 : T.accent, cursor:'pointer', borderRadius:7, appearance:'none', textAlign:'center', transition:'border-color 0.12s'}}
+                        style={{width:'100%', background: hasGrade ? T.bl : T.accentSoft, border:`1.5px solid ${hasGrade ? T.border : T.accent}`, padding:'4px 6px', fontFamily:T.mono, fontSize:9, color: hasGrade ? T.ink3 : T.accent, cursor:'pointer', borderRadius:6, appearance:'none', textAlign:'center'}}
                         onMouseOver={e => { e.currentTarget.style.borderColor = s.color; }}
                         onMouseOut={e => { e.currentTarget.style.borderColor = hasGrade ? T.border : T.accent; }}
                       >
-                        <option value="">{hasGrade ? 'Change grade' : 'Set grade'}</option>
+                        <option value="">{hasGrade ? 'Change' : 'Set grade'}</option>
                         {GRADE_OPTS.map(g => <option key={g} value={g}>{g}</option>)}
                       </select>
                     </div>
