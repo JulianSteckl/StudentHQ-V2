@@ -3138,8 +3138,7 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
           </div>
 
           {/* Best performing */}
-          <div style={{background:T.surface, padding:'18px 20px', borderRadius:12, borderBottom:`2px solid #3a8a5230`, position:'relative', overflow:'hidden'}}>
-            {bestPerf && <div style={{position:'absolute', top:0, left:0, right:0, height:3, background:`linear-gradient(90deg, ${bestPerf.color}, #3a8a52)`}}/>}
+          <div style={{background:T.surface, padding:'18px 20px', borderRadius:12, borderBottom:`2px solid #3a8a5230`}}>
             <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>Best Performing</div>
             {bestPerf ? (<>
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8}}>
@@ -3154,8 +3153,7 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
           </div>
 
           {/* Needs attention */}
-          <div style={{background:T.surface, padding:'18px 20px', borderRadius:12, borderBottom:`2px solid #bf4a3030`, position:'relative', overflow:'hidden'}}>
-            {showNeedsAttn && <div style={{position:'absolute', top:0, left:0, right:0, height:3, background:`linear-gradient(90deg, ${needsAttn.color}, #bf4a30)`}}/>}
+          <div style={{background:T.surface, padding:'18px 20px', borderRadius:12, borderBottom:`2px solid #bf4a3030`}}>
             <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>Needs Attention</div>
             {showNeedsAttn ? (<>
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8}}>
@@ -3203,36 +3201,35 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
             {subjects.length >= 3 ? (() => {
               const radarSubjs = subjects.slice(0, 8);
               const n = radarSubjs.length;
-              const CX = 90, CY2 = 90, RAD = 62;
+              const CX = 65, CY2 = 65, RAD = 44;
               const angleStep = (2 * Math.PI) / n;
               const pt = (i, r) => [CX + r * Math.sin(i * angleStep), CY2 - r * Math.cos(i * angleStep)];
               const gridLines = [1,2,3,4].map(l => radarSubjs.map((_, i) => pt(i, RAD*l/4)).map(p=>p.join(',')).join(' '));
-              const dataPoints = radarSubjs.map((s, i) => { const g = grades[s.id] ? (GPA_MAP[grades[s.id]]||0) : 0; return pt(i, Math.max((g/4)*RAD,3)); });
+              const dataPoints = radarSubjs.map((s, i) => { const g = grades[s.id] ? (GPA_MAP[grades[s.id]]||0) : 0; return pt(i, Math.max((g/4)*RAD,2)); });
               return (
-                <div style={{background:T.surface, borderRadius:12, padding:'18px 20px', display:'flex', alignItems:'center', gap:18}}>
+                <div style={{background:T.surface, borderRadius:12, padding:'14px 16px', display:'flex', alignItems:'center', gap:14}}>
                   <div style={{flexShrink:0}}>
-                    <svg width={180} height={180} viewBox="0 0 180 180">
-                      {gridLines.map((pts,l) => <polygon key={l} points={pts} fill="none" stroke={T.border} strokeWidth={0.7} opacity={0.5}/>)}
+                    <svg width={130} height={130} viewBox="0 0 130 130">
+                      {gridLines.map((pts,l) => <polygon key={l} points={pts} fill="none" stroke={T.border} strokeWidth={0.6} opacity={0.5}/>)}
                       {radarSubjs.map((_,i) => { const [x,y]=pt(i,RAD); return <line key={i} x1={CX} y1={CY2} x2={x} y2={y} stroke={T.border} strokeWidth={0.5} opacity={0.35}/>; })}
                       <polygon points={dataPoints.map(p=>p.join(',')).join(' ')} fill={`${T.accent}20`} stroke={T.accent} strokeWidth={1.5} strokeLinejoin="round"/>
-                      {dataPoints.map((p,i) => <circle key={i} cx={p[0]} cy={p[1]} r={2.5} fill={radarSubjs[i].color}/>)}
-                      {radarSubjs.map((s,i) => { const [x,y]=pt(i,RAD+13); return <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="central" style={{fontFamily:T.mono,fontSize:9,fill:T.ink3}}>{s.short||s.name.slice(0,6)}</text>; })}
+                      {dataPoints.map((p,i) => <circle key={i} cx={p[0]} cy={p[1]} r={2} fill={radarSubjs[i].color}/>)}
+                      {radarSubjs.map((s,i) => { const [x,y]=pt(i,RAD+11); return <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="central" style={{fontFamily:T.mono,fontSize:8,fill:T.ink3}}>{s.short||s.name.slice(0,5)}</text>; })}
                     </svg>
                   </div>
                   <div style={{flex:1, minWidth:0}}>
-                    <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:6}}>
+                    <div style={{display:'flex', alignItems:'center', gap:5, marginBottom:5}}>
                       <div style={{width:5, height:5, borderRadius:'50%', background:T.accent}}/>
-                      <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em'}}>Subject Balance</div>
+                      <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em'}}>Subject Balance</div>
                     </div>
-                    <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink, marginBottom:10}}>Grades across classes</div>
-                    <div style={{display:'flex', flexDirection:'column', gap:5}}>
+                    <div style={{display:'flex', flexDirection:'column', gap:4}}>
                       {radarSubjs.map(s => {
                         const g = grades[s.id]; const gv = g ? (GPA_MAP[g]||0) : null;
                         return (
-                          <div key={s.id} style={{display:'flex', alignItems:'center', gap:8}}>
-                            <div style={{width:5, height:5, borderRadius:1, background:s.color, flexShrink:0}}/>
-                            <div style={{fontFamily:T.ui, fontSize:11, color:T.ink2, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.short}</div>
-                            <div style={{fontFamily:T.mono, fontSize:10, fontWeight:600, color: g?(gv>=3.7?'#3a8a52':gv>=3?T.accent:gv>=2?'#b07020':'#bf4a30'):T.border}}>{g||'—'}</div>
+                          <div key={s.id} style={{display:'flex', alignItems:'center', gap:7}}>
+                            <div style={{width:4, height:4, borderRadius:1, background:s.color, flexShrink:0}}/>
+                            <div style={{fontFamily:T.ui, fontSize:10.5, color:T.ink2, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.short}</div>
+                            <div style={{fontFamily:T.mono, fontSize:9.5, fontWeight:600, color: g?(gv>=3.7?'#3a8a52':gv>=3?T.accent:gv>=2?'#b07020':'#bf4a30'):T.border}}>{g||'—'}</div>
                           </div>
                         );
                       })}
@@ -3241,8 +3238,8 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
                 </div>
               );
             })() : (
-              <div style={{background:T.surface, borderRadius:12, padding:'18px 22px', display:'flex', alignItems:'center', justifyContent:'center'}}>
-                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3}}>Add 3+ subjects to see Subject Balance.</div>
+              <div style={{background:T.surface, borderRadius:12, padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3}}>Add 3+ subjects to see Subject Balance.</div>
               </div>
             )}
 
@@ -3383,45 +3380,64 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
       {/* Past Courses modal */}
       {showPastModal && (
         <div style={{position:'fixed',inset:0,zIndex:1200,background:'rgba(24,21,14,0.35)',display:'flex',alignItems:'center',justifyContent:'center'}}
-          onClick={() => setShowPastModal(false)}>
-          <div style={{background:T.surface,borderRadius:16,padding:'24px 28px',width:500,maxWidth:'calc(100vw - 32px)',maxHeight:'80vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(24,21,14,0.22)'}}
-            onClick={e => e.stopPropagation()}>
+          onMouseDown={e => { if (e.target === e.currentTarget) setShowPastModal(false); }}>
+          <div style={{background:T.surface,borderRadius:16,padding:'24px 28px',width:520,maxWidth:'calc(100vw - 32px)',maxHeight:'80vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(24,21,14,0.22)'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:18}}>
               <div>
                 <div style={{fontFamily:T.mono,fontSize:9.5,color:T.ink3,textTransform:'uppercase',letterSpacing:'0.13em',marginBottom:4}}>Weighted GPA</div>
                 <div style={{fontFamily:T.serif,fontStyle:'italic',fontSize:20,color:T.ink}}>Past Courses</div>
               </div>
-              <button type="button" onClick={() => setShowPastModal(false)}
-                style={{background:'none',border:`1px solid ${T.border}`,color:T.ink3,fontFamily:T.mono,fontSize:10,padding:'5px 12px',borderRadius:7,cursor:'pointer'}}>Done</button>
+              <div style={{display:'flex',gap:8}}>
+                <label style={{display:'flex',alignItems:'center',gap:6,padding:'5px 12px',border:`1px solid ${T.border}`,borderRadius:7,cursor:'pointer',fontFamily:T.mono,fontSize:10,color:T.ink3,background:T.bg}}>
+                  <svg width="11" height="13" viewBox="0 0 11 13" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"><path d="M5.5 1v8M2.5 6l3 3 3-3M1 11h9"/></svg>
+                  Import PDF
+                  <input type="file" accept=".pdf" style={{display:'none'}} onChange={async e => {
+                    const file = e.target.files?.[0]; if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = async ev => {
+                      const b64 = ev.target.result.split(',')[1];
+                      try {
+                        const res = await fetch('/api/parse-grades-pdf', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ pdf: b64 }) });
+                        const { courses } = await res.json();
+                        if (courses?.length) onUpdate?.({ pastCourses: [...pastCourses, ...courses.map(c => ({...c, id:'pc-'+Date.now().toString(36)+Math.random().toString(36).slice(2)}))] });
+                      } catch(err) { alert('Could not parse PDF. Try adding courses manually.'); }
+                    };
+                    reader.readAsDataURL(file);
+                    e.target.value = '';
+                  }}/>
+                </label>
+                <button type="button" onClick={() => setShowPastModal(false)}
+                  style={{background:'none',border:`1px solid ${T.border}`,color:T.ink3,fontFamily:T.mono,fontSize:10,padding:'5px 12px',borderRadius:7,cursor:'pointer'}}>Done</button>
+              </div>
             </div>
-            <div style={{display:'flex',gap:8,alignItems:'flex-end',marginBottom:16,flexWrap:'wrap'}}>
-              <div style={{flex:'2 1 150px'}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr auto',gap:8,alignItems:'flex-end',marginBottom:16}}>
+              <div>
                 <div style={{fontFamily:T.mono,fontSize:9,color:T.ink3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:4}}>Course name</div>
                 <input value={pastForm.name} onChange={e => setPastForm(f=>({...f,name:e.target.value}))}
                   placeholder="e.g. AP Chemistry"
                   onKeyDown={e => e.key==='Enter' && addPastCourse()}
-                  style={{width:'100%',background:T.bg,border:`1px solid ${T.border}`,borderRadius:7,padding:'6px 10px',fontFamily:T.ui,fontSize:12,color:T.ink,outline:'none',boxSizing:'border-box'}}
+                  style={{width:'100%',background:T.bg,border:`1px solid ${T.border}`,borderRadius:7,padding:'7px 10px',fontFamily:T.ui,fontSize:12,color:T.ink,outline:'none',boxSizing:'border-box'}}
                   onFocus={e=>e.target.style.borderColor=T.accent} onBlur={e=>e.target.style.borderColor=T.border}/>
               </div>
-              <div style={{flex:'0 1 80px'}}>
+              <div>
                 <div style={{fontFamily:T.mono,fontSize:9,color:T.ink3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:4}}>Grade</div>
                 <select value={pastForm.grade} onChange={e=>setPastForm(f=>({...f,grade:e.target.value}))}
-                  style={{width:'100%',background:T.bg,border:`1px solid ${T.border}`,borderRadius:7,padding:'6px 8px',fontFamily:T.mono,fontSize:11,color:T.ink,cursor:'pointer'}}>
+                  style={{width:'100%',background:T.bg,border:`1px solid ${T.border}`,borderRadius:7,padding:'7px 8px',fontFamily:T.mono,fontSize:11,color:T.ink,cursor:'pointer',boxSizing:'border-box'}}>
                   <option value="">—</option>
                   {GRADE_OPTS.map(g=><option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
-              <div style={{flex:'1 1 100px'}}>
+              <div>
                 <div style={{fontFamily:T.mono,fontSize:9,color:T.ink3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:4}}>Type</div>
                 <select value={pastForm.type} onChange={e=>setPastForm(f=>({...f,type:e.target.value}))}
-                  style={{width:'100%',background:T.bg,border:`1px solid ${T.border}`,borderRadius:7,padding:'6px 8px',fontFamily:T.mono,fontSize:11,color:T.ink,cursor:'pointer'}}>
+                  style={{width:'100%',background:T.bg,border:`1px solid ${T.border}`,borderRadius:7,padding:'7px 8px',fontFamily:T.mono,fontSize:11,color:T.ink,cursor:'pointer',boxSizing:'border-box'}}>
                   <option value="regular">Regular</option>
                   <option value="honors">Honors +0.5</option>
                   <option value="ap">AP / IB +1.0</option>
                 </select>
               </div>
               <button type="button" onClick={addPastCourse} disabled={!pastForm.name.trim()||!pastForm.grade}
-                style={{padding:'6px 14px',border:'none',background:pastForm.name.trim()&&pastForm.grade?T.accent:T.border,color:'#fff',fontFamily:T.mono,fontSize:9.5,cursor:pastForm.name.trim()&&pastForm.grade?'pointer':'default',borderRadius:7,flexShrink:0}}>Add</button>
+                style={{padding:'7px 14px',border:'none',background:pastForm.name.trim()&&pastForm.grade?T.accent:T.border,color:'#fff',fontFamily:T.mono,fontSize:9.5,cursor:pastForm.name.trim()&&pastForm.grade?'pointer':'default',borderRadius:7,alignSelf:'flex-end'}}>Add</button>
             </div>
             {pastCourses.length === 0
               ? <div style={{fontFamily:T.serif,fontStyle:'italic',fontSize:13,color:T.ink3,padding:'12px 0'}}>No past courses yet. Add them above to improve your weighted GPA.</div>
