@@ -3057,54 +3057,64 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
         <div className="shq-grades-stats" style={{marginBottom:12}}>
 
           {/* GPA ring */}
-          <div style={{background:T.surface, padding:'16px 20px', display:'flex', alignItems:'center', gap:18, borderRadius:12}}>
+          <div style={{background:T.surface, padding:'18px 20px', display:'flex', alignItems:'center', gap:18, borderRadius:12, borderBottom:`2px solid ${T.accent}30`}}>
             <div style={{position:'relative', flexShrink:0, width:72, height:72}}>
               <svg width={72} height={72} viewBox="-36 -36 72 72" style={{transform:'rotate(-90deg)'}}>
-                <circle r={R} fill="none" stroke={T.border} strokeWidth={3.5}/>
-                <circle r={R} fill="none" stroke={T.accent} strokeWidth={3.5}
+                <circle r={R} fill="none" stroke={T.border} strokeWidth={4}/>
+                <circle r={R} fill="none" stroke={T.accent} strokeWidth={4}
                   strokeDasharray={`${(gpaNum/4)*circ} ${circ}`} strokeLinecap="round"/>
               </svg>
               <div style={{position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'}}>
-                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink, lineHeight:1}}>{gpaStr}</div>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>/ 4.0</div>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:T.ink, lineHeight:1}}>{gpaStr}</div>
+                <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3}}>/ 4.0</div>
               </div>
             </div>
             <div>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:6}}>GPA This Term</div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:19, color:T.ink, lineHeight:1.2, marginBottom:4}}>{gpaStandingLabel(gpaNum)}</div>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:7}}>GPA This Term</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:21, color:T.ink, lineHeight:1.15, marginBottom:5}}>{gpaStandingLabel(gpaNum)}</div>
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>Unweighted · {termLabel} {CY}{graded.length ? ` · ${graded.length} graded` : ''}</div>
             </div>
           </div>
 
           {/* Best performing */}
-          <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>Best Performing</div>
+          <div style={{background:T.surface, padding:'18px 20px', borderRadius:12, borderBottom:`2px solid #3a8a5230`}}>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:12}}>Best Performing</div>
             {bestPerf ? (<>
-              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:5}}>
-                <div style={{width:7, height:7, borderRadius:2, background:bestPerf.color}}/>
-                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, lineHeight:1}}>{bestPerf.short}</div>
+              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
+                <div style={{width:8, height:8, borderRadius:3, background:bestPerf.color, flexShrink:0}}/>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, lineHeight:1}}>{bestPerf.short}</div>
               </div>
-              <div style={{fontFamily:T.mono, fontSize:9.5, color:T.accent}}>{grades[bestPerf.id]} · {(GPA_MAP[grades[bestPerf.id]] ?? 0).toFixed(1)}</div>
-            </>) : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3}}>Log a grade to see.</div>}
+              <div style={{display:'flex', alignItems:'center', gap:8}}>
+                <span style={{fontFamily:T.mono, fontSize:11, color:'#3a8a52', fontWeight:600}}>{grades[bestPerf.id]}</span>
+                <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{(GPA_MAP[grades[bestPerf.id]] ?? 0).toFixed(1)} pts</span>
+              </div>
+            </>) : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.5}}>Log a grade to see.</div>}
           </div>
 
           {/* Needs attention */}
-          <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>Needs Attention</div>
+          <div style={{background:T.surface, padding:'18px 20px', borderRadius:12, borderBottom:`2px solid #bf4a3030`}}>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:12}}>Needs Attention</div>
             {showNeedsAttn ? (<>
-              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:5}}>
-                <div style={{width:7, height:7, borderRadius:2, background:needsAttn.color}}/>
-                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, lineHeight:1}}>{needsAttn.short}</div>
+              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
+                <div style={{width:8, height:8, borderRadius:3, background:needsAttn.color, flexShrink:0}}/>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, lineHeight:1}}>{needsAttn.short}</div>
               </div>
-              <div style={{fontFamily:T.mono, fontSize:9.5, color:'#bf4a30'}}>{grades[needsAttn.id]} · {(GPA_MAP[grades[needsAttn.id]] ?? 0).toFixed(1)}</div>
-            </>) : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3}}>{graded.length < 2 ? 'Log 2+ grades to compare.' : 'All classes on par.'}</div>}
+              <div style={{display:'flex', alignItems:'center', gap:8}}>
+                <span style={{fontFamily:T.mono, fontSize:11, color:'#bf4a30', fontWeight:600}}>{grades[needsAttn.id]}</span>
+                <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{(GPA_MAP[grades[needsAttn.id]] ?? 0).toFixed(1)} pts</span>
+              </div>
+            </>) : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.5}}>{graded.length < 2 ? 'Log 2+ grades to compare.' : 'All classes on par.'}</div>}
           </div>
 
           {/* Open homework */}
-          <div style={{background:T.surface, padding:'16px 20px', borderRadius:12}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>Open Homework</div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:38, color:T.ink, lineHeight:0.95, marginBottom:5}}>{openHw.length}</div>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{openHw.length === 1 ? 'assignment due' : 'assignments due'}</div>
+          <div style={{background:T.surface, padding:'18px 20px', borderRadius:12, borderBottom:`2px solid #b0702030`, cursor: openHw.length > 0 ? 'pointer' : 'default'}}
+            onClick={() => openHw.length > 0 && onNav?.('homework')}
+            onMouseOver={e => { if (openHw.length > 0) e.currentTarget.style.background = T.bl; }}
+            onMouseOut={e => e.currentTarget.style.background = T.surface}
+          >
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:12}}>Open Homework</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:40, color: openHw.length > 0 ? '#b07020' : T.ink, lineHeight:0.9, marginBottom:7}}>{openHw.length}</div>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{openHw.length === 1 ? 'assignment due' : 'assignments due'}{openHw.length > 0 ? ' →' : ''}</div>
           </div>
         </div>
 
@@ -3165,22 +3175,23 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
             return (
               <div key={s.id} id={`grade-row-${s.id}`}
                 style={{display:'grid', gridTemplateColumns:'1fr 120px 72px 80px 100px', gap:8, background:T.surface, alignItems:'center', cursor:'pointer', transition:'background 0.15s', borderRadius:8, borderLeft:`3px solid ${s.color}`}}
-                onClick={() => onNav?.('subjects')}
-                onMouseOver={e => e.currentTarget.style.background = T.bl}
-                onMouseOut={e => e.currentTarget.style.background = T.surface}
+                onClick={() => onNav?.('subject', s.id)}
+                onMouseOver={e => { e.currentTarget.style.background = `${s.color}0a`; }}
+                onMouseOut={e => { e.currentTarget.style.background = T.surface; }}
               >
                 {/* Subject */}
-                <div style={{padding:'13px 12px'}}>
-                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16.5, color:T.ink, marginBottom:2}}>{s.name}</div>
+                <div style={{padding:'14px 14px'}}>
+                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:T.ink, marginBottom:3}}>{s.name}</div>
                   <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>
-                    {openCount > 0 ? `${openCount} open` : `${hw.length} total`} · {hw.length === 1 ? 'assignment' : 'assignments'}
+                    {openCount > 0 ? <span style={{color:'#b07020'}}>{openCount} open</span> : `${hw.length} total`}
+                    <span style={{opacity:0.6}}> · {hw.length === 1 ? 'assignment' : 'assignments'}</span>
                   </div>
                 </div>
-                {/* Sparkline from grade history */}
+                {/* Sparkline */}
                 <div style={{display:'flex', justifyContent:'center', alignItems:'center', minHeight:18}}>
                   {(() => {
                     const pts = gradeSparklinePoints(gradeHistory, s.id);
-                    if (!pts) return <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>—</span>;
+                    if (!pts) return <span style={{fontFamily:T.mono, fontSize:10, color:T.border}}>—</span>;
                     return (
                       <svg width={108} height={18} viewBox="0 0 108 18" style={{overflow:'visible'}}>
                         <polyline points={pts} fill="none" stroke={s.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
@@ -3189,10 +3200,16 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
                   })()}
                 </div>
                 {/* GPA points */}
-                <div style={{fontFamily:T.mono, fontSize:11, color:T.ink2, textAlign:'center'}}>{hasGrade ? (GPA_MAP[myGrade] ?? '—').toFixed(1) : '—'}</div>
+                <div style={{fontFamily:T.mono, fontSize:12, color: hasGrade ? T.ink2 : T.border, textAlign:'center', fontWeight: hasGrade ? 500 : 400}}>{hasGrade ? (GPA_MAP[myGrade] ?? '—').toFixed(1) : '—'}</div>
                 {/* Grade badge */}
                 <div style={{display:'flex', justifyContent:'center'}}>
-                  <div style={{background: hasGrade ? `${s.color}18` : T.bl, border:`1px solid ${hasGrade ? s.color+'40' : T.border}`, padding:'3px 9px', fontFamily:T.mono, fontSize:10, color: hasGrade ? s.color : T.ink3, fontWeight:600}}>{myGrade || '—'}</div>
+                  <div style={{
+                    background: hasGrade ? `${s.color}18` : T.bl,
+                    border: `1.5px solid ${hasGrade ? s.color+'50' : T.border}`,
+                    padding:'4px 11px', borderRadius:6,
+                    fontFamily:T.mono, fontSize:11, color: hasGrade ? s.color : T.ink3, fontWeight:700,
+                    letterSpacing:'0.04em',
+                  }}>{myGrade || '—'}</div>
                 </div>
                 {/* Grade setter */}
                 <div style={{display:'flex', justifyContent:'center'}} onClick={e => e.stopPropagation()}>
@@ -3200,7 +3217,16 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
                     value={myGrade}
                     onChange={e => setGrade(s.id, e.target.value)}
                     aria-label={`Set grade for ${s.name}`}
-                    style={{background: hasGrade ? T.bl : T.accentSoft, border:`1px solid ${hasGrade ? T.border : T.accent}`, padding:'4px 8px', fontFamily:T.mono, fontSize:10, color: hasGrade ? T.ink3 : T.accent, cursor:'pointer', appearance:'none', textAlign:'center', width:66, borderRadius:6}}
+                    style={{
+                      background: hasGrade ? T.surface : T.accentSoft,
+                      border:`1.5px solid ${hasGrade ? T.border : T.accent}`,
+                      padding:'5px 10px', fontFamily:T.mono, fontSize:10,
+                      color: hasGrade ? T.ink3 : T.accent, cursor:'pointer',
+                      appearance:'none', textAlign:'center', width:70, borderRadius:8,
+                      transition:'border-color 0.12s',
+                    }}
+                    onMouseOver={e => { e.currentTarget.style.borderColor = s.color; }}
+                    onMouseOut={e => { e.currentTarget.style.borderColor = hasGrade ? T.border : T.accent; }}
                   >
                     <option value="">Set</option>
                     {GRADE_OPTS.map(g => <option key={g} value={g}>{g}</option>)}
@@ -3276,7 +3302,7 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
         {/* Insight cards */}
         {subjects.length > 0 && (
         <div className="shq-grades-insights" style={{marginTop:12}}>
-          <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
+          <div style={{background:T.surface, borderRadius:12, padding:'18px 20px', minHeight:140}}>
             <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:13}}>
               <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Recent Updates</div>
@@ -3292,7 +3318,7 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
                 </div>
               ))}
           </div>
-          <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
+          <div style={{background:T.surface, borderRadius:12, padding:'18px 20px', minHeight:140}}>
             <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
               <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52'}}/>
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>By Subject</div>
@@ -3306,7 +3332,7 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
               </div>
             ))}
           </div>
-          <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
+          <div style={{background:T.surface, borderRadius:12, padding:'18px 20px', minHeight:140}}>
             <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
               <div style={{display:'flex', alignItems:'center', gap:6}}>
                 <div style={{width:6, height:6, borderRadius:'50%', background:'#4285f4'}}/>
