@@ -2368,86 +2368,156 @@ function FlashcardsScreen({ profile, userData, onUpdate, screenAction, onScreenA
     );
   }
 
+  // Group cards by subject for the deck shelf
+  const decksBySubj = subjects.map(s => ({
+    subj: s,
+    cards: flashCards.filter(c => c.subj === s.id),
+  })).filter(d => d.cards.length > 0);
+  const ungrouped = flashCards.filter(c => !subjects.find(s => s.id === c.subj));
+
+  // Suggested mode based on card count
+  const suggestedMode = flashCards.length === 0 ? null
+    : flashCards.length < 5 ? MODES[0]
+    : quizzes.length > 0 ? MODES[4]
+    : MODES[1];
+
   return (
-    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
+    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto', overflowX:'hidden'}}>
+      {cardEditor}
+
       {/* Header */}
       <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:20}}>
         <div>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:6}}>Study & Practice · This Week</div>
+          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:6}}>Study & Practice · {flashCards.length} cards</div>
           <h1 style={{margin:'0 0 5px', lineHeight:1.1}}>
-            <span style={{fontFamily:T.ui, fontWeight:700, fontSize:28, color:T.ink}}>Study & </span>
-            <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:30, color:T.ink}}>practice.</span>
+            <span style={{fontFamily:T.ui, fontWeight:700, fontSize:28, color:T.ink}}>Flash</span>
+            <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:30, color:T.ink}}>cards.</span>
           </h1>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>Practice anytime · all subjects</div>
+          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{subjects.length} subjects · {decksBySubj.length} decks built</div>
         </div>
-        <button onClick={() => openNew()} style={{padding:'7px 16px', border:`1px solid ${T.accent}`, background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', flexShrink:0, borderRadius:8}}>+ New flashcard</button>
+        <button onClick={() => openNew()} style={{padding:'9px 18px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', flexShrink:0, borderRadius:8}}>+ New card</button>
       </div>
-      {cardEditor}
 
-      {/* 4 stat cards */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginBottom:28}}>
+      {/* Top row: stats + suggested study */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1.6fr', gap:10, marginBottom:12}}>
         {[
-          {label:'CARDS',             val:flashCards.length,            sub:'cards total',                                       accent:T.accent  },
-          {label:'BEST SUBJECT',      val:bestSubj.short,               sub:grades[bestSubj.id] || 'add grades',               accent:bestSubj.color },
-          {label:'READINESS',         val:readinessPct != null ? `${readinessPct}%` : '—', sub:readinessPct != null ? 'across upcoming' : 'add quizzes', accent:'#9254de' },
+          {label:'Total Cards', val:flashCards.length, color:T.accent},
+          {label:'Decks', val:decksBySubj.length, color:'#2a60a0'},
+          {label:'Readiness', val:readinessPct != null ? `${readinessPct}%` : '—', color:'#9254de'},
         ].map(c => (
-          <div key={c.label} style={{background:T.surface, padding:'24px 22px', borderRadius:12, minHeight:100, borderBottom:`2px solid ${c.accent}28`}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>{c.label}</div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:36, color:T.ink, lineHeight:0.9, marginBottom:8}}>{c.val}</div>
-            <div style={{fontFamily:T.mono, fontSize:10, color:c.accent}}>{c.sub}</div>
+          <div key={c.label} style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'16px 18px'}}>
+            <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:8}}>{c.label}</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:32, color:T.ink, lineHeight:1}}>{c.val}</div>
           </div>
         ))}
-      </div>
-
-      {/* Study Modes */}
-      <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:14}}>Study Modes</div>
-      <div className="shq-fc-modes">
-        {MODES.map(m => (
-          <div key={m.id} style={{background:T.surface, padding:'28px 26px', cursor:'pointer', minHeight:160, position:'relative', overflow:'hidden', borderRadius:12}}
-            onMouseOver={e => e.currentTarget.style.background = T.bl}
-            onMouseOut={e => e.currentTarget.style.background = T.surface}
-          >
-            <svg style={{position:'absolute', bottom:-20, right:-20, opacity:0.07}} width={100} height={100} viewBox="0 0 100 100" fill="none">
-              <circle cx="50" cy="50" r="44" stroke={m.icC} strokeWidth="6"/>
-            </svg>
-            <div style={{width:48, height:48, borderRadius:'50%', background:`${m.icC}18`, border:`1.5px solid ${m.icC}40`, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:18}}>
-              <span style={{fontFamily:T.mono, fontSize:13, color:m.icC, fontWeight:700}}>{m.ic}</span>
+        {/* Suggested study */}
+        {suggestedMode ? (
+          <div style={{background:T.accentSoft, borderRadius:12, border:`1px solid ${T.accent}25`, padding:'16px 18px', display:'flex', flexDirection:'column', justifyContent:'space-between'}}>
+            <div>
+              <div style={{fontFamily:T.mono, fontSize:9, color:T.accent, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:6}}>Suggested · Study now</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink, marginBottom:4}}>{suggestedMode.title}</div>
+              <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3}}>{suggestedMode.sub}</div>
             </div>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, marginBottom:5, lineHeight:1.2}}>{m.title}</div>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, letterSpacing:'0.03em', marginBottom:18}}>{m.sub}</div>
-            <button type="button" onClick={() => setMode(m.id)} style={{fontFamily:T.mono, fontSize:10, color:m.icC, background:'none', border:`1px solid ${m.icC}50`, padding:'5px 14px', cursor:'pointer', letterSpacing:'0.07em'}}>START →</button>
+            <button type="button" onClick={() => setMode(suggestedMode.id)} style={{marginTop:12, alignSelf:'flex-start', padding:'7px 16px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.07em', cursor:'pointer', borderRadius:7}}>Start →</button>
           </div>
-        ))}
+        ) : (
+          <div style={{background:T.surface, borderRadius:12, border:`1px dashed ${T.border}`, padding:'16px 18px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center'}}>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink3, marginBottom:8}}>No cards yet</div>
+            <button onClick={() => openNew()} style={{padding:'6px 14px', border:`1px solid ${T.accent}`, background:'none', color:T.accent, fontFamily:T.mono, fontSize:9.5, cursor:'pointer', borderRadius:7}}>+ Create first card</button>
+          </div>
+        )}
       </div>
 
-      {/* Your cards */}
-      <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', margin:'28px 0 14px'}}>Your Cards · {flashCards.length}</div>
-      {flashCards.length === 0 ? (
-        <div style={{background:T.surface, borderRadius:12, padding:'32px 24px', textAlign:'center'}}>
-          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink2, marginBottom:6}}>Nothing here yet</div>
-          <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3, marginBottom:16}}>Create flashcards to study them in any mode above.</div>
-          <button onClick={() => openNew()} style={{padding:'9px 20px', border:`1px solid ${T.accent}`, background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>+ Create your first card</button>
-        </div>
-      ) : (
-        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:12}}>
-          {flashCards.map(c => {
-            const s = subjectBy(c.subj);
-            return (
-              <div key={c.id} style={{background:T.surface, borderRadius:12, padding:'15px 16px', borderLeft:`3px solid ${s.color}`}}>
-                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:7}}>
-                  <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em'}}>{s.short}</span>
-                  <div style={{display:'flex', gap:10}}>
-                    <button onClick={() => openEditCard(c)} style={{fontFamily:T.mono, fontSize:10, color:T.ink3, background:'none', border:'none', cursor:'pointer', padding:0}}>Edit</button>
-                    <button onClick={() => deleteCard(c.id)} style={{fontFamily:T.mono, fontSize:10, color:'#bf4a30', background:'none', border:'none', cursor:'pointer', padding:0}}>Delete</button>
+      {/* Main 2-col: Decks shelf + Study modes */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr 320px', gap:12, marginBottom:12}}>
+
+        {/* Decks shelf */}
+        <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'18px 20px'}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
+            <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em'}}>Your Decks</div>
+            <button onClick={() => openNew()} style={{fontFamily:T.mono, fontSize:9, color:T.accent, background:'none', border:`1px solid ${T.border}`, padding:'3px 9px', borderRadius:6, cursor:'pointer'}}>+ Add card</button>
+          </div>
+          {decksBySubj.length === 0 ? (
+            <div style={{textAlign:'center', padding:'32px 0'}}>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink3, marginBottom:6}}>No decks yet</div>
+              <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3}}>Cards you create will appear here grouped by subject.</div>
+            </div>
+          ) : (
+            <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))', gap:10}}>
+              {decksBySubj.map(({subj:s, cards:dc}) => (
+                <div key={s.id} onClick={() => openNew(s.id)} style={{borderRadius:10, border:`1px solid ${T.border}`, borderTop:`3px solid ${s.color}`, padding:'14px 14px 12px', cursor:'pointer', background:T.bg, position:'relative', overflow:'hidden'}}
+                  onMouseOver={e=>e.currentTarget.style.background=T.bl}
+                  onMouseOut={e=>e.currentTarget.style.background=T.bg}>
+                  <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:6}}>{s.short}</div>
+                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink, marginBottom:8, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.name}</div>
+                  <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                    <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:26, color:s.color, lineHeight:1}}>{dc.length}</div>
+                    <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3}}>cards</div>
+                  </div>
+                  <div style={{height:3, background:T.bl, borderRadius:2, overflow:'hidden', marginTop:8}}>
+                    <div style={{height:'100%', width:`${Math.min((dc.length/Math.max(flashCards.length,1))*100,100)}%`, background:s.color, borderRadius:2, opacity:0.7}}/>
                   </div>
                 </div>
-                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink, marginBottom:4, lineHeight:1.3}}>{c.q}</div>
-                <div style={{fontFamily:T.ui, fontSize:11, color:T.ink3, lineHeight:1.55, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical'}}>{c.a}</div>
+              ))}
+              {ungrouped.length > 0 && (
+                <div style={{borderRadius:10, border:`1px solid ${T.border}`, borderTop:`3px solid ${T.ink3}`, padding:'14px 14px 12px', background:T.bg}}>
+                  <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:6}}>Misc</div>
+                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:26, color:T.ink3, lineHeight:1}}>{ungrouped.length}</div>
+                  <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, marginTop:4}}>cards</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Recent cards list */}
+          {flashCards.length > 0 && (
+            <div style={{marginTop:18, borderTop:`1px solid ${T.bl}`, paddingTop:14}}>
+              <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:10}}>Recent cards</div>
+              <div style={{display:'flex', flexDirection:'column', gap:6}}>
+                {[...flashCards].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).slice(0,5).map(c => {
+                  const s = subjectBy(c.subj);
+                  return (
+                    <div key={c.id} style={{display:'flex', alignItems:'center', gap:10, padding:'8px 10px', borderRadius:8, background:T.bg}}>
+                      <div style={{width:4, height:4, borderRadius:1, background:s.color, flexShrink:0}}/>
+                      <div style={{flex:1, minWidth:0}}>
+                        <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{c.q}</div>
+                        <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, marginTop:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{c.a}</div>
+                      </div>
+                      <div style={{display:'flex', gap:8, flexShrink:0}}>
+                        <button onClick={()=>openEditCard(c)} style={{fontFamily:T.mono, fontSize:9, color:T.ink3, background:'none', border:'none', cursor:'pointer', padding:0}}>Edit</button>
+                        <button onClick={()=>deleteCard(c.id)} style={{fontFamily:T.mono, fontSize:9, color:'#bf4a30', background:'none', border:'none', cursor:'pointer', padding:0}}>×</button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {flashCards.length > 5 && (
+                  <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textAlign:'center', marginTop:4}}>+{flashCards.length-5} more · open Key Concepts to see all</div>
+                )}
               </div>
-            );
-          })}
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Study modes — vertical stack */}
+        <div style={{display:'flex', flexDirection:'column', gap:8}}>
+          <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:4}}>Study Modes</div>
+          {MODES.map(m => (
+            <button key={m.id} type="button" onClick={() => setMode(m.id)}
+              style={{display:'flex', alignItems:'center', gap:12, padding:'12px 14px', background:T.surface, border:`1px solid ${T.border}`, borderRadius:10, cursor:'pointer', textAlign:'left', width:'100%'}}
+              onMouseOver={e=>e.currentTarget.style.background=T.bl}
+              onMouseOut={e=>e.currentTarget.style.background=T.surface}>
+              <div style={{width:36, height:36, borderRadius:9, background:`${m.icC}15`, border:`1.5px solid ${m.icC}35`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+                <span style={{fontFamily:T.mono, fontSize:11, color:m.icC, fontWeight:700}}>{m.ic}</span>
+              </div>
+              <div style={{flex:1, minWidth:0}}>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink, lineHeight:1.2}}>{m.title}</div>
+                <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, marginTop:2}}>{m.sub}</div>
+              </div>
+              <div style={{fontFamily:T.mono, fontSize:9, color:m.icC, flexShrink:0}}>→</div>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 
