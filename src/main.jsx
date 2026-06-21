@@ -4414,7 +4414,15 @@ function ToolsScreen({ userData, onUpdate }) {
 
   const openTool = (tool) => {
     if (tool?.id) onUpdate && onUpdate({ toolOpens: appendToolOpen(toolOpens, tool.id, validToolIds) });
-    if (tool?.url) window.open(tool.url, '_blank', 'noopener,noreferrer');
+    if (tool?.url) {
+      const a = document.createElement('a');
+      a.href = tool.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
   };
 
   const addCustomTool = (tool) => {
@@ -4422,22 +4430,26 @@ function ToolsScreen({ userData, onUpdate }) {
   };
 
   const QUICK_LAUNCH = [
-    { tool: allTools.find(t => t.id==='claude'),     label:'Ask Claude a question', sub:'Start new conversation', key:'⌘1' },
-    { tool: allTools.find(t => t.id==='figma'),      label:'New Figma file',        sub:'Open design canvas',     key:'⌘2' },
-    { tool: allTools.find(t => t.id==='notebooklm'), label:'Open NotebookLM',       sub:'Study from your notes',  key:'⌘3' },
-    { tool: allTools.find(t => t.id==='notion'),     label:'New Notion page',       sub:'Capture & organise',     key:'⌘4' },
+    { tool: allTools.find(t => t.id==='claude'),     label:'Ask Claude a question', sub:'Start new conversation', key:'⌥1' },
+    { tool: allTools.find(t => t.id==='figma'),      label:'New Figma file',        sub:'Open design canvas',     key:'⌥2' },
+    { tool: allTools.find(t => t.id==='notebooklm'), label:'Open NotebookLM',       sub:'Study from your notes',  key:'⌥3' },
+    { tool: allTools.find(t => t.id==='notion'),     label:'New Notion page',       sub:'Capture & organise',     key:'⌥4' },
   ].filter(ql => ql.tool?.id);
 
   useEffect(() => {
     const onKey = (e) => {
-      if (!e.metaKey && !e.ctrlKey) return;
+      if (!e.altKey) return;
       const n = Number(e.key);
       if (n < 1 || n > 4) return;
       e.preventDefault();
-      const tool = QUICK_LAUNCH[n - 1]?.tool;
-      if (!tool?.id) return;
-      onUpdate && onUpdate({ toolOpens: appendToolOpen(toolOpens, tool.id, validToolIds) });
-      if (tool.url) window.open(tool.url, '_blank', 'noopener,noreferrer');
+      const ql = QUICK_LAUNCH[n - 1];
+      if (!ql?.tool?.id) return;
+      onUpdate && onUpdate({ toolOpens: appendToolOpen(toolOpens, ql.tool.id, validToolIds) });
+      if (ql.tool.url) {
+        const a = document.createElement('a');
+        a.href = ql.tool.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -4471,7 +4483,7 @@ function ToolsScreen({ userData, onUpdate }) {
               <span style={{fontFamily:T.ui, fontWeight:700, fontSize:28, color:T.ink}}>Your </span>
               <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:30, color:T.ink}}>command center.</span>
             </h1>
-            <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>Opens in a new tab · ⌘1–4 for quick launch</div>
+            <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>Opens in a new tab · ⌥1–4 for quick launch</div>
           </div>
           <button type="button" onClick={() => setShowAddTool(true)} style={{
             padding:'7px 18px', border:'none', background:T.accent, color:'#fff',
@@ -4554,21 +4566,55 @@ function ToolsScreen({ userData, onUpdate }) {
 
           {/* Usage insight */}
           <div className="shq-tools-mid-card" style={{background:T.surface, padding:'12px 16px', display:'flex', flexDirection:'column', borderRadius:12}}>
-            <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:8}}>
+            <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:10}}>
               <span style={{color:T.accent, fontSize:10, lineHeight:1}}>★</span>
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Insight</div>
             </div>
-            <div className="shq-tools-mid-body" style={{gap:10}}>
+            <div className="shq-tools-mid-body" style={{gap:8}}>
             {usageInsight
               ? usageInsight.split(/(?<=\.)\s+/).map((sentence, i) => (
-                <div key={i} style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13.5, color: i === 0 ? T.ink2 : T.ink3, lineHeight:1.55}}>
+                <div key={i} style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color: i === 0 ? T.ink2 : T.ink3, lineHeight:1.55}}>
                   {sentence}
                 </div>
               ))
-              : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13.5, color:T.ink3, lineHeight:1.55}}>Use your tools to generate insights.</div>
+              : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3, lineHeight:1.55}}>Open tools to generate insights here.</div>
             }
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, paddingTop:4, borderTop:`1px solid ${T.bl}`}}>
-              {connectedCount} of {allTools.length} tools tracked · {weekOpens} open{weekOpens !== 1 ? 's' : ''} this week
+
+            {/* 7-day activity dots */}
+            <div style={{paddingTop:8, borderTop:`1px solid ${T.bl}`}}>
+              <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6}}>Last 7 days</div>
+              <div style={{display:'flex', gap:4}}>
+                {Array.from({length:7}, (_,i) => {
+                  const d = new Date(); d.setDate(d.getDate() - (6 - i));
+                  const ds = d.toISOString().slice(0,10);
+                  const dayOpens = toolOpens.filter(o => new Date(o.at).toISOString().slice(0,10) === ds).length;
+                  return (
+                    <div key={i} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3}}>
+                      <div style={{width:'100%', height:28, borderRadius:4, background: dayOpens > 0 ? T.accent : T.bl, opacity: dayOpens > 0 ? Math.min(0.35 + dayOpens * 0.2, 1) : 1, position:'relative'}}>
+                        {dayOpens > 0 && <div style={{position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:T.mono, fontSize:9, color:'#fff', fontWeight:600}}>{dayOpens}</div>}
+                      </div>
+                      <span style={{fontFamily:T.mono, fontSize:8, color:T.ink3, letterSpacing:'0.04em'}}>
+                        {['Su','Mo','Tu','We','Th','Fr','Sa'][d.getDay()]}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Stats footer */}
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, paddingTop:8, borderTop:`1px solid ${T.bl}`}}>
+              {[
+                { label:'Tracked', val:`${connectedCount}/${allTools.length}` },
+                { label:'This week', val:`${weekOpens} open${weekOpens !== 1 ? 's' : ''}` },
+                { label:'Top tool', val: topToolEntry?.name || '—' },
+                { label:'All time', val:`${toolOpens.length} total` },
+              ].map(s => (
+                <div key={s.label}>
+                  <div style={{fontFamily:T.mono, fontSize:8, color:T.ink3, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:2}}>{s.label}</div>
+                  <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.val}</div>
+                </div>
+              ))}
             </div>
             </div>
           </div>
