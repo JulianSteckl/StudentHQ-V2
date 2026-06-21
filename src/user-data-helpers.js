@@ -100,12 +100,11 @@ const gradeSparklinePoints = (history, subjectId, width = 108, height = 18) => {
 
 const normalizeToolOpens = (list, validIds = null) => {
   if (!Array.isArray(list)) return [];
-  const ids = validIds || BUILTIN_TOOL_IDS;
   return list.map((item, i) => ({
     id: item?.id ? String(item.id) : `to-${i}`,
     toolId: String(item?.toolId || ''),
     at: Number(item?.at) || 0,
-  })).filter(x => x.toolId && ids.has(x.toolId) && x.at > 0)
+  })).filter(x => x.toolId && (!validIds || validIds.has(x.toolId)) && x.at > 0)
     .sort((a, b) => b.at - a.at)
     .slice(0, 200);
 };
