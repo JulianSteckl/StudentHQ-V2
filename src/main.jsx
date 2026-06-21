@@ -4513,7 +4513,7 @@ function ToolsScreen({ userData, onUpdate }) {
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', flex:1}}>Intelligent Suggestions</div>
               {suggestions.length > 0 && <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{suggestions.length} active</div>}
             </div>
-            <div className="shq-tools-mid-body">
+            <div className="shq-tools-mid-body" style={{justifyContent:'space-between'}}>
             {suggestions.length === 0
               ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3, lineHeight:1.5}}>You've tried every tool — keep exploring.</div>
               : suggestions.map((sg, i) => (
@@ -4551,7 +4551,7 @@ function ToolsScreen({ userData, onUpdate }) {
               : <>
                 {(() => {
                   const totalSessions = trackedTools.reduce((s, t) => s + t.sessions, 0);
-                  return trackedTools.map((tool, i, arr) => {
+                  return trackedTools.slice(0, 4).map((tool, i, arr) => {
                     const pct = totalSessions > 0 ? Math.round((tool.sessions / totalSessions) * 100) : 0;
                     return (
                       <div key={tool.id} style={{padding:'8px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
@@ -4587,7 +4587,7 @@ function ToolsScreen({ userData, onUpdate }) {
               <span style={{color:T.accent, fontSize:10, lineHeight:1}}>★</span>
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Insight</div>
             </div>
-            <div className="shq-tools-mid-body" style={{gap:8}}>
+            <div className="shq-tools-mid-body" style={{gap:8, justifyContent:'space-between'}}>
             {usageInsight
               ? usageInsight.split(/(?<=\.)\s+/).map((sentence, i) => (
                 <div key={i} style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color: i === 0 ? T.ink2 : T.ink3, lineHeight:1.55}}>

@@ -219,7 +219,7 @@ const buildToolSuggestions = (opens, { notesCount = 0, tools = TOOLS_DATA } = {}
       .map(t => ({ tool: t, sessions: counts[t.id] || 0 }))
       .sort((a, b) => a.sessions - b.sessions)
       .filter(p => p.sessions > 0);
-    return sorted.slice(0, 5).map((pick, i) => ({
+    return sorted.slice(0, 4).map((pick, i) => ({
       tool: pick.tool,
       msg: i === 0
         ? `${pick.tool.name} is your least-used tool — revisit it to stay sharp.`
@@ -235,7 +235,7 @@ const buildToolSuggestions = (opens, { notesCount = 0, tools = TOOLS_DATA } = {}
     if (t.cat === 'AI') return 2;
     return 3;
   };
-  return untried.sort((a, b) => priority(a) - priority(b)).slice(0, 5).map(tool => ({
+  return untried.sort((a, b) => priority(a) - priority(b)).slice(0, 4).map(tool => ({
     tool,
     msg: notesCount > 0 && tool.id === 'notebooklm'
       ? `You have ${notesCount} note${notesCount === 1 ? '' : 's'} — try ${tool.name} to study from them.`
