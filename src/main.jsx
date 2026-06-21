@@ -5022,7 +5022,7 @@ function SubjectDetailScreen({ profile, userData, onUpdate, onNav, screenAction 
       </div>
 
       {/* Notes full-width */}
-      <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'16px 20px', marginBottom:16}}>
+      <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'16px 20px', marginBottom:12}}>
         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
           <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em'}}>Notes · {subjNotes.length}</div>
           <button type="button" onClick={() => onNav?.('notes')} style={{fontFamily:T.mono, fontSize:9, color:T.accent, background:'none', border:'none', padding:0, cursor:'pointer'}}>All notes →</button>
@@ -5032,7 +5032,7 @@ function SubjectDetailScreen({ profile, userData, onUpdate, onNav, screenAction 
         ) : (
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:10}}>
             {subjNotes.map(n => (
-              <div key={n.id} style={{background:T.bg, borderRadius:10, padding:'12px 14px', borderLeft:`3px solid ${s.color}`, border:`1px solid ${T.border}`, borderLeftWidth:3, borderLeftColor:s.color}}>
+              <div key={n.id} style={{background:T.bg, borderRadius:10, padding:'12px 14px', border:`1px solid ${T.border}`, borderLeft:`3px solid ${s.color}`}}>
                 <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink, marginBottom:5, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{n.title}</div>
                 <div style={{fontFamily:T.ui, fontSize:11, color:T.ink3, lineHeight:1.5, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical'}}>{n.preview || n.body}</div>
                 {n.date && <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, marginTop:8}}>{n.date}</div>}
@@ -5040,6 +5040,100 @@ function SubjectDetailScreen({ profile, userData, onUpdate, onNav, screenAction 
             ))}
           </div>
         )}
+      </div>
+
+      {/* Bottom row: Flashcards + Activity + Quick Actions */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, marginBottom:16}}>
+
+        {/* Flashcards */}
+        <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'16px 18px'}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
+            <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em'}}>Flashcards</div>
+            <button type="button" onClick={() => onNav?.('flashcards')} style={{fontFamily:T.mono, fontSize:9, color:T.accent, background:'none', border:'none', padding:0, cursor:'pointer'}}>Study →</button>
+          </div>
+          {flashcards.length === 0 ? (
+            <div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink3, marginBottom:8}}>No flashcards yet.</div>
+              <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3}}>Create cards in Flashcards to start studying.</div>
+            </div>
+          ) : (
+            <>
+              <div style={{display:'flex', alignItems:'baseline', gap:6, marginBottom:8}}>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:36, color:s.color, lineHeight:1}}>{flashcards.length}</div>
+                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>card{flashcards.length!==1?'s':''}</div>
+              </div>
+              <div style={{height:5, background:T.bl, borderRadius:3, overflow:'hidden', marginBottom:10}}>
+                <div style={{height:'100%', width:`${Math.min((flashcards.length/20)*100,100)}%`, background:s.color, borderRadius:3, opacity:0.7}}/>
+              </div>
+              <div style={{display:'flex', flexDirection:'column', gap:5}}>
+                {flashcards.slice(0,3).map((c,i) => (
+                  <div key={i} style={{padding:'7px 10px', background:T.bg, borderRadius:7, border:`1px solid ${T.border}`}}>
+                    <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{c.q}</div>
+                  </div>
+                ))}
+                {flashcards.length > 3 && <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, paddingLeft:2}}>+{flashcards.length-3} more</div>}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Activity timeline */}
+        <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'16px 18px'}}>
+          <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:14}}>Recent Activity</div>
+          {(() => {
+            const events = [
+              ...doneHw.map(h => ({ type:'hw', label:`Completed: ${h.title}`, date:h.updatedAt||h.createdAt||0, color:'#3a8a52', icon:'✓' })),
+              ...subjNotes.map(n => ({ type:'note', label:`Note: ${n.title}`, date:n.updatedAt||n.createdAt||0, color:s.color, icon:'◈' })),
+              ...subjQz.map(q => ({ type:'quiz', label:`Quiz: ${q.title}`, date:q.createdAt||0, color:'#9254de', icon:'◉' })),
+              ...flashcards.map(c => ({ type:'card', label:`Card: ${c.q?.slice(0,28)||'Flashcard'}`, date:c.createdAt||0, color:s.color, icon:'⊞' })),
+            ].filter(e=>e.date).sort((a,b)=>b.date-a.date).slice(0,6);
+
+            if (!events.length) return (
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink3}}>No activity yet.</div>
+            );
+            return events.map((e,i) => (
+              <div key={i} style={{display:'flex', alignItems:'flex-start', gap:10, marginBottom:10}}>
+                <div style={{width:20, height:20, borderRadius:5, background:`${e.color}15`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:1}}>
+                  <span style={{fontSize:9, color:e.color}}>{e.icon}</span>
+                </div>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{e.label}</div>
+                  <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, marginTop:1}}>
+                    {new Date(e.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+                  </div>
+                </div>
+              </div>
+            ));
+          })()}
+        </div>
+
+        {/* Quick Actions */}
+        <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'16px 18px'}}>
+          <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:14}}>Quick Actions</div>
+          <div style={{display:'flex', flexDirection:'column', gap:7}}>
+            {[
+              { label:'Add homework',   sub:'For this subject',       icon:'✎', nav:'homework' },
+              { label:'Add quiz',       sub:'Track readiness',         icon:'◉', nav:'quizzes'  },
+              { label:'New note',       sub:'Add to knowledge base',   icon:'◈', nav:'notes'    },
+              { label:'Study cards',    sub:`${flashcards.length} card${flashcards.length!==1?'s':''} ready`, icon:'⊞', nav:'flashcards' },
+              { label:'View grades',    sub:'Full GPA breakdown',      icon:'★', nav:'grades'   },
+            ].map(a => (
+              <button key={a.label} type="button" onClick={() => onNav?.(a.nav)}
+                style={{display:'flex', alignItems:'center', gap:10, padding:'9px 11px', background:T.bg, border:`1px solid ${T.border}`, borderRadius:8, cursor:'pointer', textAlign:'left', width:'100%'}}
+                onMouseOver={e=>e.currentTarget.style.background=T.bl}
+                onMouseOut={e=>e.currentTarget.style.background=T.bg}>
+                <div style={{width:26, height:26, borderRadius:6, background:`${s.color}12`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+                  <span style={{fontSize:11, color:s.color}}>{a.icon}</span>
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontFamily:T.ui, fontSize:12, color:T.ink}}>{a.label}</div>
+                  <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, marginTop:1}}>{a.sub}</div>
+                </div>
+                <span style={{fontFamily:T.mono, fontSize:9, color:T.ink3}}>→</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
