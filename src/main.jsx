@@ -2690,7 +2690,7 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
     <div className="screen-enter shq-screen-pad" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.13em', marginBottom: 6 }}>
             {schedTermLabel(now)} · {weekLabel}{isWeekend && weekOffset === 0 ? ' · Weekend' : ''}
@@ -2712,7 +2712,7 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
       </div>
 
       {/* Top section: 3-col — Bell | Stats+Urgent | Focus */}
-      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr 260px', gap: 12, marginBottom: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr 260px', gap: 10, marginBottom: 10 }}>
 
         {/* Bell schedule — vertical */}
         <div style={{ ...cardStyle, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
@@ -2920,13 +2920,13 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
       </div>
 
       {/* Week grid Mon–Fri */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10, marginBottom: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 8, marginBottom: 8 }}>
         {dayCards.map(d => (
           <div key={d.name} style={{
             ...cardStyle, padding: '16px 14px',
             background: d.isToday ? T.accentSoft : T.surface,
             borderTop: `3px solid ${d.isToday ? T.accent : T.border}`,
-            minHeight: 180, display: 'flex', flexDirection: 'column',
+            minHeight: 140, display: 'flex', flexDirection: 'column',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
               <div style={{ fontFamily: T.mono, fontSize: 9.5, color: d.isToday ? T.accent : T.ink3, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{d.name}</div>
@@ -2967,7 +2967,7 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
       </div>
 
       {/* Weekend row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
         {weekendCards.map(d => (
           <div key={d.name} style={{
             ...cardStyle, padding: '16px 18px',
@@ -3028,7 +3028,7 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
         const weakestPct = weakest ? Math.min((weakestGpa / 4.0) * 100, 100) : 0;
 
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
 
             {/* Streak / XP */}
             <div style={{ ...cardStyle, padding: '14px 16px' }}>
