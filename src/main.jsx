@@ -3138,32 +3138,34 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
           </div>
 
           {/* Best performing */}
-          <div style={{background:T.surface, padding:'18px 20px', borderRadius:12, borderBottom:`2px solid #3a8a5230`}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:12}}>Best Performing</div>
+          <div style={{background:T.surface, padding:'18px 20px', borderRadius:12, borderBottom:`2px solid #3a8a5230`, position:'relative', overflow:'hidden'}}>
+            {bestPerf && <div style={{position:'absolute', top:0, left:0, right:0, height:3, background:`linear-gradient(90deg, ${bestPerf.color}, #3a8a52)`}}/>}
+            <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>Best Performing</div>
             {bestPerf ? (<>
-              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
-                <div style={{width:8, height:8, borderRadius:3, background:bestPerf.color, flexShrink:0}}/>
-                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, lineHeight:1}}>{bestPerf.short}</div>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8}}>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink}}>{bestPerf.short}</div>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:26, color:'#3a8a52', lineHeight:1}}>{grades[bestPerf.id]}</div>
               </div>
-              <div style={{display:'flex', alignItems:'center', gap:8}}>
-                <span style={{fontFamily:T.mono, fontSize:11, color:'#3a8a52', fontWeight:600}}>{grades[bestPerf.id]}</span>
-                <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{(GPA_MAP[grades[bestPerf.id]] ?? 0).toFixed(1)} pts</span>
+              <div style={{height:3, background:T.bl, borderRadius:2, overflow:'hidden', marginBottom:5}}>
+                <div style={{height:'100%', width:`${Math.min(((GPA_MAP[grades[bestPerf.id]]??0)/4)*100,100)}%`, background:'#3a8a52', borderRadius:2}}/>
               </div>
+              <div style={{fontFamily:T.mono, fontSize:9.5, color:'#3a8a52'}}>{(GPA_MAP[grades[bestPerf.id]]??0).toFixed(1)} / 4.0 pts</div>
             </>) : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.5}}>Log a grade to see.</div>}
           </div>
 
           {/* Needs attention */}
-          <div style={{background:T.surface, padding:'18px 20px', borderRadius:12, borderBottom:`2px solid #bf4a3030`}}>
-            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:12}}>Needs Attention</div>
+          <div style={{background:T.surface, padding:'18px 20px', borderRadius:12, borderBottom:`2px solid #bf4a3030`, position:'relative', overflow:'hidden'}}>
+            {showNeedsAttn && <div style={{position:'absolute', top:0, left:0, right:0, height:3, background:`linear-gradient(90deg, ${needsAttn.color}, #bf4a30)`}}/>}
+            <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10}}>Needs Attention</div>
             {showNeedsAttn ? (<>
-              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
-                <div style={{width:8, height:8, borderRadius:3, background:needsAttn.color, flexShrink:0}}/>
-                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, lineHeight:1}}>{needsAttn.short}</div>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8}}>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink}}>{needsAttn.short}</div>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:26, color:'#bf4a30', lineHeight:1}}>{grades[needsAttn.id]}</div>
               </div>
-              <div style={{display:'flex', alignItems:'center', gap:8}}>
-                <span style={{fontFamily:T.mono, fontSize:11, color:'#bf4a30', fontWeight:600}}>{grades[needsAttn.id]}</span>
-                <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{(GPA_MAP[grades[needsAttn.id]] ?? 0).toFixed(1)} pts</span>
+              <div style={{height:3, background:T.bl, borderRadius:2, overflow:'hidden', marginBottom:5}}>
+                <div style={{height:'100%', width:`${Math.min(((GPA_MAP[grades[needsAttn.id]]??0)/4)*100,100)}%`, background:'#bf4a30', borderRadius:2}}/>
               </div>
+              <div style={{fontFamily:T.mono, fontSize:9.5, color:'#bf4a30'}}>{(GPA_MAP[grades[needsAttn.id]]??0).toFixed(1)} / 4.0 pts</div>
             </>) : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.5}}>{graded.length < 2 ? 'Log 2+ grades to compare.' : 'All classes on par.'}</div>}
           </div>
 
@@ -3193,34 +3195,86 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
           </div>
         </div>
 
-        {/* Grade mix — shown once at least one grade is logged */}
-        {gradedCount >= 1 && (
+        {/* Bottom section: Subject Balance + Grade Distribution & Insights */}
+        {subjects.length > 0 && (
           <div className="shq-grades-mix" style={{marginBottom:12}}>
-            <div style={{background:T.surface, borderRadius:12, padding:'18px 22px'}}>
-              <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:4}}>
-                <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Overview</div>
-              </div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink, marginBottom:4}}>
-                {gradedCount} of {subjects.length} {subjects.length === 1 ? 'class' : 'classes'} graded
-              </div>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>
-                {subjects.length - gradedCount > 0
-                  ? `${subjects.length - gradedCount} still waiting on a grade`
-                  : 'Every class has a grade logged'}
-              </div>
-            </div>
-            <div style={{background:T.surface, borderRadius:12, padding:'18px 22px'}}>
-              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:12}}>Grade Mix</div>
-              {['A','B','C','D','F'].map(letter => (
-                <div key={letter} style={{display:'flex', alignItems:'center', gap:10, marginBottom:9}}>
-                  <div style={{width:16, fontFamily:T.mono, fontSize:11, color:T.ink2, fontWeight:500}}>{letter}</div>
-                  <div style={{flex:1, height:8, background:T.bl, borderRadius:4, overflow:'hidden'}}>
-                    <div style={{height:'100%', width:`${gradedCount ? (gradeMix[letter] / gradedCount) * 100 : 0}%`, background:gradeMixColors[letter], borderRadius:4, transition:'width 0.3s'}}/>
+
+            {/* Subject Balance radar */}
+            {subjects.length >= 3 ? (() => {
+              const radarSubjs = subjects.slice(0, 8);
+              const n = radarSubjs.length;
+              const CX = 90, CY2 = 90, RAD = 62;
+              const angleStep = (2 * Math.PI) / n;
+              const pt = (i, r) => [CX + r * Math.sin(i * angleStep), CY2 - r * Math.cos(i * angleStep)];
+              const gridLines = [1,2,3,4].map(l => radarSubjs.map((_, i) => pt(i, RAD*l/4)).map(p=>p.join(',')).join(' '));
+              const dataPoints = radarSubjs.map((s, i) => { const g = grades[s.id] ? (GPA_MAP[grades[s.id]]||0) : 0; return pt(i, Math.max((g/4)*RAD,3)); });
+              return (
+                <div style={{background:T.surface, borderRadius:12, padding:'18px 20px', display:'flex', alignItems:'center', gap:18}}>
+                  <div style={{flexShrink:0}}>
+                    <svg width={180} height={180} viewBox="0 0 180 180">
+                      {gridLines.map((pts,l) => <polygon key={l} points={pts} fill="none" stroke={T.border} strokeWidth={0.7} opacity={0.5}/>)}
+                      {radarSubjs.map((_,i) => { const [x,y]=pt(i,RAD); return <line key={i} x1={CX} y1={CY2} x2={x} y2={y} stroke={T.border} strokeWidth={0.5} opacity={0.35}/>; })}
+                      <polygon points={dataPoints.map(p=>p.join(',')).join(' ')} fill={`${T.accent}20`} stroke={T.accent} strokeWidth={1.5} strokeLinejoin="round"/>
+                      {dataPoints.map((p,i) => <circle key={i} cx={p[0]} cy={p[1]} r={2.5} fill={radarSubjs[i].color}/>)}
+                      {radarSubjs.map((s,i) => { const [x,y]=pt(i,RAD+13); return <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="central" style={{fontFamily:T.mono,fontSize:9,fill:T.ink3}}>{s.short||s.name.slice(0,6)}</text>; })}
+                    </svg>
                   </div>
-                  <div style={{width:16, textAlign:'right', fontFamily:T.mono, fontSize:10, color:T.ink3}}>{gradeMix[letter]}</div>
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:6}}>
+                      <div style={{width:5, height:5, borderRadius:'50%', background:T.accent}}/>
+                      <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em'}}>Subject Balance</div>
+                    </div>
+                    <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink, marginBottom:10}}>Grades across classes</div>
+                    <div style={{display:'flex', flexDirection:'column', gap:5}}>
+                      {radarSubjs.map(s => {
+                        const g = grades[s.id]; const gv = g ? (GPA_MAP[g]||0) : null;
+                        return (
+                          <div key={s.id} style={{display:'flex', alignItems:'center', gap:8}}>
+                            <div style={{width:5, height:5, borderRadius:1, background:s.color, flexShrink:0}}/>
+                            <div style={{fontFamily:T.ui, fontSize:11, color:T.ink2, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.short}</div>
+                            <div style={{fontFamily:T.mono, fontSize:10, fontWeight:600, color: g?(gv>=3.7?'#3a8a52':gv>=3?T.accent:gv>=2?'#b07020':'#bf4a30'):T.border}}>{g||'—'}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-              ))}
+              );
+            })() : (
+              <div style={{background:T.surface, borderRadius:12, padding:'18px 22px', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3}}>Add 3+ subjects to see Subject Balance.</div>
+              </div>
+            )}
+
+            {/* Grade Distribution + Grade Insights stacked */}
+            <div style={{display:'flex', flexDirection:'column', gap:12}}>
+              <div style={{background:T.surface, borderRadius:12, padding:'18px 22px'}}>
+                <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
+                  <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52'}}/>
+                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Grade Distribution · {gradedCount}/{subjects.length}</div>
+                </div>
+                {gradedCount === 0
+                  ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3}}>Set grades to see the distribution.</div>
+                  : ['A','B','C','D','F'].map(letter => (
+                    <div key={letter} style={{display:'flex', alignItems:'center', gap:10, marginBottom:8}}>
+                      <div style={{width:14, fontFamily:T.mono, fontSize:10, color:T.ink2, fontWeight:600}}>{letter}</div>
+                      <div style={{flex:1, height:7, background:T.bl, borderRadius:3, overflow:'hidden'}}>
+                        <div style={{height:'100%', width:`${gradedCount?(gradeMix[letter]/gradedCount)*100:0}%`, background:gradeMixColors[letter], borderRadius:3, transition:'width 0.3s'}}/>
+                      </div>
+                      <div style={{width:16, textAlign:'right', fontFamily:T.mono, fontSize:10, color:T.ink3}}>{gradeMix[letter]}</div>
+                    </div>
+                  ))
+                }
+              </div>
+              <div style={{background:T.surface, borderRadius:12, padding:'18px 22px', flex:1}}>
+                <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
+                  <div style={{width:6, height:6, borderRadius:'50%', background:'#4285f4'}}/>
+                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Grade Insights</div>
+                </div>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.7}}>
+                  {insights || 'Insights appear once you log your first grade.'}
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -3325,96 +3379,6 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
         </div>
         )}
 
-        {/* Subject Balance + bottom cards */}
-        {subjects.length > 0 && (
-        <div style={{display:'grid', gridTemplateColumns: subjects.length >= 3 ? '1fr 1fr' : '1fr', gap:12, marginTop:12}}>
-
-          {/* Radar chart — compact */}
-          {subjects.length >= 3 && (() => {
-            const radarSubjs = subjects.slice(0, 8);
-            const n = radarSubjs.length;
-            const CX = 90, CY2 = 90, RAD = 62;
-            const angleStep = (2 * Math.PI) / n;
-            const pt = (i, r) => [CX + r * Math.sin(i * angleStep), CY2 - r * Math.cos(i * angleStep)];
-            const gridLines = [1,2,3,4].map(l => {
-              const r = RAD * l / 4;
-              return radarSubjs.map((_, i) => pt(i, r)).map(p => p.join(',')).join(' ');
-            });
-            const dataPoints = radarSubjs.map((s, i) => {
-              const g = grades[s.id] ? (GPA_MAP[grades[s.id]] || 0) : 0;
-              return pt(i, Math.max((g/4)*RAD, 3));
-            });
-            return (
-              <div style={{background:T.surface, borderRadius:12, padding:'18px 20px', display:'flex', alignItems:'center', gap:20}}>
-                <div style={{flexShrink:0}}>
-                  <svg width={180} height={180} viewBox="0 0 180 180">
-                    {gridLines.map((pts, l) => <polygon key={l} points={pts} fill="none" stroke={T.border} strokeWidth={0.7} opacity={0.5}/>)}
-                    {radarSubjs.map((_, i) => { const [x,y]=pt(i,RAD); return <line key={i} x1={CX} y1={CY2} x2={x} y2={y} stroke={T.border} strokeWidth={0.5} opacity={0.35}/>; })}
-                    <polygon points={dataPoints.map(p=>p.join(',')).join(' ')} fill={`${T.accent}20`} stroke={T.accent} strokeWidth={1.5} strokeLinejoin="round"/>
-                    {dataPoints.map((p,i) => <circle key={i} cx={p[0]} cy={p[1]} r={2.5} fill={radarSubjs[i].color}/>)}
-                    {radarSubjs.map((s,i) => { const [x,y]=pt(i,RAD+13); return <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="central" style={{fontFamily:T.mono, fontSize:9, fill:T.ink3}}>{s.short||s.name.slice(0,6)}</text>; })}
-                  </svg>
-                </div>
-                <div>
-                  <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:6}}>
-                    <div style={{width:5, height:5, borderRadius:'50%', background:T.accent}}/>
-                    <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em'}}>Subject Balance</div>
-                  </div>
-                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:T.ink, marginBottom:10, lineHeight:1.3}}>Grades across classes</div>
-                  <div style={{display:'flex', flexDirection:'column', gap:5}}>
-                    {radarSubjs.map(s => {
-                      const g = grades[s.id];
-                      const gv = g ? (GPA_MAP[g]||0) : null;
-                      return (
-                        <div key={s.id} style={{display:'flex', alignItems:'center', gap:8}}>
-                          <div style={{width:5, height:5, borderRadius:1, background:s.color, flexShrink:0}}/>
-                          <div style={{fontFamily:T.ui, fontSize:11, color:T.ink2, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.short}</div>
-                          <div style={{fontFamily:T.mono, fontSize:10, color: g ? (gv>=3.7?'#3a8a52':gv>=3?T.accent:gv>=2?'#b07020':'#bf4a30') : T.border, fontWeight:600}}>{g||'—'}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Right column: Grade Distribution + Grade Insights */}
-          <div style={{display:'flex', flexDirection:'column', gap:12}}>
-            <div style={{background:T.surface, borderRadius:12, padding:'18px 20px'}}>
-              <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
-                <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52'}}/>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Grade Distribution · {gradedCount}/{subjects.length} graded</div>
-              </div>
-              {gradedCount === 0
-                ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3}}>Set grades to see the distribution.</div>
-                : ['A','B','C','D','F'].map(letter => {
-                    const barColors = {A:'#3a8a52',B:T.accent,C:'#b07020',D:'#bf4a30',F:'#8a3030'};
-                    return (
-                      <div key={letter} style={{display:'flex', alignItems:'center', gap:10, marginBottom:7}}>
-                        <div style={{width:14, fontFamily:T.mono, fontSize:10, color:T.ink2, fontWeight:600}}>{letter}</div>
-                        <div style={{flex:1, height:6, background:T.bl, borderRadius:3, overflow:'hidden'}}>
-                          <div style={{height:'100%', width:`${gradedCount?(gradeMix[letter]/gradedCount)*100:0}%`, background:barColors[letter], borderRadius:3, transition:'width 0.3s'}}/>
-                        </div>
-                        <div style={{width:16, textAlign:'right', fontFamily:T.mono, fontSize:10, color:T.ink3}}>{gradeMix[letter]}</div>
-                      </div>
-                    );
-                  })
-              }
-            </div>
-            <div style={{background:T.surface, borderRadius:12, padding:'18px 20px', flex:1}}>
-              <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
-                <div style={{width:6, height:6, borderRadius:'50%', background:'#4285f4'}}/>
-                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Grade Insights</div>
-              </div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.7}}>
-                {insights || 'Insights appear once you log your first grade.'}
-              </div>
-            </div>
-          </div>
-
-        </div>
-        )}
 
       {/* Past Courses modal */}
       {showPastModal && (

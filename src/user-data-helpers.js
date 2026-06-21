@@ -298,11 +298,11 @@ const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
 const gpaStandingLabel = (gpaNum) => {
   if (!gpaNum || gpaNum <= 0) return 'Ready to track.';
-  if (gpaNum >= 3.7) return 'Honor roll';
-  if (gpaNum >= 3.5) return "Dean's list";
-  if (gpaNum >= 3.0) return 'Solid standing';
-  if (gpaNum >= 2.0) return 'On track';
-  return 'Needs focus';
+  if (gpaNum >= 3.7) return 'Excellent';
+  if (gpaNum >= 3.5) return 'Very Good';
+  if (gpaNum >= 3.0) return 'Good Standing';
+  if (gpaNum >= 2.0) return 'On Track';
+  return 'Needs Focus';
 };
 
 const buildGradeInsights = (subjects, grades) => {
