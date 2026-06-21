@@ -4547,21 +4547,37 @@ function ToolsScreen({ userData, onUpdate }) {
             </div>
             <div className="shq-tools-mid-body">
             {trackedTools.length === 0
-              ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3, lineHeight:1.5}}>No usage data yet.</div>
-              : trackedTools.slice(0, -1).map((tool, i, arr) => (
-              <div key={tool.id} style={{padding:'7px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
-                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4}}>
-                  <div style={{display:'flex', alignItems:'center', gap:6, minWidth:0}}>
-                    <div style={{width:5, height:5, borderRadius:'50%', background:tool.color, flexShrink:0}} />
-                    <span style={{fontFamily:T.ui, fontSize:11.5, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tool.name}</span>
-                  </div>
-                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, flexShrink:0}}>{tool.sessions}</div>
+              ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3, lineHeight:1.5}}>No usage data yet. Open a tool to start tracking.</div>
+              : <>
+                {(() => {
+                  const totalSessions = trackedTools.reduce((s, t) => s + t.sessions, 0);
+                  return trackedTools.map((tool, i, arr) => {
+                    const pct = totalSessions > 0 ? Math.round((tool.sessions / totalSessions) * 100) : 0;
+                    return (
+                      <div key={tool.id} style={{padding:'8px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
+                        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5}}>
+                          <div style={{display:'flex', alignItems:'center', gap:6, minWidth:0}}>
+                            <ToolBrandIcon tool={tool} size={16} />
+                            <span style={{fontFamily:T.ui, fontSize:11.5, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tool.name}</span>
+                          </div>
+                          <div style={{display:'flex', alignItems:'center', gap:6, flexShrink:0}}>
+                            <span style={{fontFamily:T.mono, fontSize:9, color:T.ink3}}>{pct}%</span>
+                            <span style={{fontFamily:T.mono, fontSize:10, color:T.ink2, fontWeight:500, minWidth:14, textAlign:'right'}}>{tool.sessions}</span>
+                          </div>
+                        </div>
+                        <div style={{height:4, background:T.bl, borderRadius:2, overflow:'hidden'}}>
+                          <div style={{width:`${(tool.sessions / maxSessions) * 100}%`, height:'100%', background:tool.color, borderRadius:2, opacity:0.7, transition:'width 0.3s ease'}} />
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+                <div style={{marginTop:8, paddingTop:8, borderTop:`1px solid ${T.bl}`, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                  <span style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em'}}>Total opens</span>
+                  <span style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink}}>{trackedTools.reduce((s,t) => s+t.sessions, 0)}</span>
                 </div>
-                <div style={{height:2, background:T.bl, borderRadius:1, overflow:'hidden'}}>
-                  <div style={{width:`${(tool.sessions / maxSessions) * 100}%`, height:'100%', background:tool.color, opacity:0.65}} />
-                </div>
-              </div>
-            ))}
+              </>
+            }
             </div>
           </div>
 
@@ -4591,7 +4607,7 @@ function ToolsScreen({ userData, onUpdate }) {
                   const dayOpens = toolOpens.filter(o => new Date(o.at).toISOString().slice(0,10) === ds).length;
                   return (
                     <div key={i} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3}}>
-                      <div style={{width:'100%', height:28, borderRadius:4, background: dayOpens > 0 ? T.accent : T.bl, opacity: dayOpens > 0 ? Math.min(0.35 + dayOpens * 0.2, 1) : 1, position:'relative'}}>
+                      <div style={{width:'100%', height:36, borderRadius:4, background: dayOpens > 0 ? T.accent : T.bl, opacity: dayOpens > 0 ? Math.min(0.35 + dayOpens * 0.2, 1) : 1, position:'relative'}}>
                         {dayOpens > 0 && <div style={{position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:T.mono, fontSize:9, color:'#fff', fontWeight:600}}>{dayOpens}</div>}
                       </div>
                       <span style={{fontFamily:T.mono, fontSize:8, color:T.ink3, letterSpacing:'0.04em'}}>
