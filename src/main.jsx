@@ -3615,6 +3615,9 @@ function ToolsScreen({ userData, onUpdate }) {
               ))
               : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13.5, color:T.ink3, lineHeight:1.55}}>Use your tools to generate insights.</div>
             }
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, paddingTop:4, borderTop:`1px solid ${T.bl}`}}>
+              {connectedCount} of {allTools.length} tools tracked · {weekOpens} open{weekOpens !== 1 ? 's' : ''} this week
+            </div>
             </div>
           </div>
         </div>
