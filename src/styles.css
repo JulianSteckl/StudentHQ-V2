@@ -43,7 +43,7 @@ button { cursor: pointer; font-family: inherit; }
 .shq-sched-focus { display:grid; grid-template-columns:1fr auto; gap:12px; }
 .shq-tools-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
 .shq-subjects-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
-.shq-grades-stats { display:grid; grid-template-columns:240px 1fr 1fr 1fr; gap:12px; }
+.shq-grades-stats { display:grid; grid-template-columns:260px 260px 1fr 1fr 1fr; gap:12px; }
 .shq-grades-insights { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
 .shq-grades-mix { display:grid; grid-template-columns:1fr 280px; gap:12px; }
 .shq-subjects-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,360px)); gap:12px; align-content:start; }

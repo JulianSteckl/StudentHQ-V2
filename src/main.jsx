@@ -2964,7 +2964,27 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
   const quizzes      = userData?.quizzes  || [];
   const grades       = userData?.grades   || {};
   const gradeHistory = userData?.gradeHistory || [];
-  const GRADE_OPTS = ['A+','A','A−','B+','B','B−','C+','C','C−','D','F'];
+  const pastCourses  = userData?.pastCourses  || [];
+  const GRADE_OPTS   = ['A+','A','A−','B+','B','B−','C+','C','C−','D','F'];
+
+  const [showPastModal, setShowPastModal] = useState(false);
+  const [pastForm, setPastForm] = useState({ name:'', grade:'', type:'regular' });
+
+  const getBonus = (s) => {
+    const n = (s.name||'').toUpperCase();
+    if (/\bAP\b/.test(n)||/\bIB\b/.test(n)) return 1.0;
+    if (/\bHONORS?\b/.test(n)||/\bHON\b/.test(n)) return 0.5;
+    return 0;
+  };
+  const getPastBonus = (type) => type==='ap'||type==='ib' ? 1.0 : type==='honors' ? 0.5 : 0;
+
+  const addPastCourse = () => {
+    if (!pastForm.name.trim() || !pastForm.grade) return;
+    const entry = { id:'pc-'+Date.now().toString(36), name:pastForm.name.trim(), grade:pastForm.grade, type:pastForm.type };
+    onUpdate?.({ pastCourses: [...pastCourses, entry] });
+    setPastForm({ name:'', grade:'', type:'regular' });
+  };
+  const removePastCourse = (id) => onUpdate?.({ pastCourses: pastCourses.filter(c => c.id !== id) });
 
   const setGrade = (subjId, g) => {
     const prev = grades[subjId];
@@ -2984,6 +3004,15 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
   const openHw  = homework.filter(h => !h.done);
 
   const graded  = subjects.filter(s => grades[s.id] != null);
+  const weightedGpaStr = (() => {
+    const current = graded.map(s => Math.min((GPA_MAP[grades[s.id]]||0) + getBonus(s), 5.0));
+    const past    = pastCourses.filter(c => GPA_MAP[c.grade]!=null).map(c => Math.min((GPA_MAP[c.grade]||0)+getPastBonus(c.type),5.0));
+    const all = [...current, ...past];
+    if (!all.length) return '—';
+    return (all.reduce((a,b)=>a+b,0)/all.length).toFixed(2);
+  })();
+  const weightedGpaNum = parseFloat(weightedGpaStr) || 0;
+
   const bestPerf  = graded.length ? graded.reduce((a,b) => (GPA_MAP[grades[b.id]]||0) > (GPA_MAP[grades[a.id]]||0) ? b : a) : null;
   const needsAttn = graded.length >= 2
     ? graded.reduce((a,b) => (GPA_MAP[grades[b.id]]||0) < (GPA_MAP[grades[a.id]]||0) ? b : a)
@@ -3039,6 +3068,16 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
               border:'none', background:T.accent, color:'#fff',
               fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8,
             }}>+ Add Subject</button>
+            <button type="button" onClick={() => setShowPastModal(true)} style={{
+              display:'flex', alignItems:'center', gap:6, padding:'7px 13px',
+              border:`1px solid ${T.border}`, background:T.surface, color:T.ink3,
+              fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8, transition:'border-color 0.12s',
+            }}
+              onMouseOver={e => e.currentTarget.style.borderColor = '#4285f4'}
+              onMouseOut={e => e.currentTarget.style.borderColor = T.border}
+            >
+              Past Courses{pastCourses.length > 0 ? ` (${pastCourses.length})` : ''}
+            </button>
             {subjects.length > 0 && (
               <button type="button" onClick={() => exportGradesCsv(profile, userData)} style={{
                 display:'flex', alignItems:'center', gap:6, padding:'7px 13px',
@@ -3058,23 +3097,43 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
         {/* 4 stat cards */}
         <div className="shq-grades-stats" style={{marginBottom:12}}>
 
-          {/* GPA ring */}
-          <div style={{background:T.surface, padding:'18px 20px', display:'flex', alignItems:'center', gap:18, borderRadius:12, borderBottom:`2px solid ${T.accent}30`}}>
-            <div style={{position:'relative', flexShrink:0, width:72, height:72}}>
-              <svg width={72} height={72} viewBox="-36 -36 72 72" style={{transform:'rotate(-90deg)'}}>
-                <circle r={R} fill="none" stroke={T.border} strokeWidth={4}/>
-                <circle r={R} fill="none" stroke={T.accent} strokeWidth={4}
+          {/* Unweighted GPA ring */}
+          <div style={{background:T.surface, padding:'20px 22px', display:'flex', alignItems:'center', gap:18, borderRadius:12, borderBottom:`2px solid ${T.accent}30`}}>
+            <div style={{position:'relative', flexShrink:0, width:80, height:80}}>
+              <svg width={80} height={80} viewBox="-40 -40 80 80" style={{transform:'rotate(-90deg)'}}>
+                <circle r={R} fill="none" stroke={T.border} strokeWidth={4.5}/>
+                <circle r={R} fill="none" stroke={T.accent} strokeWidth={4.5}
                   strokeDasharray={`${(gpaNum/4)*circ} ${circ}`} strokeLinecap="round"/>
               </svg>
               <div style={{position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'}}>
-                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:T.ink, lineHeight:1}}>{gpaStr}</div>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:19, color:T.ink, lineHeight:1}}>{gpaStr}</div>
                 <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3}}>/ 4.0</div>
               </div>
             </div>
             <div>
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:7}}>GPA This Term</div>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:21, color:T.ink, lineHeight:1.15, marginBottom:5}}>{gpaStandingLabel(gpaNum)}</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, lineHeight:1.15, marginBottom:5}}>{gpaStandingLabel(gpaNum)}</div>
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>Unweighted · {termLabel} {CY}{graded.length ? ` · ${graded.length} graded` : ''}</div>
+            </div>
+          </div>
+
+          {/* Weighted GPA ring */}
+          <div style={{background:T.surface, padding:'20px 22px', display:'flex', alignItems:'center', gap:18, borderRadius:12, borderBottom:`2px solid #4285f430`}}>
+            <div style={{position:'relative', flexShrink:0, width:80, height:80}}>
+              <svg width={80} height={80} viewBox="-40 -40 80 80" style={{transform:'rotate(-90deg)'}}>
+                <circle r={R} fill="none" stroke={T.border} strokeWidth={4.5}/>
+                <circle r={R} fill="none" stroke="#4285f4" strokeWidth={4.5}
+                  strokeDasharray={`${Math.min(weightedGpaNum/5,1)*circ} ${circ}`} strokeLinecap="round"/>
+              </svg>
+              <div style={{position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'}}>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:19, color:T.ink, lineHeight:1}}>{weightedGpaStr}</div>
+                <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3}}>/ 5.0</div>
+              </div>
+            </div>
+            <div>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:7}}>Weighted GPA</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, lineHeight:1.15, marginBottom:5}}>{gpaStandingLabel(Math.min(weightedGpaNum,4))}</div>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>AP +1.0 · Hon +0.5{pastCourses.length > 0 ? ` · ${pastCourses.length} past` : ''}</div>
             </div>
           </div>
 
@@ -3350,6 +3409,73 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
           </div>
         </div>
         )}
+
+      {/* Past Courses modal */}
+      {showPastModal && (
+        <div style={{position:'fixed',inset:0,zIndex:1200,background:'rgba(24,21,14,0.35)',display:'flex',alignItems:'center',justifyContent:'center'}}
+          onClick={() => setShowPastModal(false)}>
+          <div style={{background:T.surface,borderRadius:16,padding:'24px 28px',width:500,maxWidth:'calc(100vw - 32px)',maxHeight:'80vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(24,21,14,0.22)'}}
+            onClick={e => e.stopPropagation()}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:18}}>
+              <div>
+                <div style={{fontFamily:T.mono,fontSize:9.5,color:T.ink3,textTransform:'uppercase',letterSpacing:'0.13em',marginBottom:4}}>Weighted GPA</div>
+                <div style={{fontFamily:T.serif,fontStyle:'italic',fontSize:20,color:T.ink}}>Past Courses</div>
+              </div>
+              <button type="button" onClick={() => setShowPastModal(false)}
+                style={{background:'none',border:`1px solid ${T.border}`,color:T.ink3,fontFamily:T.mono,fontSize:10,padding:'5px 12px',borderRadius:7,cursor:'pointer'}}>Done</button>
+            </div>
+            <div style={{display:'flex',gap:8,alignItems:'flex-end',marginBottom:16,flexWrap:'wrap'}}>
+              <div style={{flex:'2 1 150px'}}>
+                <div style={{fontFamily:T.mono,fontSize:9,color:T.ink3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:4}}>Course name</div>
+                <input value={pastForm.name} onChange={e => setPastForm(f=>({...f,name:e.target.value}))}
+                  placeholder="e.g. AP Chemistry"
+                  onKeyDown={e => e.key==='Enter' && addPastCourse()}
+                  style={{width:'100%',background:T.bg,border:`1px solid ${T.border}`,borderRadius:7,padding:'6px 10px',fontFamily:T.ui,fontSize:12,color:T.ink,outline:'none',boxSizing:'border-box'}}
+                  onFocus={e=>e.target.style.borderColor=T.accent} onBlur={e=>e.target.style.borderColor=T.border}/>
+              </div>
+              <div style={{flex:'0 1 80px'}}>
+                <div style={{fontFamily:T.mono,fontSize:9,color:T.ink3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:4}}>Grade</div>
+                <select value={pastForm.grade} onChange={e=>setPastForm(f=>({...f,grade:e.target.value}))}
+                  style={{width:'100%',background:T.bg,border:`1px solid ${T.border}`,borderRadius:7,padding:'6px 8px',fontFamily:T.mono,fontSize:11,color:T.ink,cursor:'pointer'}}>
+                  <option value="">—</option>
+                  {GRADE_OPTS.map(g=><option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div style={{flex:'1 1 100px'}}>
+                <div style={{fontFamily:T.mono,fontSize:9,color:T.ink3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:4}}>Type</div>
+                <select value={pastForm.type} onChange={e=>setPastForm(f=>({...f,type:e.target.value}))}
+                  style={{width:'100%',background:T.bg,border:`1px solid ${T.border}`,borderRadius:7,padding:'6px 8px',fontFamily:T.mono,fontSize:11,color:T.ink,cursor:'pointer'}}>
+                  <option value="regular">Regular</option>
+                  <option value="honors">Honors +0.5</option>
+                  <option value="ap">AP / IB +1.0</option>
+                </select>
+              </div>
+              <button type="button" onClick={addPastCourse} disabled={!pastForm.name.trim()||!pastForm.grade}
+                style={{padding:'6px 14px',border:'none',background:pastForm.name.trim()&&pastForm.grade?T.accent:T.border,color:'#fff',fontFamily:T.mono,fontSize:9.5,cursor:pastForm.name.trim()&&pastForm.grade?'pointer':'default',borderRadius:7,flexShrink:0}}>Add</button>
+            </div>
+            {pastCourses.length === 0
+              ? <div style={{fontFamily:T.serif,fontStyle:'italic',fontSize:13,color:T.ink3,padding:'12px 0'}}>No past courses yet. Add them above to improve your weighted GPA.</div>
+              : <div style={{borderTop:`1px solid ${T.bl}`}}>
+                  {pastCourses.map((c,i) => {
+                    const weighted = Math.min((GPA_MAP[c.grade]||0)+getPastBonus(c.type),5.0);
+                    const col = weighted>=4.5?'#3a8a52':weighted>=3.5?T.accent:weighted>=2.5?'#b07020':'#bf4a30';
+                    return (
+                      <div key={c.id} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:i<pastCourses.length-1?`1px solid ${T.bl}`:'none'}}>
+                        <div style={{flex:1,fontFamily:T.ui,fontSize:12.5,color:T.ink,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.name}</div>
+                        <div style={{fontFamily:T.mono,fontSize:9,color:T.ink3,textTransform:'uppercase',letterSpacing:'0.07em',flexShrink:0}}>{c.type==='ap'?'AP/IB':c.type==='honors'?'Hon':'Reg'}</div>
+                        <div style={{fontFamily:T.mono,fontSize:12,color:col,fontWeight:600,flexShrink:0,minWidth:28,textAlign:'center'}}>{c.grade}</div>
+                        <div style={{fontFamily:T.mono,fontSize:10,color:T.ink3,flexShrink:0}}>{weighted.toFixed(1)}</div>
+                        <button type="button" onClick={()=>removePastCourse(c.id)}
+                          style={{background:'none',border:'none',color:T.ink3,fontSize:16,cursor:'pointer',padding:'0 4px',lineHeight:1,opacity:0.45}}
+                          onMouseOver={e=>e.currentTarget.style.opacity='1'} onMouseOut={e=>e.currentTarget.style.opacity='0.45'}>×</button>
+                      </div>
+                    );
+                  })}
+                </div>
+            }
+          </div>
+        </div>
+      )}
     </div>
   );
 }
