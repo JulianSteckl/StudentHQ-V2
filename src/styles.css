@@ -51,10 +51,10 @@ button { cursor: pointer; font-family: inherit; }
 .shq-tools-mid-card { height:100%; display:flex; flex-direction:column; box-sizing:border-box; }
 .shq-tools-mid-body { flex:1; display:flex; flex-direction:column; justify-content:space-between; }
 .shq-tools-rec { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.shq-tools-table { flex:1; overflow-x:auto; overflow-y:auto; min-height:0; }
+.shq-tools-table { overflow-x:auto; }
 .shq-tools-table > div { min-width:560px; }
 .shq-tools-bottom { display:flex; gap:12px; align-items:stretch; }
-.shq-tools-main { flex:1; min-width:0; display:flex; flex-direction:column; }
+.shq-tools-main { flex:1; min-width:0; display:flex; flex-direction:column; align-self:flex-start; }
 .shq-tools-main-card { flex:1; display:flex; flex-direction:column; }
 .shq-tools-side { width:240px; display:flex; flex-direction:column; flex-shrink:0; align-self:stretch; gap:12px; }
 .shq-tools-quick { flex-shrink:0; }
