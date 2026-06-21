@@ -5255,37 +5255,55 @@ function WelcomeScreen({ onSignIn, onSetup }) {
   const [gError, setGError]         = useState('');
 
   const handleGoogleSignIn = () => {
-    if (!window.google?.accounts?.oauth2) { setGLoading(false); setGError('Google sign-in is still loading. If it never appears, it may be blocked by a browser extension.'); return; }
+    if (!window.google?.accounts?.oauth2) {
+      setGLoading(false);
+      setGError('Google sign-in could not load. This is usually caused by an ad blocker or content blocker (like AdGuard). Try disabling it for this site, then refresh.');
+      return;
+    }
     setGError('');
     setGLoading(true);
-    const client = window.google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: 'openid profile email',
-      callback: async (resp) => {
-        if (resp.error) { setGError('Google sign-in failed. Please try again.'); setGLoading(false); return; }
-        setGoogleAccessToken(resp.access_token, resp.expires_in);
-        try {
-          const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
-            { headers: { Authorization: 'Bearer ' + resp.access_token } });
-          const u = await r.json();
-          // Restore this user's saved profile. Try the server first (verified
-          // by their token, lets data follow them across devices); if the
-          // server has nothing, fall back to the copy saved in this browser.
-          let existing = null;
-          try {
-            existing = await fetch('/api/profile', { headers: authHeaders() }).then(r => r.ok ? r.json() : null);
-          } catch(e) {}
-          if (!existing?.name) {
-            const local = loadProfileByEmail(u.email);
-            if (local?.name) existing = local;
+    try {
+      const client = window.google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: 'openid profile email',
+        error_callback: (err) => {
+          setGLoading(false);
+          if (err?.type === 'popup_failed_to_open' || err?.type === 'popup_closed') {
+            setGError('The Google sign-in popup was blocked. In Safari, go to Settings → Websites → Pop-up Windows and allow popups for this site. Or try Chrome.');
+          } else {
+            setGError('Google sign-in was cancelled or failed. Please try again.');
           }
-          if (existing?.name) { onSignIn(existing); return; }
-          setGoogleUser({ name: u.name, email: u.email, picture: u.picture });
-        } catch(e) { setGError('Could not reach Google or the Scholar API. Check your connection and try again.'); }
-        setGLoading(false);
-      },
-    });
-    client.requestAccessToken({ prompt: '' });
+        },
+        callback: async (resp) => {
+          if (resp.error) {
+            setGError('Google sign-in failed: ' + (resp.error_description || resp.error));
+            setGLoading(false);
+            return;
+          }
+          setGoogleAccessToken(resp.access_token, resp.expires_in);
+          try {
+            const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
+              { headers: { Authorization: 'Bearer ' + resp.access_token } });
+            const u = await r.json();
+            let existing = null;
+            try {
+              existing = await fetch('/api/profile', { headers: authHeaders() }).then(r => r.ok ? r.json() : null);
+            } catch(e) {}
+            if (!existing?.name) {
+              const local = loadProfileByEmail(u.email);
+              if (local?.name) existing = local;
+            }
+            if (existing?.name) { onSignIn(existing); return; }
+            setGoogleUser({ name: u.name, email: u.email, picture: u.picture });
+          } catch(e) { setGError('Could not reach Google or the Scholar API. Check your connection and try again.'); }
+          setGLoading(false);
+        },
+      });
+      client.requestAccessToken({ prompt: 'select_account' });
+    } catch(e) {
+      setGLoading(false);
+      setGError('Google sign-in failed to start: ' + (e?.message || 'unknown error'));
+    }
   };
 
   const WORD = 'Scholar';
