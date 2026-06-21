@@ -2745,25 +2745,7 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
           })()}
 
           {/* Period list */}
-          {editingBell ? (
-            <div style={{ flex: 1 }}>
-              {draftBell.map((p, i) => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 90px', gap: 6, alignItems: 'center', marginBottom: 6 }}>
-                  <input value={p.period} onChange={e => setDraftBell(rows => rows.map((r, j) => j === i ? { ...r, period: e.target.value } : r))} placeholder="P" style={{ fontFamily: T.mono, fontSize: 10, padding: '5px 6px', border: `1px solid ${T.border}`, borderRadius: 5, background: T.bg, textAlign: 'center' }} />
-                  <select value={p.subj} onChange={e => setDraftBell(rows => rows.map((r, j) => j === i ? { ...r, subj: e.target.value } : r))} style={{ fontFamily: T.ui, fontSize: 10, padding: '5px 6px', border: `1px solid ${T.border}`, borderRadius: 5, background: T.bg }}>
-                    <option value="">— Subject —</option>
-                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                  <input value={p.time} onChange={e => setDraftBell(rows => rows.map((r, j) => j === i ? { ...r, time: e.target.value } : r))} placeholder="8:00–8:50" style={{ fontFamily: T.mono, fontSize: 10, padding: '5px 6px', border: `1px solid ${T.border}`, borderRadius: 5, background: T.bg }} />
-                </div>
-              ))}
-              <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                <button type="button" onClick={() => setDraftBell(rows => [...rows, { period: String(rows.length + 1), subj: '', time: '', room: '', current: false }])} style={{ fontFamily: T.mono, fontSize: 9.5, color: T.ink3, background: 'none', border: `1px solid ${T.border}`, padding: '4px 8px', borderRadius: 7, cursor: 'pointer' }}>+ Add</button>
-                <button type="button" onClick={saveBell} style={{ fontFamily: T.mono, fontSize: 9.5, color: '#fff', background: T.accent, border: 'none', padding: '4px 12px', borderRadius: 7, cursor: 'pointer' }}>Save</button>
-                <button type="button" onClick={() => setEditingBell(false)} style={{ fontFamily: T.mono, fontSize: 9.5, color: T.ink3, background: 'none', border: `1px solid ${T.border}`, padding: '4px 8px', borderRadius: 7, cursor: 'pointer' }}>Cancel</button>
-              </div>
-            </div>
-          ) : bellSchedule.length === 0 ? (
+          {bellSchedule.length === 0 && !editingBell ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 13, color: T.ink3, textAlign: 'center' }}>No schedule yet.<br/>Tap Set up to add periods.</div>
             </div>
@@ -2795,6 +2777,32 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
             </div>
           )}
         </div>
+
+        {/* Bell edit modal */}
+        {editingBell && createPortal(
+          <div onMouseDown={e => { if (e.target === e.currentTarget) setEditingBell(false); }}
+            style={{ position:'fixed', inset:0, zIndex:9000, background:'rgba(24,21,14,0.35)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <div style={{ background:T.surface, borderRadius:14, border:`1px solid ${T.border}`, padding:'22px 24px', width:480, maxWidth:'calc(100vw - 48px)', maxHeight:'80vh', overflowY:'auto', boxShadow:'0 20px 60px rgba(24,21,14,0.18)' }}>
+              <div style={{ fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:16 }}>Edit Bell Schedule</div>
+              {draftBell.map((p, i) => (
+                <div key={i} style={{ display:'grid', gridTemplateColumns:'36px 1fr 100px 28px', gap:7, alignItems:'center', marginBottom:8 }}>
+                  <input value={p.period} onChange={e => setDraftBell(rows => rows.map((r, j) => j===i ? {...r, period:e.target.value} : r))} placeholder="P" style={{ fontFamily:T.mono, fontSize:11, padding:'6px 7px', border:`1px solid ${T.border}`, borderRadius:6, background:T.bg, textAlign:'center' }} />
+                  <select value={p.subj} onChange={e => setDraftBell(rows => rows.map((r, j) => j===i ? {...r, subj:e.target.value} : r))} style={{ fontFamily:T.ui, fontSize:11, padding:'6px 7px', border:`1px solid ${T.border}`, borderRadius:6, background:T.bg }}>
+                    <option value="">— Subject —</option>
+                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  <input value={p.time} onChange={e => setDraftBell(rows => rows.map((r, j) => j===i ? {...r, time:e.target.value} : r))} placeholder="8:00–8:50" style={{ fontFamily:T.mono, fontSize:11, padding:'6px 7px', border:`1px solid ${T.border}`, borderRadius:6, background:T.bg }} />
+                  <button type="button" onClick={() => setDraftBell(rows => rows.filter((_, j) => j!==i))} style={{ width:28, height:28, border:`1px solid ${T.border}`, borderRadius:6, background:'none', color:T.ink3, fontSize:14, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1 }}>×</button>
+                </div>
+              ))}
+              <div style={{ display:'flex', gap:8, marginTop:12 }}>
+                <button type="button" onClick={() => setDraftBell(rows => [...rows, {period:String(rows.length+1), subj:'', time:'', room:'', current:false}])} style={{ fontFamily:T.mono, fontSize:10, color:T.ink3, background:'none', border:`1px solid ${T.border}`, padding:'6px 12px', borderRadius:8, cursor:'pointer' }}>+ Period</button>
+                <button type="button" onClick={saveBell} style={{ fontFamily:T.mono, fontSize:10, color:'#fff', background:T.accent, border:'none', padding:'6px 16px', borderRadius:8, cursor:'pointer' }}>Save</button>
+                <button type="button" onClick={() => setEditingBell(false)} style={{ fontFamily:T.mono, fontSize:10, color:T.ink3, background:'none', border:`1px solid ${T.border}`, padding:'6px 12px', borderRadius:8, cursor:'pointer' }}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        , document.body)}
 
         {/* Middle: Stats + Urgent */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -2958,29 +2966,65 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
       </div>
 
       {/* Weekend row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-        {weekendCards.map(d => (
-          <div key={d.name} style={{
-            ...cardStyle, padding: '14px 16px',
-            background: d.isToday ? T.accentSoft : T.surface,
-            borderTop: `3px solid ${d.isToday ? T.accent : T.border}`,
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: d.dayHW.length ? 10 : 0 }}>
-              <div style={{ fontFamily: T.mono, fontSize: 9.5, color: d.isToday ? T.accent : T.ink3, textTransform: 'uppercase', letterSpacing: '0.09em' }}>{d.name} {d.date}</div>
-              {d.dayHW.length === 0 && <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 13, color: T.ink3 }}>Free</div>}
-            </div>
-            {d.dayHW.map(hw => {
-              const s = subjectBy(hw.subj);
-              return (
-                <div key={hw.id || hw.title} style={{ display: 'flex', gap: 7, alignItems: 'flex-start', marginBottom: 5 }}>
-                  <div style={{ width: 3, height: 3, borderRadius: 1, background: s.color, marginTop: 5, flexShrink: 0 }} />
-                  <div style={{ fontFamily: T.ui, fontSize: 11, color: T.ink2 }}>{hw.title}</div>
+      {(() => {
+        const nextWeekHW = openHW.filter(h => {
+          const idx = schedHomeworkDayIndex(h, weekStart, now, weekOffset);
+          return idx < 0 && !h.urgent;
+        }).slice(0, 4);
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+            {weekendCards.map(d => (
+              <div key={d.name} style={{
+                ...cardStyle, padding: '16px 18px',
+                background: d.isToday ? T.accentSoft : T.surface,
+                borderTop: `3px solid ${d.isToday ? T.accent : T.border}`,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+                  <div style={{ fontFamily: T.mono, fontSize: 9.5, color: d.isToday ? T.accent : T.ink3, textTransform: 'uppercase', letterSpacing: '0.09em' }}>{d.name} {d.date}</div>
+                  {d.isToday && <div style={{ fontFamily: T.mono, fontSize: 8.5, color: T.accent, background: T.accentSoft, padding: '2px 6px', borderRadius: 4 }}>TODAY</div>}
                 </div>
-              );
-            })}
+
+                {/* Assigned HW */}
+                {d.dayHW.length > 0 && (
+                  <div style={{ marginBottom: 12 }}>
+                    {d.dayHW.map(hw => {
+                      const s = subjectBy(hw.subj);
+                      return (
+                        <div key={hw.id || hw.title} style={{ display: 'flex', gap: 7, alignItems: 'flex-start', marginBottom: 6 }}>
+                          <div style={{ width: 3, height: 3, borderRadius: 1, background: s.color, marginTop: 5, flexShrink: 0 }} />
+                          <div style={{ fontFamily: T.ui, fontSize: 11.5, color: T.ink2 }}>{hw.title}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Upcoming next week */}
+                {nextWeekHW.length > 0 && (
+                  <div style={{ borderTop: `1px solid ${T.bl}`, paddingTop: 10 }}>
+                    <div style={{ fontFamily: T.mono, fontSize: 8.5, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 7 }}>Coming up</div>
+                    {nextWeekHW.map(hw => {
+                      const s = subjectBy(hw.subj);
+                      return (
+                        <div key={hw.id || hw.title} style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 5 }}>
+                          <div style={{ width: 3, height: 3, borderRadius: 1, background: s.color, flexShrink: 0 }} />
+                          <div style={{ fontFamily: T.ui, fontSize: 11, color: T.ink3, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{hw.title}</div>
+                          {hw.due && <div style={{ fontFamily: T.mono, fontSize: 8.5, color: T.ink3, flexShrink: 0 }}>{hw.due}</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Nothing at all */}
+                {d.dayHW.length === 0 && nextWeekHW.length === 0 && (
+                  <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 13, color: T.ink3 }}>All clear — enjoy the weekend.</div>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        );
+      })()}
 
       <div style={{ height: 8 }} />
     </div>
