@@ -3050,7 +3050,7 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
   };
 
   return (
-    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
+    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto', overflowX:'hidden'}}>
 
         {/* Header */}
         <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:22, flexWrap:'wrap', gap:16}}>
@@ -3414,7 +3414,7 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
 
 
       {/* Past Courses modal */}
-      {showPastModal && (
+      {showPastModal && createPortal(
         <div style={{position:'fixed',inset:0,zIndex:9000,background:'rgba(24,21,14,0.35)',display:'flex',alignItems:'center',justifyContent:'center'}}
           onMouseDown={e => { if (e.target === e.currentTarget) setShowPastModal(false); }}>
           <div style={{background:T.surface,borderRadius:16,padding:'24px 28px',width:520,maxWidth:'calc(100vw - 32px)',maxHeight:'80vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(24,21,14,0.22)'}}>
@@ -3497,7 +3497,7 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
             }
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }
