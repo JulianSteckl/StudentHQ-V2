@@ -4117,6 +4117,111 @@ function SubjectsScreen({ profile, userData, onNav, onRequestSidebar }) {
               </button>
             )}
           </div>
+
+          {/* Bottom section: Open assignments + Subject workload */}
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginTop:16}}>
+
+            {/* Open assignments across all subjects */}
+            <div style={{background:T.surface, borderRadius:12, padding:'18px 22px'}}>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
+                <div style={{display:'flex', alignItems:'center', gap:6}}>
+                  <div style={{width:6, height:6, borderRadius:'50%', background: openHw.length > 0 ? '#b07020' : T.ink3}}/>
+                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>
+                    Open Assignments · {openHw.length}
+                  </div>
+                </div>
+                <button type="button" onClick={() => onNav?.('homework')} style={{fontFamily:T.mono, fontSize:9, color:T.ink3, background:'none', border:'none', cursor:'pointer', letterSpacing:'0.07em', padding:0}}
+                  onMouseOver={e => e.currentTarget.style.color=T.accent} onMouseOut={e => e.currentTarget.style.color=T.ink3}>
+                  View all →
+                </button>
+              </div>
+              {openHw.length === 0 ? (
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3, padding:'20px 0', textAlign:'center'}}>All caught up — no open assignments.</div>
+              ) : (
+                <div style={{display:'flex', flexDirection:'column', gap:8}}>
+                  {openHw.slice(0, 8).map(h => {
+                    const subj = subjects.find(s => s.id === h.subj);
+                    return (
+                      <div key={h.id} style={{display:'flex', alignItems:'center', gap:10, padding:'8px 10px', background:T.bg, borderRadius:8}}>
+                        <div style={{width:3, height:28, borderRadius:2, background: subj?.color || T.border, flexShrink:0}}/>
+                        <div style={{flex:1, minWidth:0}}>
+                          <div style={{fontFamily:T.ui, fontSize:12, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{h.title}</div>
+                          <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, marginTop:2}}>{subj?.short || '—'}{h.due ? ` · due ${h.due}` : ''}</div>
+                        </div>
+                        {h.due && (() => {
+                          const daysLeft = Math.ceil((new Date(h.due) - new Date()) / 86400000);
+                          const urgent = daysLeft <= 2;
+                          return <div style={{fontFamily:T.mono, fontSize:9, color: urgent ? '#bf4a30' : T.ink3, flexShrink:0, background: urgent ? '#bf4a3012' : T.bl, padding:'2px 6px', borderRadius:4}}>
+                            {daysLeft <= 0 ? 'overdue' : daysLeft === 1 ? 'tomorrow' : `${daysLeft}d`}
+                          </div>;
+                        })()}
+                      </div>
+                    );
+                  })}
+                  {openHw.length > 8 && (
+                    <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textAlign:'center', padding:'4px 0'}}>+{openHw.length - 8} more</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Subject workload breakdown */}
+            <div style={{background:T.surface, borderRadius:12, padding:'18px 22px'}}>
+              <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:14}}>
+                <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
+                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Workload by Subject</div>
+              </div>
+              {subjects.length === 0 ? (
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3, padding:'20px 0', textAlign:'center'}}>No subjects yet.</div>
+              ) : (
+                <div style={{display:'flex', flexDirection:'column', gap:10}}>
+                  {subjects.map(s => {
+                    const sHw    = homework.filter(h => h.subj === s.id && !h.done).length;
+                    const sAllHw = homework.filter(h => h.subj === s.id).length;
+                    const sQz    = quizzes.filter(q => q.subj === s.id).length;
+                    const sNotes = notes.filter(n => n.subj === s.id).length;
+                    const total  = sHw + sQz + sNotes;
+                    const maxTotal = Math.max(...subjects.map(sx =>
+                      homework.filter(h => h.subj === sx.id && !h.done).length +
+                      quizzes.filter(q => q.subj === sx.id).length +
+                      notes.filter(n => n.subj === sx.id).length
+                    ), 1);
+                    const myGrade = grades[s.id];
+                    const gpaVal  = myGrade ? (GPA_MAP[myGrade] ?? 0) : null;
+                    const gradeColor = gpaVal != null
+                      ? (gpaVal >= 3.7 ? '#3a8a52' : gpaVal >= 3.0 ? T.accent : gpaVal >= 2.0 ? '#b07020' : '#bf4a30')
+                      : T.border;
+                    return (
+                      <div key={s.id} style={{display:'flex', alignItems:'center', gap:10}}>
+                        <div style={{width:3, height:20, borderRadius:2, background:s.color, flexShrink:0}}/>
+                        <div style={{fontFamily:T.mono, fontSize:10, color:T.ink2, width:52, flexShrink:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.short}</div>
+                        <div style={{flex:1, height:6, background:T.bl, borderRadius:3, overflow:'hidden'}}>
+                          <div style={{height:'100%', display:'flex'}}>
+                            {sHw > 0 && <div style={{width:`${(sHw/maxTotal)*100}%`, background:'#b07020', minWidth:3}}/>}
+                            {sQz > 0 && <div style={{width:`${(sQz/maxTotal)*100}%`, background:'#4285f4', minWidth:3}}/>}
+                            {sNotes > 0 && <div style={{width:`${(sNotes/maxTotal)*100}%`, background:s.color, opacity:0.5, minWidth:3}}/>}
+                          </div>
+                        </div>
+                        <div style={{display:'flex', alignItems:'center', gap:6, flexShrink:0}}>
+                          <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, width:28, textAlign:'right'}}>{total}</div>
+                          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:12, color:gradeColor, width:22, textAlign:'right'}}>{myGrade || '—'}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div style={{display:'flex', gap:12, marginTop:4, paddingTop:10, borderTop:`1px solid ${T.bl}`}}>
+                    {[['#b07020','Open HW'],['#4285f4','Quizzes'],[T.ink3,'Notes']].map(([c,l]) => (
+                      <div key={l} style={{display:'flex', alignItems:'center', gap:4}}>
+                        <div style={{width:8, height:8, borderRadius:2, background:c}}/>
+                        <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3}}>{l}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div>
         </>
       )}
     </div>
