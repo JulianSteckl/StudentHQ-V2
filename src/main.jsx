@@ -923,10 +923,10 @@ function Sidebar({ screen, onNav, profile, userData, onSignOut, onAddSubject, on
                 <div key={s.id}
                   onMouseOver={e => e.currentTarget.style.background=T.bl}
                   onMouseOut={e => e.currentTarget.style.background='transparent'}
-                  onClick={() => { onNav && onNav('subjects'); onCloseSidebar?.(); }}
+                  onClick={() => { onNav && onNav('subject', s.id); onCloseSidebar?.(); }}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNav && onNav('subjects'); onCloseSidebar?.(); } }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNav && onNav('subject', s.id); onCloseSidebar?.(); } }}
                   style={{display:'flex', alignItems:'center', gap:7, padding:'4px 8px', height:32, margin:'0', borderRadius:5, background:'transparent', cursor:'pointer', transition:'background 0.12s'}}>
                   <div style={{width:8, height:8, borderRadius:3, background:s.color, flexShrink:0}} />
                   <span style={{flex:1, fontSize:11, fontFamily:T.ui, color:T.ink2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.short || s.name}</span>
@@ -3857,8 +3857,8 @@ function SubjectsScreen({ profile, userData, onNav, onRequestSidebar }) {
                   key={s.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => onNav?.('grades')}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNav?.('grades'); } }}
+                  onClick={() => onNav?.('subject', s.id)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNav?.('subject', s.id); } }}
                   style={{
                     background:T.surface, padding:'22px 24px', borderRadius:12,
                     borderLeft:`3px solid ${s.color}`, cursor:'pointer',
@@ -3938,6 +3938,172 @@ function SubjectsScreen({ profile, userData, onNav, onRequestSidebar }) {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/* ── Subject Detail Screen ──────────────────────────────── */
+function SubjectDetailScreen({ profile, userData, onUpdate, onNav, screenAction }) {
+  const subjectId = screenAction;
+  const subjects  = profile?.subjects || [];
+  const s         = subjects.find(s => s.id === subjectId);
+  const homework  = userData?.homework  || [];
+  const quizzes   = userData?.quizzes   || [];
+  const notes     = userData?.notes     || [];
+  const grades    = userData?.grades    || {};
+  const gradeHistory = userData?.gradeHistory || [];
+
+  if (!s) {
+    return (
+      <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
+        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink3, marginTop:40}}>Subject not found.</div>
+        <button type="button" onClick={() => onNav?.('subjects')} style={{marginTop:16, fontFamily:T.mono, fontSize:10, color:T.accent, background:'none', border:'none', padding:0, cursor:'pointer'}}>← Back to subjects</button>
+      </div>
+    );
+  }
+
+  const hw        = homework.filter(h => h.subj === s.id && !h.done);
+  const doneHw    = homework.filter(h => h.subj === s.id && h.done);
+  const subjQz    = quizzes.filter(q => q.subj === s.id);
+  const subjNotes = notes.filter(n => n.subj === s.id);
+  const myGrade   = grades[s.id] || null;
+  const gpaVal    = myGrade ? GPA_MAP[myGrade] : null;
+  const gradeColor = gpaVal != null ? (gpaVal >= 3.7 ? '#3a8a52' : gpaVal >= 3.0 ? T.accent : '#bf4a30') : T.ink3;
+  const sparkPts  = gradeSparklinePoints(gradeHistory, s.id, 200, 32);
+
+  const toggleHw = (id) => {
+    onUpdate?.({ homework: homework.map(h => h.id === id ? { ...h, done: !h.done } : h) });
+  };
+
+  const fmtDate = (d) => {
+    if (!d) return '';
+    const date = new Date(d);
+    return date.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  };
+
+  return (
+    <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
+      {/* Header */}
+      <div style={{marginBottom:22}}>
+        <button type="button" onClick={() => onNav?.('subjects')} style={{fontFamily:T.mono, fontSize:10, color:T.ink3, background:'none', border:'none', padding:'0 0 14px', cursor:'pointer', display:'flex', alignItems:'center', gap:5}}>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M8 2L4 6l4 4"/></svg>
+          Subjects
+        </button>
+        <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16, flexWrap:'wrap'}}>
+          <div style={{display:'flex', alignItems:'center', gap:14}}>
+            <div style={{width:40, height:40, borderRadius:10, background:`${s.color}18`, border:`2px solid ${s.color}50`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+              <div style={{width:12, height:12, borderRadius:3, background:s.color}} />
+            </div>
+            <div>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:4}}>{s.short || s.name}</div>
+              <h1 style={{margin:0, lineHeight:1.1}}>
+                <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:30, color:T.ink}}>{s.name}</span>
+              </h1>
+            </div>
+          </div>
+          {myGrade && (
+            <div style={{textAlign:'right'}}>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:42, color:gradeColor, lineHeight:0.9, letterSpacing:'-0.02em'}}>{myGrade}</div>
+              {gpaVal != null && <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginTop:5}}>{gpaVal.toFixed(1)} GPA</div>}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:14}}>
+        {[
+          { label:'OPEN HW',  val:hw.length,        accent: hw.length > 0 ? '#b07020' : T.ink3 },
+          { label:'QUIZZES',  val:subjQz.length,    accent:'#2a60a0' },
+          { label:'NOTES',    val:subjNotes.length, accent:T.accent },
+        ].map(c => (
+          <div key={c.label} style={{background:T.surface, padding:'14px 16px', borderRadius:10, borderBottom:`2px solid ${c.accent}28`}}>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', marginBottom:6}}>{c.label}</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:26, color:c.accent === T.ink3 ? T.ink : c.accent, lineHeight:1}}>{c.val}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Grade bar + sparkline */}
+      {myGrade && (
+        <div style={{background:T.surface, borderRadius:12, padding:'16px 20px', marginBottom:14}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em'}}>Grade Progress</div>
+            <div style={{fontFamily:T.mono, fontSize:10, color:gradeColor}}>{myGrade}</div>
+          </div>
+          <div style={{height:3, background:T.border, borderRadius:2, overflow:'hidden', marginBottom: sparkPts ? 12 : 0}}>
+            <div style={{width:`${Math.min((gpaVal / 4) * 100, 100)}%`, height:'100%', background:s.color, borderRadius:2, transition:'width 0.3s'}} />
+          </div>
+          {sparkPts && (
+            <svg width="100%" height={32} viewBox="0 0 200 32" preserveAspectRatio="none" style={{display:'block'}}>
+              <polyline points={sparkPts} fill="none" stroke={s.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
+        </div>
+      )}
+
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
+        {/* Open Homework */}
+        <div style={{background:T.surface, borderRadius:12, padding:'16px 18px'}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Open Homework</div>
+            <button type="button" onClick={() => onNav?.('homework')} style={{fontFamily:T.mono, fontSize:10, color:T.accent, background:'none', border:'none', padding:0, cursor:'pointer'}}>All →</button>
+          </div>
+          {hw.length === 0
+            ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3}}>All caught up.</div>
+            : hw.map((h, i) => (
+              <div key={h.id} onClick={() => toggleHw(h.id)} style={{display:'flex', alignItems:'flex-start', gap:9, padding:'7px 0', borderBottom: i < hw.length - 1 ? `1px solid ${T.bl}` : 'none', cursor:'pointer'}}>
+                <div style={{width:14, height:14, borderRadius:3, border:`1.5px solid ${T.border}`, marginTop:1, flexShrink:0}} />
+                <div style={{minWidth:0}}>
+                  <div style={{fontFamily:T.ui, fontSize:12, color:T.ink, lineHeight:1.3}}>{h.title}</div>
+                  {h.due && <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginTop:2}}>Due {fmtDate(h.due)}</div>}
+                </div>
+              </div>
+            ))
+          }
+          {doneHw.length > 0 && (
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginTop:10}}>{doneHw.length} completed</div>
+          )}
+        </div>
+
+        {/* Quizzes */}
+        <div style={{background:T.surface, borderRadius:12, padding:'16px 18px'}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Quizzes</div>
+            <button type="button" onClick={() => onNav?.('quizzes')} style={{fontFamily:T.mono, fontSize:10, color:T.accent, background:'none', border:'none', padding:0, cursor:'pointer'}}>All →</button>
+          </div>
+          {subjQz.length === 0
+            ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3}}>No quizzes scheduled.</div>
+            : subjQz.map((q, i) => (
+              <div key={q.id} style={{padding:'7px 0', borderBottom: i < subjQz.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
+                <div style={{fontFamily:T.ui, fontSize:12, color:T.ink, lineHeight:1.3}}>{q.title}</div>
+                {q.date && <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginTop:2}}>{fmtDate(q.date)}</div>}
+                {q.readiness && <div style={{fontFamily:T.mono, fontSize:10, color:T.accent, marginTop:2}}>Readiness: {q.readiness}/5</div>}
+              </div>
+            ))
+          }
+        </div>
+
+        {/* Notes */}
+        <div style={{background:T.surface, borderRadius:12, padding:'16px 18px', gridColumn:'1 / -1'}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Notes</div>
+            <button type="button" onClick={() => onNav?.('notes')} style={{fontFamily:T.mono, fontSize:10, color:T.accent, background:'none', border:'none', padding:0, cursor:'pointer'}}>All notes →</button>
+          </div>
+          {subjNotes.length === 0
+            ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3}}>No notes for this subject yet.</div>
+            : <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:10}}>
+                {subjNotes.map(n => (
+                  <div key={n.id} style={{background:T.bg, borderRadius:8, padding:'12px 14px', borderLeft:`2px solid ${s.color}`}}>
+                    <div style={{fontFamily:T.ui, fontSize:12, color:T.ink, fontWeight:500, marginBottom:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{n.title}</div>
+                    <div style={{fontFamily:T.ui, fontSize:11, color:T.ink3, lineHeight:1.4, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical'}}>{n.preview || n.body}</div>
+                    {n.date && <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, marginTop:6}}>{n.date}</div>}
+                  </div>
+                ))}
+              </div>
+          }
+        </div>
+      </div>
     </div>
   );
 }
@@ -4675,6 +4841,7 @@ const SCREENS = {
   grades:     GradesScreen,
   tools:      ToolsScreen,
   subjects:   SubjectsScreen,
+  subject:    SubjectDetailScreen,
 };
 
 function App() {
