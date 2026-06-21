@@ -2967,7 +2967,7 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
   const pastCourses  = userData?.pastCourses  || [];
   const GRADE_OPTS   = ['A+','A','A−','B+','B','B−','C+','C','C−','D','F'];
 
-  const [showAddPast, setShowAddPast] = useState(false);
+  const [showPastModal, setShowPastModal] = useState(false);
   const [pastForm, setPastForm] = useState({ name:'', grade:'', type:'regular' });
 
   const setGrade = (subjId, g) => {
@@ -2984,7 +2984,6 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
     const entry = { id: 'pc-' + Date.now().toString(36), name: pastForm.name.trim(), grade: pastForm.grade, type: pastForm.type };
     onUpdate?.({ pastCourses: [...pastCourses, entry] });
     setPastForm({ name:'', grade:'', type:'regular' });
-    setShowAddPast(false);
   };
   const removePastCourse = (id) => onUpdate?.({ pastCourses: pastCourses.filter(c => c.id !== id) });
 
@@ -3027,7 +3026,7 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
     const num = parseFloat(value) || 0;
     const frac = Math.min(num / max, 1);
     return (
-      <div style={{background:T.surface, borderRadius:12, padding:'14px 18px', display:'flex', alignItems:'center', gap:14, borderBottom:`2px solid ${color}28`}}>
+      <div style={{background:T.surface, borderRadius:12, padding:'12px 16px', display:'flex', alignItems:'center', gap:12, borderBottom:`2px solid ${color}28`, width:260, flexShrink:0}}>
         <div style={{position:'relative', flexShrink:0, width:56, height:56}}>
           <svg width={56} height={56} viewBox="-28 -28 56 56" style={{transform:'rotate(-90deg)'}}>
             <circle r={Rg} fill="none" stroke={T.border} strokeWidth={3.5}/>
@@ -3067,6 +3066,13 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
         </div>
         <div style={{display:'flex', gap:8, flexShrink:0}}>
           <button type="button" onClick={() => onRequestSidebar?.('addSubject')} style={{padding:'7px 14px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>+ Add Subject</button>
+          <button type="button" onClick={() => setShowPastModal(true)}
+            style={{display:'flex', alignItems:'center', gap:6, padding:'7px 13px', border:`1px solid ${T.border}`, background:T.surface, color:T.ink3, fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8, transition:'border-color 0.12s'}}
+            onMouseOver={e => e.currentTarget.style.borderColor = '#4285f4'}
+            onMouseOut={e => e.currentTarget.style.borderColor = T.border}
+          >
+            Past Courses{pastCourses.length > 0 ? ` (${pastCourses.length})` : ''}
+          </button>
           {subjects.length > 0 && (
             <button type="button" onClick={() => exportGradesCsv(profile, userData)}
               style={{display:'flex', alignItems:'center', gap:6, padding:'7px 13px', border:`1px solid ${T.border}`, background:T.surface, color:T.ink3, fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8, transition:'border-color 0.12s'}}
@@ -3081,7 +3087,7 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
       </div>
 
       {/* GPA row — compact */}
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12}}>
+      <div style={{display:'flex', gap:10, marginBottom:12}}>
         <GpaRing value={gpaStr} max={4} label="Unweighted GPA" sub={`${termLabel} ${CY}${graded.length ? ` · ${graded.length} graded` : ''}`} color={T.accent} />
         <GpaRing value={weightedGpaStr} max={5} label="Weighted GPA" sub={`Includes ${pastCourses.length} past course${pastCourses.length !== 1 ? 's' : ''} · AP +1.0 · Hon +0.5`} color="#4285f4" />
       </div>
@@ -3174,148 +3180,83 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
             })}
           </div>
 
-          {/* Analytics row — compact */}
-          <div className="shq-grades-insights" style={{marginBottom:12}}>
+        </>
+      )}
 
-            <div style={{background:T.surface, borderRadius:12, padding:'13px 16px'}}>
-              <div style={{display:'flex', alignItems:'center', gap:5, marginBottom:10}}>
-                <div style={{width:5, height:5, borderRadius:'50%', background:T.accent}}/>
-                <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Recent Updates</div>
+      {/* Past Courses modal */}
+      {showPastModal && (
+        <div style={{position:'fixed', inset:0, zIndex:1200, background:'rgba(24,21,14,0.35)', display:'flex', alignItems:'center', justifyContent:'center'}}
+          onClick={() => setShowPastModal(false)}>
+          <div style={{background:T.surface, borderRadius:16, padding:'24px 28px', width:480, maxWidth:'calc(100vw - 32px)', maxHeight:'80vh', overflowY:'auto', boxShadow:'0 20px 60px rgba(24,21,14,0.22)'}}
+            onClick={e => e.stopPropagation()}>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18}}>
+              <div>
+                <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:4}}>Weighted GPA</div>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink}}>Past Courses</div>
               </div>
-              {recentUpdates.length === 0
-                ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:12, color:T.ink3}}>Grade changes appear here.</div>
-                : recentUpdates.map((item, i) => (
-                  <div key={item.id} style={{display:'flex', alignItems:'center', gap:7, padding:'5px 0', borderBottom: i < recentUpdates.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
-                    <div style={{width:5, height:5, borderRadius:1, background:item.subj.color, flexShrink:0}}/>
-                    <div style={{fontFamily:T.ui, fontSize:11, color:T.ink2, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.subj.short}</div>
-                    <div style={{fontFamily:T.mono, fontSize:10.5, color:(GPA_MAP[item.grade]||0) >= 3.7 ? '#3a8a52' : (GPA_MAP[item.grade]||0) >= 3.0 ? T.ink3 : '#bf4a30', fontWeight:600}}>{item.grade}</div>
-                    <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3}}>{formatToolWhen(item.at)}</div>
-                  </div>
-                ))
-              }
+              <button type="button" onClick={() => setShowPastModal(false)}
+                style={{background:'none', border:`1px solid ${T.border}`, color:T.ink3, fontFamily:T.mono, fontSize:10, padding:'5px 12px', borderRadius:7, cursor:'pointer'}}>Done</button>
             </div>
 
-            <div style={{background:T.surface, borderRadius:12, padding:'13px 16px'}}>
-              <div style={{display:'flex', alignItems:'center', gap:5, marginBottom:10}}>
-                <div style={{width:5, height:5, borderRadius:'50%', background:'#3a8a52'}}/>
-                <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Distribution · {gradedCount}/{subjects.length} graded</div>
+            {/* Add form */}
+            <div style={{display:'flex', gap:8, alignItems:'flex-end', marginBottom:16, flexWrap:'wrap'}}>
+              <div style={{flex:'2 1 150px'}}>
+                <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:4}}>Course name</div>
+                <input value={pastForm.name} onChange={e => setPastForm(f => ({...f, name:e.target.value}))}
+                  placeholder="e.g. AP Chemistry"
+                  onKeyDown={e => e.key === 'Enter' && addPastCourse()}
+                  style={{width:'100%', background:T.bg, border:`1px solid ${T.border}`, borderRadius:7, padding:'6px 10px', fontFamily:T.ui, fontSize:12, color:T.ink, outline:'none', boxSizing:'border-box'}}
+                  onFocus={e => e.target.style.borderColor = T.accent} onBlur={e => e.target.style.borderColor = T.border}
+                />
               </div>
-              {gradedCount === 0
-                ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:12, color:T.ink3}}>Set grades to see the distribution.</div>
-                : ['A','B','C','D','F'].map(letter => {
-                    const barColors = { A:'#3a8a52', B:T.accent, C:'#b07020', D:'#bf4a30', F:'#8a3030' };
-                    return (
-                      <div key={letter} style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
-                        <div style={{width:12, fontFamily:T.mono, fontSize:9.5, color:T.ink2, fontWeight:600}}>{letter}</div>
-                        <div style={{flex:1, height:6, background:T.bl, borderRadius:3, overflow:'hidden'}}>
-                          <div style={{height:'100%', width:`${gradedCount ? (gradeMix[letter]/gradedCount)*100 : 0}%`, background:barColors[letter], borderRadius:3}}/>
-                        </div>
-                        <div style={{width:12, textAlign:'right', fontFamily:T.mono, fontSize:9, color:T.ink3}}>{gradeMix[letter]}</div>
-                      </div>
-                    );
-                  })
-              }
-            </div>
-
-            <div style={{background:T.surface, borderRadius:12, padding:'13px 16px'}}>
-              <div style={{display:'flex', alignItems:'center', gap:5, marginBottom:10}}>
-                <div style={{width:5, height:5, borderRadius:'50%', background:'#4285f4'}}/>
-                <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Insights</div>
+              <div style={{flex:'0 1 80px'}}>
+                <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:4}}>Grade</div>
+                <select value={pastForm.grade} onChange={e => setPastForm(f => ({...f, grade:e.target.value}))}
+                  style={{width:'100%', background:T.bg, border:`1px solid ${T.border}`, borderRadius:7, padding:'6px 8px', fontFamily:T.mono, fontSize:11, color:T.ink, cursor:'pointer'}}>
+                  <option value="">—</option>
+                  {GRADE_OPTS.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
               </div>
-              {bestPerf && (
-                <div style={{display:'flex', alignItems:'center', gap:6, padding:'5px 0', borderBottom:`1px solid ${T.bl}`}}>
-                  <div style={{width:5, height:5, borderRadius:1, background:'#3a8a52', flexShrink:0}}/>
-                  <div style={{fontFamily:T.ui, fontSize:11, color:T.ink2, flex:1}}>Leading: {bestPerf.short}</div>
-                  <div style={{fontFamily:T.mono, fontSize:10.5, color:'#3a8a52', fontWeight:600}}>{grades[bestPerf.id]}</div>
-                </div>
-              )}
-              {showNeedsAttn && (
-                <div style={{display:'flex', alignItems:'center', gap:6, padding:'5px 0', borderBottom:`1px solid ${T.bl}`}}>
-                  <div style={{width:5, height:5, borderRadius:1, background:'#bf4a30', flexShrink:0}}/>
-                  <div style={{fontFamily:T.ui, fontSize:11, color:T.ink2, flex:1}}>Needs work: {needsAttn.short}</div>
-                  <div style={{fontFamily:T.mono, fontSize:10.5, color:'#bf4a30', fontWeight:600}}>{grades[needsAttn.id]}</div>
-                </div>
-              )}
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:12, color:T.ink3, lineHeight:1.55, marginTop: bestPerf ? 8 : 0}}>
-                {insights || 'Insights appear once you log your first grade.'}
+              <div style={{flex:'1 1 100px'}}>
+                <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:4}}>Type</div>
+                <select value={pastForm.type} onChange={e => setPastForm(f => ({...f, type:e.target.value}))}
+                  style={{width:'100%', background:T.bg, border:`1px solid ${T.border}`, borderRadius:7, padding:'6px 8px', fontFamily:T.mono, fontSize:11, color:T.ink, cursor:'pointer'}}>
+                  <option value="regular">Regular</option>
+                  <option value="honors">Honors +0.5</option>
+                  <option value="ap">AP / IB +1.0</option>
+                </select>
               </div>
-            </div>
-
-          </div>
-
-          {/* Past courses for weighted GPA */}
-          <div style={{background:T.surface, borderRadius:12, padding:'14px 18px'}}>
-            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
-              <div style={{display:'flex', alignItems:'center', gap:6}}>
-                <div style={{width:5, height:5, borderRadius:'50%', background:'#4285f4'}}/>
-                <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Past Courses · Weighted GPA</div>
-                {pastCourses.length > 0 && <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, opacity:0.7}}>{pastCourses.length} course{pastCourses.length !== 1 ? 's' : ''}</div>}
-              </div>
-              <button type="button" onClick={() => setShowAddPast(v => !v)}
-                style={{fontFamily:T.mono, fontSize:9.5, color: showAddPast ? T.ink3 : T.accent, background:'none', border:`1px solid ${showAddPast ? T.border : T.accent}`, padding:'4px 10px', borderRadius:6, cursor:'pointer', letterSpacing:'0.06em'}}>
-                {showAddPast ? 'Cancel' : '+ Add course'}
+              <button type="button" onClick={addPastCourse} disabled={!pastForm.name.trim() || !pastForm.grade}
+                style={{padding:'6px 14px', border:'none', background: pastForm.name.trim() && pastForm.grade ? T.accent : T.border, color:'#fff', fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.06em', cursor: pastForm.name.trim() && pastForm.grade ? 'pointer' : 'default', borderRadius:7, flexShrink:0}}>
+                Add
               </button>
             </div>
 
-            {showAddPast && (
-              <div style={{display:'flex', gap:8, alignItems:'flex-end', marginBottom:12, flexWrap:'wrap'}}>
-                <div style={{flex:'2 1 160px'}}>
-                  <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:4}}>Course name</div>
-                  <input value={pastForm.name} onChange={e => setPastForm(f => ({...f, name:e.target.value}))}
-                    placeholder="e.g. AP Chemistry" autoFocus
-                    style={{width:'100%', background:T.bg, border:`1px solid ${T.border}`, borderRadius:7, padding:'6px 10px', fontFamily:T.ui, fontSize:12, color:T.ink, outline:'none', boxSizing:'border-box'}}
-                    onFocus={e => e.target.style.borderColor = T.accent} onBlur={e => e.target.style.borderColor = T.border}
-                  />
-                </div>
-                <div style={{flex:'1 1 90px'}}>
-                  <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:4}}>Grade</div>
-                  <select value={pastForm.grade} onChange={e => setPastForm(f => ({...f, grade:e.target.value}))}
-                    style={{width:'100%', background:T.bg, border:`1px solid ${T.border}`, borderRadius:7, padding:'6px 8px', fontFamily:T.mono, fontSize:11, color:T.ink, cursor:'pointer'}}>
-                    <option value="">—</option>
-                    {GRADE_OPTS.map(g => <option key={g} value={g}>{g}</option>)}
-                  </select>
-                </div>
-                <div style={{flex:'1 1 110px'}}>
-                  <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:4}}>Type</div>
-                  <select value={pastForm.type} onChange={e => setPastForm(f => ({...f, type:e.target.value}))}
-                    style={{width:'100%', background:T.bg, border:`1px solid ${T.border}`, borderRadius:7, padding:'6px 8px', fontFamily:T.mono, fontSize:11, color:T.ink, cursor:'pointer'}}>
-                    <option value="regular">Regular</option>
-                    <option value="honors">Honors (+0.5)</option>
-                    <option value="ap">AP / IB (+1.0)</option>
-                  </select>
-                </div>
-                <button type="button" onClick={addPastCourse} disabled={!pastForm.name.trim() || !pastForm.grade}
-                  style={{padding:'6px 14px', border:'none', background: pastForm.name.trim() && pastForm.grade ? T.accent : T.border, color:'#fff', fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.06em', cursor: pastForm.name.trim() && pastForm.grade ? 'pointer' : 'default', borderRadius:7}}>
-                  Add
-                </button>
-              </div>
-            )}
-
-            {pastCourses.length === 0 && !showAddPast ? (
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:12.5, color:T.ink3}}>Add past courses to make your weighted GPA more accurate.</div>
+            {/* List */}
+            {pastCourses.length === 0 ? (
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3, padding:'16px 0'}}>No past courses yet. Add them above to improve your weighted GPA accuracy.</div>
             ) : (
-              <div style={{display:'flex', flexDirection:'column', gap:0}}>
+              <div style={{borderTop:`1px solid ${T.bl}`}}>
                 {pastCourses.map((c, i) => {
                   const gv = GPA_MAP[c.grade] ?? 0;
-                  const bonus = getPastBonus(c.type);
-                  const weighted = Math.min(gv + bonus, 5.0);
+                  const weighted = Math.min(gv + getPastBonus(c.type), 5.0);
                   const col = weighted >= 4.5 ? '#3a8a52' : weighted >= 3.5 ? T.accent : weighted >= 2.5 ? '#b07020' : '#bf4a30';
                   return (
-                    <div key={c.id} style={{display:'flex', alignItems:'center', gap:10, padding:'6px 0', borderBottom: i < pastCourses.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
-                      <div style={{flex:1, fontFamily:T.ui, fontSize:12, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{c.name}</div>
+                    <div key={c.id} style={{display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom: i < pastCourses.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
+                      <div style={{flex:1, fontFamily:T.ui, fontSize:12.5, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{c.name}</div>
                       <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.07em', flexShrink:0}}>{c.type === 'ap' ? 'AP/IB' : c.type === 'honors' ? 'Hon' : 'Reg'}</div>
-                      <div style={{fontFamily:T.mono, fontSize:11, color:col, fontWeight:600, flexShrink:0, minWidth:24, textAlign:'center'}}>{c.grade}</div>
-                      <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, flexShrink:0}}>{weighted.toFixed(1)}</div>
+                      <div style={{fontFamily:T.mono, fontSize:12, color:col, fontWeight:600, flexShrink:0, minWidth:28, textAlign:'center'}}>{c.grade}</div>
+                      <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, flexShrink:0}}>{weighted.toFixed(1)}</div>
                       <button type="button" onClick={() => removePastCourse(c.id)}
-                        style={{background:'none', border:'none', color:T.ink3, fontSize:14, cursor:'pointer', padding:'0 2px', lineHeight:1, opacity:0.5}}
-                        onMouseOver={e => e.currentTarget.style.opacity = '1'} onMouseOut={e => e.currentTarget.style.opacity = '0.5'}>×</button>
+                        style={{background:'none', border:'none', color:T.ink3, fontSize:16, cursor:'pointer', padding:'0 4px', lineHeight:1, opacity:0.45}}
+                        onMouseOver={e => e.currentTarget.style.opacity = '1'} onMouseOut={e => e.currentTarget.style.opacity = '0.45'}>×</button>
                     </div>
                   );
                 })}
               </div>
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
