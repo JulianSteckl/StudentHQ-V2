@@ -2368,14 +2368,15 @@ function FlashcardsScreen({ profile, userData, onUpdate, screenAction, onScreenA
     );
   }
 
-  // Group cards by subject for the deck shelf
-  const decksBySubj = subjects.map(s => ({
+  // All subjects as decks (including empty ones)
+  const allDecks = subjects.map(s => ({
     subj: s,
     cards: flashCards.filter(c => c.subj === s.id),
-  })).filter(d => d.cards.length > 0);
+  }));
+  const decksBySubj = allDecks.filter(d => d.cards.length > 0);
   const ungrouped = flashCards.filter(c => !subjects.find(s => s.id === c.subj));
 
-  // Suggested mode based on card count
+  // Suggested mode — only when cards exist
   const suggestedMode = flashCards.length === 0 ? null
     : flashCards.length < 5 ? MODES[0]
     : quizzes.length > 0 ? MODES[4]
@@ -2418,12 +2419,12 @@ function FlashcardsScreen({ profile, userData, onUpdate, screenAction, onScreenA
               <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink, marginBottom:4}}>{suggestedMode.title}</div>
               <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3}}>{suggestedMode.sub}</div>
             </div>
-            <button type="button" onClick={() => setMode(suggestedMode.id)} style={{marginTop:12, alignSelf:'flex-start', padding:'7px 16px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.07em', cursor:'pointer', borderRadius:7}}>Start →</button>
+            <button type="button" onClick={() => setMode(suggestedMode.id)} style={{marginTop:12, alignSelf:'flex-start', padding:'7px 16px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.07em', cursor:'pointer', borderRadius:7}}>Study now →</button>
           </div>
         ) : (
           <div style={{background:T.surface, borderRadius:12, border:`1px dashed ${T.border}`, padding:'16px 18px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center'}}>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink3, marginBottom:8}}>No cards yet</div>
-            <button onClick={() => openNew()} style={{padding:'6px 14px', border:`1px solid ${T.accent}`, background:'none', color:T.accent, fontFamily:T.mono, fontSize:9.5, cursor:'pointer', borderRadius:7}}>+ Create first card</button>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink3, marginBottom:4}}>Build your first deck</div>
+            <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, marginBottom:12}}>Pick a subject below to start adding cards</div>
           </div>
         )}
       </div>
@@ -2435,39 +2436,42 @@ function FlashcardsScreen({ profile, userData, onUpdate, screenAction, onScreenA
         <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'18px 20px'}}>
           <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
             <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em'}}>Your Decks</div>
-            <button onClick={() => openNew()} style={{fontFamily:T.mono, fontSize:9, color:T.accent, background:'none', border:`1px solid ${T.border}`, padding:'3px 9px', borderRadius:6, cursor:'pointer'}}>+ Add card</button>
+            <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3}}>{decksBySubj.length} of {subjects.length} started</div>
           </div>
-          {decksBySubj.length === 0 ? (
-            <div style={{textAlign:'center', padding:'32px 0'}}>
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:16, color:T.ink3, marginBottom:6}}>No decks yet</div>
-              <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3}}>Cards you create will appear here grouped by subject.</div>
-            </div>
-          ) : (
-            <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))', gap:10}}>
-              {decksBySubj.map(({subj:s, cards:dc}) => (
-                <div key={s.id} onClick={() => openNew(s.id)} style={{borderRadius:10, border:`1px solid ${T.border}`, borderTop:`3px solid ${s.color}`, padding:'14px 14px 12px', cursor:'pointer', background:T.bg, position:'relative', overflow:'hidden'}}
-                  onMouseOver={e=>e.currentTarget.style.background=T.bl}
-                  onMouseOut={e=>e.currentTarget.style.background=T.bg}>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))', gap:10}}>
+            {allDecks.map(({subj:s, cards:dc}) => {
+              const isEmpty = dc.length === 0;
+              return (
+                <div key={s.id} onClick={() => openNew(s.id)}
+                  style={{borderRadius:10, border:`1px solid ${isEmpty ? T.border : T.border}`, borderTop:`3px solid ${isEmpty ? T.border : s.color}`, padding:'14px 14px 12px', cursor:'pointer', background: isEmpty ? T.bg : T.bg, opacity: isEmpty ? 0.6 : 1}}
+                  onMouseOver={e=>{e.currentTarget.style.background=T.bl; e.currentTarget.style.opacity='1';}}
+                  onMouseOut={e=>{e.currentTarget.style.background=T.bg; e.currentTarget.style.opacity=isEmpty?'0.6':'1';}}>
                   <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:6}}>{s.short}</div>
-                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink, marginBottom:8, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.name}</div>
-                  <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
-                    <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:26, color:s.color, lineHeight:1}}>{dc.length}</div>
-                    <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3}}>cards</div>
-                  </div>
-                  <div style={{height:3, background:T.bl, borderRadius:2, overflow:'hidden', marginTop:8}}>
-                    <div style={{height:'100%', width:`${Math.min((dc.length/Math.max(flashCards.length,1))*100,100)}%`, background:s.color, borderRadius:2, opacity:0.7}}/>
-                  </div>
+                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink, marginBottom:8, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.name}</div>
+                  {isEmpty ? (
+                    <div style={{fontFamily:T.mono, fontSize:9, color:T.accent}}>+ Start deck</div>
+                  ) : (
+                    <>
+                      <div style={{display:'flex', alignItems:'baseline', gap:5}}>
+                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:s.color, lineHeight:1}}>{dc.length}</div>
+                        <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3}}>cards</div>
+                      </div>
+                      <div style={{height:3, background:T.bl, borderRadius:2, overflow:'hidden', marginTop:8}}>
+                        <div style={{height:'100%', width:`${Math.min((dc.length/Math.max(flashCards.length,1))*100,100)}%`, background:s.color, borderRadius:2, opacity:0.7}}/>
+                      </div>
+                    </>
+                  )}
                 </div>
-              ))}
-              {ungrouped.length > 0 && (
-                <div style={{borderRadius:10, border:`1px solid ${T.border}`, borderTop:`3px solid ${T.ink3}`, padding:'14px 14px 12px', background:T.bg}}>
-                  <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:6}}>Misc</div>
-                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:26, color:T.ink3, lineHeight:1}}>{ungrouped.length}</div>
-                  <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, marginTop:4}}>cards</div>
-                </div>
-              )}
-            </div>
-          )}
+              );
+            })}
+            {ungrouped.length > 0 && (
+              <div style={{borderRadius:10, border:`1px solid ${T.border}`, borderTop:`3px solid ${T.ink3}`, padding:'14px 14px 12px', background:T.bg}}>
+                <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:6}}>Misc</div>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:24, color:T.ink3, lineHeight:1}}>{ungrouped.length}</div>
+                <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, marginTop:4}}>cards</div>
+              </div>
+            )}
+          </div>
 
           {/* Recent cards list */}
           {flashCards.length > 0 && (
@@ -2516,6 +2520,57 @@ function FlashcardsScreen({ profile, userData, onUpdate, screenAction, onScreenA
               <div style={{fontFamily:T.mono, fontSize:9, color:m.icC, flexShrink:0}}>→</div>
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Bottom row: deck progress breakdown + study tips */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16}}>
+
+        {/* Deck coverage */}
+        <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'18px 20px'}}>
+          <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:14}}>Deck Coverage</div>
+          {subjects.length === 0 ? (
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3}}>Add subjects to track deck coverage.</div>
+          ) : (
+            <div style={{display:'flex', flexDirection:'column', gap:10}}>
+              {subjects.map(s => {
+                const count = flashCards.filter(c => c.subj === s.id).length;
+                const pct = flashCards.length > 0 ? Math.min((count / flashCards.length) * 100, 100) : 0;
+                return (
+                  <div key={s.id}>
+                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:5}}>
+                      <div style={{display:'flex', alignItems:'center', gap:7}}>
+                        <div style={{width:6, height:6, borderRadius:1, background:s.color, flexShrink:0}}/>
+                        <div style={{fontFamily:T.ui, fontSize:12, color:T.ink2}}>{s.name}</div>
+                      </div>
+                      <div style={{fontFamily:T.mono, fontSize:9.5, color:count > 0 ? T.ink3 : T.border}}>{count} card{count !== 1 ? 's' : ''}</div>
+                    </div>
+                    <div style={{height:5, background:T.bl, borderRadius:3, overflow:'hidden'}}>
+                      <div style={{height:'100%', width:`${pct}%`, background:s.color, borderRadius:3, opacity: count > 0 ? 0.75 : 0.2, minWidth: count > 0 ? 8 : 0}}/>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Study tips */}
+        <div style={{background:T.surface, borderRadius:12, border:`1px solid ${T.border}`, padding:'18px 20px'}}>
+          <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:14}}>Study Tips</div>
+          <div style={{display:'flex', flexDirection:'column', gap:12}}>
+            {[
+              { num:'01', tip:'Aim for at least 10 cards per subject before starting a study mode — fewer cards means you\'ll see the same ones on repeat.' },
+              { num:'02', tip:'Use Written Recall before a test — forcing yourself to retrieve from memory beats re-reading every time.' },
+              { num:'03', tip:'Rate cards "Again" honestly. The fastest way to learn is to drill the ones you miss, not the ones you already know.' },
+              { num:'04', tip:'Mix subjects in a single session. Interleaving is harder in the moment but builds stronger long-term recall.' },
+            ].map(t => (
+              <div key={t.num} style={{display:'flex', gap:12, alignItems:'flex-start'}}>
+                <div style={{fontFamily:T.mono, fontSize:9, color:T.accent, flexShrink:0, marginTop:2}}>{t.num}</div>
+                <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, lineHeight:1.55}}>{t.tip}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
