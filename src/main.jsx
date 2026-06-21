@@ -3583,7 +3583,7 @@ function ToolsScreen({ userData, onUpdate }) {
             <div className="shq-tools-mid-body">
             {trackedTools.length === 0
               ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3, lineHeight:1.5}}>No usage data yet.</div>
-              : trackedTools.slice(0, 2).map((tool, i, arr) => (
+              : trackedTools.map((tool, i, arr) => (
               <div key={tool.id} style={{padding:'7px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
                 <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4}}>
                   <div style={{display:'flex', alignItems:'center', gap:6, minWidth:0}}>
@@ -3606,10 +3606,15 @@ function ToolsScreen({ userData, onUpdate }) {
               <span style={{color:T.accent, fontSize:10, lineHeight:1}}>★</span>
               <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Usage Insight</div>
             </div>
-            <div className="shq-tools-mid-body">
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13.5, color: usageInsight ? T.ink2 : T.ink3, lineHeight:1.55}}>
-              {usageInsight || 'Use your tools to generate insights.'}
-            </div>
+            <div className="shq-tools-mid-body" style={{gap:10}}>
+            {usageInsight
+              ? usageInsight.split(/(?<=\.)\s+/).map((sentence, i) => (
+                <div key={i} style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13.5, color: i === 0 ? T.ink2 : T.ink3, lineHeight:1.55}}>
+                  {sentence}
+                </div>
+              ))
+              : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13.5, color:T.ink3, lineHeight:1.55}}>Use your tools to generate insights.</div>
+            }
             </div>
           </div>
         </div>
