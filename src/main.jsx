@@ -2672,6 +2672,19 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
 
   const cardStyle = { background: T.surface, borderRadius: 12, border: `1px solid ${T.border}` };
 
+  // Parse bell time string e.g. "8:00–8:50" → {start, end} in minutes
+  const parseBellMins = t => {
+    if (!t) return null;
+    const parts = t.split(/[–\-]/);
+    if (parts.length < 2) return null;
+    const toMin = s => { const [h,m] = s.trim().split(':').map(Number); return h*60+(m||0); };
+    return { start: toMin(parts[0]), end: toMin(parts[1]) };
+  };
+  const nowMins = now.getHours()*60 + now.getMinutes();
+  const activePeriod = bellSchedule.find(p => { const t=parseBellMins(p.time); return t && nowMins>=t.start && nowMins<t.end; });
+  const nextPeriod   = bellSchedule.find(p => { const t=parseBellMins(p.time); return t && nowMins<t.start; });
+  const activeMins   = activePeriod ? (() => { const t=parseBellMins(activePeriod.time); return t ? t.end - nowMins : null; })() : null;
+
   return (
     <div className="screen-enter shq-screen-pad" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
 
@@ -2697,94 +2710,205 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
         </div>
       </div>
 
-      {/* Top row: Bell schedule + stat pills */}
-      <div style={{ ...cardStyle, marginBottom: 14, padding: '12px 18px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
-            <div style={{ fontFamily: T.mono, fontSize: 9, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.13em', flexShrink: 0 }}>Bell</div>
-            {bellSchedule.length === 0 ? (
-              <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 13, color: T.ink3 }}>No schedule set</div>
-            ) : bellOpen ? (
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {bellSchedule.map(p => {
-                  const s = p.subj ? subjectBy(p.subj) : null;
-                  return (
-                    <div key={p.period + p.time} style={{
-                      display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px',
-                      background: p.current ? T.accentSoft : T.bl,
-                      border: p.current ? `1px solid ${T.accent}40` : `1px solid transparent`,
-                      borderRadius: 6,
-                    }}>
-                      <div style={{ fontFamily: T.mono, fontSize: 8.5, color: T.ink3 }}>P{p.period}</div>
-                      {s && <div style={{ width: 5, height: 5, borderRadius: 1, background: s.color }} />}
-                      <div style={{ fontFamily: T.ui, fontSize: 11, color: p.current ? T.accent : T.ink2, fontWeight: p.current ? 600 : 400 }}>
-                        {s ? s.short : '—'}
+      {/* Top section: 3-col — Bell | Stats+Urgent | Focus */}
+      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr 260px', gap: 12, marginBottom: 14 }}>
+
+        {/* Bell schedule — vertical */}
+        <div style={{ ...cardStyle, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ fontFamily: T.mono, fontSize: 9.5, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.13em' }}>Bell Schedule</div>
+            <div style={{ display: 'flex', gap: 5 }}>
+              {!editingBell && (
+                <button type="button" onClick={startBellEdit} style={{ fontFamily: T.mono, fontSize: 9, color: T.accent, background: 'none', border: `1px solid ${T.border}`, padding: '2px 8px', borderRadius: 6, cursor: 'pointer' }}>
+                  {bellSchedule.length ? 'Edit' : 'Set up'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Current period highlight */}
+          {activePeriod && (() => {
+            const s = activePeriod.subj ? subjectBy(activePeriod.subj) : null;
+            return (
+              <div style={{ background: T.accentSoft, border: `1px solid ${T.accent}30`, borderRadius: 8, padding: '10px 12px', marginBottom: 10 }}>
+                <div style={{ fontFamily: T.mono, fontSize: 8.5, color: T.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>In class now</div>
+                <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 15, color: T.ink, marginBottom: 6 }}>{s ? s.name : `Period ${activePeriod.period}`}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontFamily: T.mono, fontSize: 9.5, color: T.ink3 }}>{activePeriod.time}</div>
+                  <div style={{ fontFamily: T.mono, fontSize: 10, color: T.accent, fontWeight: 600 }}>{activeMins}m left</div>
+                </div>
+                <div style={{ height: 3, background: `${T.accent}20`, borderRadius: 2, overflow: 'hidden', marginTop: 6 }}>
+                  <div style={{ height: '100%', background: T.accent, borderRadius: 2, width: (() => { const t=parseBellMins(activePeriod.time); return t ? `${((nowMins-t.start)/(t.end-t.start))*100}%` : '0%'; })() }}/>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Period list */}
+          {editingBell ? (
+            <div style={{ flex: 1 }}>
+              {draftBell.map((p, i) => (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 90px', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+                  <input value={p.period} onChange={e => setDraftBell(rows => rows.map((r, j) => j === i ? { ...r, period: e.target.value } : r))} placeholder="P" style={{ fontFamily: T.mono, fontSize: 10, padding: '5px 6px', border: `1px solid ${T.border}`, borderRadius: 5, background: T.bg, textAlign: 'center' }} />
+                  <select value={p.subj} onChange={e => setDraftBell(rows => rows.map((r, j) => j === i ? { ...r, subj: e.target.value } : r))} style={{ fontFamily: T.ui, fontSize: 10, padding: '5px 6px', border: `1px solid ${T.border}`, borderRadius: 5, background: T.bg }}>
+                    <option value="">— Subject —</option>
+                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  <input value={p.time} onChange={e => setDraftBell(rows => rows.map((r, j) => j === i ? { ...r, time: e.target.value } : r))} placeholder="8:00–8:50" style={{ fontFamily: T.mono, fontSize: 10, padding: '5px 6px', border: `1px solid ${T.border}`, borderRadius: 5, background: T.bg }} />
+                </div>
+              ))}
+              <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                <button type="button" onClick={() => setDraftBell(rows => [...rows, { period: String(rows.length + 1), subj: '', time: '', room: '', current: false }])} style={{ fontFamily: T.mono, fontSize: 9.5, color: T.ink3, background: 'none', border: `1px solid ${T.border}`, padding: '4px 8px', borderRadius: 7, cursor: 'pointer' }}>+ Add</button>
+                <button type="button" onClick={saveBell} style={{ fontFamily: T.mono, fontSize: 9.5, color: '#fff', background: T.accent, border: 'none', padding: '4px 12px', borderRadius: 7, cursor: 'pointer' }}>Save</button>
+                <button type="button" onClick={() => setEditingBell(false)} style={{ fontFamily: T.mono, fontSize: 9.5, color: T.ink3, background: 'none', border: `1px solid ${T.border}`, padding: '4px 8px', borderRadius: 7, cursor: 'pointer' }}>Cancel</button>
+              </div>
+            </div>
+          ) : bellSchedule.length === 0 ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 13, color: T.ink3, textAlign: 'center' }}>No schedule yet.<br/>Tap Set up to add periods.</div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {bellSchedule.map((p, i) => {
+                const s = p.subj ? subjectBy(p.subj) : null;
+                const isActive = activePeriod === p;
+                const isPast = (() => { const t=parseBellMins(p.time); return t && nowMins >= t.end; })();
+                const isNext = nextPeriod === p;
+                return (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px',
+                    background: isActive ? T.accentSoft : 'transparent',
+                    borderRadius: 7, opacity: isPast ? 0.4 : 1,
+                  }}>
+                    <div style={{ fontFamily: T.mono, fontSize: 9, color: isActive ? T.accent : T.ink3, width: 20, flexShrink: 0 }}>P{p.period}</div>
+                    {s && <div style={{ width: 5, height: 5, borderRadius: 1, background: s.color, flexShrink: 0 }} />}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: T.ui, fontSize: 11.5, color: isActive ? T.accent : T.ink2, fontWeight: isActive ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {s ? s.name : '—'}
                       </div>
-                      {p.time && <div style={{ fontFamily: T.mono, fontSize: 8.5, color: T.ink3 }}>{p.time}</div>}
-                      {p.current && <div style={{ fontFamily: T.mono, fontSize: 8, color: T.accent, letterSpacing: '0.08em' }}>NOW</div>}
+                      {p.time && <div style={{ fontFamily: T.mono, fontSize: 8.5, color: T.ink3, marginTop: 1 }}>{p.time}</div>}
+                    </div>
+                    {isNext && <div style={{ fontFamily: T.mono, fontSize: 8, color: '#4285f4', background: '#4285f410', padding: '1px 5px', borderRadius: 4 }}>NEXT</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Middle: Stats + Urgent */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Stat cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {[
+              { label: 'Tasks Due', val: weekOpenHW.length, color: T.accent },
+              { label: 'Quizzes', val: weekQuizzes, color: '#9254de' },
+              { label: 'Est. Study', val: schedFormatEstTotal(estMinutes), color: '#2a60a0' },
+              { label: 'Urgent', val: urgentCount, color: urgentCount > 0 ? '#bf4a30' : T.ink3 },
+            ].map(c => (
+              <div key={c.label} style={{ ...cardStyle, padding: '14px 16px', borderBottom: `2px solid ${c.color}28` }}>
+                <div style={{ fontFamily: T.mono, fontSize: 9, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.11em', marginBottom: 6 }}>{c.label}</div>
+                <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 26, color: T.ink, lineHeight: 1 }}>{c.val}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Urgent items — vertical */}
+          {unplacedUrgent.length > 0 && (
+            <div style={{ ...cardStyle, padding: '14px 16px', borderLeft: `3px solid #bf4a30`, flex: 1 }}>
+              <div style={{ fontFamily: T.mono, fontSize: 9.5, color: '#bf4a30', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Needs Attention</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {unplacedUrgent.map(hw => {
+                  const s = subjectBy(hw.subj);
+                  return (
+                    <div key={hw.id || hw.title} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 8px', background: '#bf4a3008', borderRadius: 7 }}>
+                      <div style={{ width: 4, height: 4, borderRadius: 1, background: s.color, flexShrink: 0 }} />
+                      <div style={{ fontFamily: T.ui, fontSize: 12, color: T.ink2, flex: 1 }}>{hw.title}</div>
+                      <div style={{ fontFamily: T.mono, fontSize: 9.5, color: '#bf4a30', flexShrink: 0 }}>{hw.due}</div>
                     </div>
                   );
                 })}
               </div>
-            ) : (
-              <div style={{ fontFamily: T.ui, fontSize: 12, color: T.ink2 }}>{bellSchedule.filter(p => p.subj).length} periods</div>
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-            {!editingBell && (
-              <button type="button" onClick={startBellEdit} style={{ fontFamily: T.mono, fontSize: 9.5, color: T.accent, background: 'none', border: `1px solid ${T.border}`, padding: '3px 9px', borderRadius: 7, cursor: 'pointer' }}>
-                {bellSchedule.length ? 'Edit' : 'Set up'}
-              </button>
-            )}
-            <button type="button" onClick={() => setBellOpen(o => !o)} style={{ fontFamily: T.mono, fontSize: 9.5, color: T.ink3, background: 'none', border: `1px solid ${T.border}`, padding: '3px 9px', borderRadius: 7, cursor: 'pointer' }}>
-              {bellOpen ? 'Hide' : 'Show'}
-            </button>
-          </div>
+            </div>
+          )}
+
+          {/* Study plan (if no urgent) */}
+          {unplacedUrgent.length === 0 && planDays.length > 0 && (
+            <div style={{ ...cardStyle, padding: '14px 16px', flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ fontFamily: T.mono, fontSize: 9.5, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.11em' }}>Study Plan</div>
+                <button type="button" onClick={() => setPlanSeed(s => s + 1)} style={{ fontFamily: T.mono, fontSize: 9, color: T.ink3, background: 'none', border: `1px solid ${T.border}`, padding: '2px 7px', borderRadius: 6, cursor: 'pointer' }}>↻</button>
+              </div>
+              {planDays.map(p => (
+                <div key={p.day} style={{ display: 'flex', gap: 10, marginBottom: 6 }}>
+                  <div style={{ fontFamily: T.mono, fontSize: 9.5, color: T.ink3, width: 54, flexShrink: 0 }}>{p.day}</div>
+                  <div style={{ flex: 1 }}>
+                    {p.tasks.map(t => <div key={t} style={{ fontFamily: T.ui, fontSize: 11.5, color: T.ink2, lineHeight: 1.5 }}>{t}</div>)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Bell edit form */}
-        {editingBell && (
-          <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${T.bl}` }}>
-            {draftBell.map((p, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '44px 1fr 120px 80px auto', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                <input value={p.period} onChange={e => setDraftBell(rows => rows.map((r, j) => j === i ? { ...r, period: e.target.value } : r))} placeholder="P" style={{ fontFamily: T.mono, fontSize: 11, padding: '6px 8px', border: `1px solid ${T.border}`, borderRadius: 6, background: T.bg }} />
-                <select value={p.subj} onChange={e => setDraftBell(rows => rows.map((r, j) => j === i ? { ...r, subj: e.target.value } : r))} style={{ fontFamily: T.ui, fontSize: 11, padding: '6px 8px', border: `1px solid ${T.border}`, borderRadius: 6, background: T.bg }}>
-                  <option value="">— Subject —</option>
-                  {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-                <input value={p.time} onChange={e => setDraftBell(rows => rows.map((r, j) => j === i ? { ...r, time: e.target.value } : r))} placeholder="8:00–8:50" style={{ fontFamily: T.mono, fontSize: 11, padding: '6px 8px', border: `1px solid ${T.border}`, borderRadius: 6, background: T.bg }} />
-                <input value={p.room} onChange={e => setDraftBell(rows => rows.map((r, j) => j === i ? { ...r, room: e.target.value } : r))} placeholder="Room" style={{ fontFamily: T.mono, fontSize: 11, padding: '6px 8px', border: `1px solid ${T.border}`, borderRadius: 6, background: T.bg }} />
-                <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: T.mono, fontSize: 10, color: T.ink3, cursor: 'pointer' }}>
-                  <input type="radio" name="currentPeriod" checked={!!p.current} onChange={() => setDraftBell(rows => rows.map((r, j) => ({ ...r, current: j === i })))} />
-                  Now
-                </label>
+        {/* Focus timer — richer */}
+        <div ref={focusRef} style={{ ...cardStyle, padding: '18px 20px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontFamily: T.mono, fontSize: 9.5, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.13em', marginBottom: 12 }}>Focus Session</div>
+
+          {/* Ring */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+            <div style={{ position: 'relative', width: 100, height: 100 }}>
+              <svg width={100} height={100} viewBox="-50 -50 100 100" style={{ transform: 'rotate(-90deg)' }}>
+                <circle r={42} fill="none" stroke={T.bl} strokeWidth={5} />
+                <circle r={42} fill="none" stroke={running ? T.accent : T.ink3} strokeWidth={5}
+                  strokeDasharray={`${(secs / (25 * 60)) * 2 * Math.PI * 42} ${2 * Math.PI * 42}`}
+                  strokeLinecap="round" style={{ transition: 'stroke-dasharray 1s linear' }} />
+              </svg>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                <div style={{ fontFamily: T.mono, fontSize: 20, color: running ? T.accent : T.ink, letterSpacing: '-0.02em' }}>{mm}:{ss}</div>
+                <div style={{ fontFamily: T.mono, fontSize: 8.5, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.08em' }}>remaining</div>
               </div>
-            ))}
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <button type="button" onClick={() => setDraftBell(rows => [...rows, { period: String(rows.length + 1), subj: '', time: '', room: '', current: false }])} style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, background: 'none', border: `1px solid ${T.border}`, padding: '5px 10px', borderRadius: 8, cursor: 'pointer' }}>+ Period</button>
-              <button type="button" onClick={saveBell} style={{ fontFamily: T.mono, fontSize: 10, color: '#fff', background: T.accent, border: 'none', padding: '5px 14px', borderRadius: 8, cursor: 'pointer' }}>Save</button>
-              <button type="button" onClick={() => setEditingBell(false)} style={{ fontFamily: T.mono, fontSize: 10, color: T.ink3, background: 'none', border: `1px solid ${T.border}`, padding: '5px 10px', borderRadius: 8, cursor: 'pointer' }}>Cancel</button>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Urgent carryover */}
-      {unplacedUrgent.length > 0 && (
-        <div style={{ ...cardStyle, marginBottom: 14, padding: '10px 18px', borderLeft: `3px solid #bf4a30`, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ fontFamily: T.mono, fontSize: 9.5, color: '#bf4a30', textTransform: 'uppercase', letterSpacing: '0.1em', flexShrink: 0 }}>Urgent</div>
-          {unplacedUrgent.map(hw => {
-            const s = subjectBy(hw.subj);
-            return (
-              <div key={hw.id || hw.title} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <div style={{ width: 4, height: 4, borderRadius: 1, background: s.color, flexShrink: 0 }} />
-                <div style={{ fontFamily: T.ui, fontSize: 12, color: T.ink2 }}>{hw.title}</div>
-                <div style={{ fontFamily: T.mono, fontSize: 9.5, color: '#bf4a30' }}>{hw.due}</div>
-              </div>
-            );
-          })}
+          {/* Session count */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
+            <div style={{ background: T.bg, borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
+              <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 22, color: T.ink, lineHeight: 1 }}>{sessions}</div>
+              <div style={{ fontFamily: T.mono, fontSize: 8.5, color: T.ink3, marginTop: 3 }}>sessions done</div>
+            </div>
+            <div style={{ background: T.bg, borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
+              <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 22, color: T.ink, lineHeight: 1 }}>{Math.round(sessions * 25)}</div>
+              <div style={{ fontFamily: T.mono, fontSize: 8.5, color: T.ink3, marginTop: 3 }}>min studied</div>
+            </div>
+          </div>
+
+          {/* Working on */}
+          {openHW.length > 0 && (
+            <div style={{ background: T.bg, borderRadius: 8, padding: '8px 10px', marginBottom: 12 }}>
+              <div style={{ fontFamily: T.mono, fontSize: 8.5, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>Focus on next</div>
+              {openHW.slice(0, 2).map((h, i) => {
+                const s = subjectBy(h.subj);
+                return (
+                  <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: i < 1 ? 5 : 0 }}>
+                    <div style={{ width: 4, height: 4, borderRadius: 1, background: s.color, flexShrink: 0 }} />
+                    <div style={{ fontFamily: T.ui, fontSize: 11, color: T.ink2, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.title}</div>
+                    {h.urgent && <div style={{ fontFamily: T.mono, fontSize: 8, color: '#bf4a30' }}>!</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Buttons */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+            <button type="button" onClick={() => setRunning(r => !r)} style={{ flex: 1, padding: '8px 0', border: 'none', borderRadius: 8, background: running ? T.accent : T.bl, color: running ? '#fff' : T.ink, fontFamily: T.mono, fontSize: 10, letterSpacing: '0.06em', cursor: 'pointer' }}>
+              {running ? '⏸ Pause' : '▶ Start'}
+            </button>
+            <button type="button" onClick={() => { setRunning(false); setSecs(25 * 60); }} style={{ padding: '8px 12px', border: `1px solid ${T.border}`, borderRadius: 8, background: 'none', color: T.ink3, fontFamily: T.mono, fontSize: 10, cursor: 'pointer' }}>↺</button>
+          </div>
         </div>
-      )}
+      </div>
 
       {/* Week grid Mon–Fri */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10, marginBottom: 10 }}>
@@ -2824,19 +2948,17 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
                   </>
               }
             </div>
-            {/* Mini workload bar at bottom */}
             {d.itemCount > 0 && (
               <div style={{ marginTop: 10, height: 2, background: T.bl, borderRadius: 1, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${Math.min((d.itemCount / barMax) * 100, 100)}%`, background: d.isToday ? T.accent : T.ink3, opacity: 0.4, borderRadius: 1 }}/>
+                <div style={{ height: '100%', width: `${Math.min((d.itemCount / barMax) * 100, 100)}%`, background: d.isToday ? T.accent : T.ink3, opacity: 0.35, borderRadius: 1 }}/>
               </div>
             )}
           </div>
         ))}
       </div>
 
-      {/* Bottom row: Weekend + Focus timer */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
-        {/* Sat */}
+      {/* Weekend row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
         {weekendCards.map(d => (
           <div key={d.name} style={{
             ...cardStyle, padding: '14px 16px',
@@ -2858,36 +2980,9 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
             })}
           </div>
         ))}
-
-        {/* Focus timer — compact */}
-        <div ref={focusRef} style={{ ...cardStyle, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
-          {/* Ring */}
-          <div style={{ position: 'relative', width: 60, height: 60, flexShrink: 0 }}>
-            <svg width={60} height={60} viewBox="-30 -30 60 60" style={{ transform: 'rotate(-90deg)' }}>
-              <circle r={24} fill="none" stroke={T.bl} strokeWidth={3.5} />
-              <circle r={24} fill="none" stroke={running ? T.accent : T.ink3} strokeWidth={3.5}
-                strokeDasharray={`${(secs / (25 * 60)) * 2 * Math.PI * 24} ${2 * Math.PI * 24}`}
-                strokeLinecap="round" style={{ transition: 'stroke-dasharray 1s linear' }} />
-            </svg>
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ fontFamily: T.mono, fontSize: 11, color: running ? T.accent : T.ink, letterSpacing: '-0.01em' }}>{mm}:{ss}</div>
-            </div>
-          </div>
-          {/* Controls */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: T.mono, fontSize: 9, color: T.ink3, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 4 }}>Focus · {sessions} done</div>
-            <div style={{ fontFamily: T.serif, fontStyle: 'italic', fontSize: 14, color: T.ink, marginBottom: 10 }}>Pomodoro</div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button type="button" onClick={() => setRunning(r => !r)} style={{ padding: '5px 12px', border: 'none', borderRadius: 7, background: running ? T.accent : T.bl, color: running ? '#fff' : T.ink, fontFamily: T.mono, fontSize: 9.5, letterSpacing: '0.06em', cursor: 'pointer' }}>
-                {running ? '⏸ Pause' : '▶ Start'}
-              </button>
-              <button type="button" onClick={() => { setRunning(false); setSecs(25 * 60); }} style={{ padding: '5px 10px', border: `1px solid ${T.border}`, borderRadius: 7, background: 'none', color: T.ink3, fontFamily: T.mono, fontSize: 9.5, cursor: 'pointer' }}>↺</button>
-            </div>
-          </div>
-        </div>
       </div>
 
-      <div style={{ height: 12 }} />
+      <div style={{ height: 8 }} />
     </div>
   );
 }
