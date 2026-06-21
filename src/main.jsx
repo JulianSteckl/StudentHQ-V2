@@ -4000,13 +4000,13 @@ function SubjectsScreen({ profile, userData, onNav, onRequestSidebar }) {
         </div>
       ) : (
         <>
-          {/* Stat strip */}
-          <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:16}}>
+          {/* Term overview strip */}
+          <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:20}}>
             {[
-              { label:'Enrolled', val:subjects.length, sub:`${graded.length} graded`, color: T.accent },
-              { label:'Open HW', val:openHw.length, sub: openHw.length === 1 ? 'assignment' : 'assignments', color: openHw.length > 0 ? '#b07020' : T.ink3 },
-              { label:'Quizzes', val:quizzes.length, sub:'scheduled', color:'#4285f4' },
-              { label:'Term GPA', val:gpaStr, sub: graded.length ? `${graded.length} of ${subjects.length} logged` : 'log grades to start', color:'#3a8a52' },
+              { label:'Classes', val:subjects.length, sub:`${termLabel} Term`, color:T.accent },
+              { label:'Open HW', val:openHw.length, sub:openHw.length === 1 ? 'assignment due' : 'assignments due', color:openHw.length > 0 ? '#b07020' : T.ink3 },
+              { label:'Quizzes', val:quizzes.length, sub:'this term', color:'#4285f4' },
+              { label:'Term GPA', val:gpaStr, sub:graded.length ? `${graded.length} of ${subjects.length} graded` : 'log grades to track', color:'#3a8a52' },
             ].map(c => (
               <div key={c.label} style={{background:T.surface, borderRadius:12, padding:'16px 20px', borderBottom:`2px solid ${c.color}30`}}>
                 <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:7}}>{c.label}</div>
@@ -4016,52 +4016,22 @@ function SubjectsScreen({ profile, userData, onNav, onRequestSidebar }) {
             ))}
           </div>
 
-          {/* Spotlight row */}
-          {(topGpa || bottomGpa) && (
-            <div style={{display:'grid', gridTemplateColumns: topGpa && bottomGpa ? '1fr 1fr' : '1fr', gap:12, marginBottom:16}}>
-              {topGpa && (
-                <div style={{background:T.surface, borderRadius:12, padding:'14px 18px', display:'flex', alignItems:'center', gap:14, borderLeft:`3px solid #3a8a52`}}>
-                  <div style={{flex:1, minWidth:0}}>
-                    <div style={{fontFamily:T.mono, fontSize:9, color:'#3a8a52', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:3}}>Top Performer</div>
-                    <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{topGpa.name}</div>
-                  </div>
-                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:'#3a8a52'}}>{grades[topGpa.id]}</div>
-                </div>
-              )}
-              {bottomGpa && (
-                <div style={{background:T.surface, borderRadius:12, padding:'14px 18px', display:'flex', alignItems:'center', gap:14, borderLeft:`3px solid #bf4a30`}}>
-                  <div style={{flex:1, minWidth:0}}>
-                    <div style={{fontFamily:T.mono, fontSize:9, color:'#bf4a30', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:3}}>Needs Attention</div>
-                    <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{bottomGpa.name}</div>
-                  </div>
-                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:'#bf4a30'}}>{grades[bottomGpa.id]}</div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Subject table */}
-          <div style={{borderRadius:12, overflow:'hidden', border:`1px solid ${T.border}`}}>
-            {/* Table header */}
-            <div style={{display:'grid', gridTemplateColumns:'1fr 120px 80px 56px 64px 80px', padding:'8px 20px', background:T.surface, borderBottom:`1px solid ${T.border}`}}>
-              {['Subject', 'Progress', 'Trend', 'GPA', 'Grade', 'Work'].map((h, i) => (
-                <div key={h} style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', textAlign: i === 0 ? 'left' : 'center'}}>{h}</div>
-              ))}
-            </div>
-
-            {/* Rows */}
-            {subjects.map((s, idx) => {
-              const hw = homework.filter(h => h.subj === s.id && !h.done);
-              const qz = quizzes.filter(q => q.subj === s.id);
+          {/* Subject cards */}
+          <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:14}}>
+            {subjects.map(s => {
+              const hw        = homework.filter(h => h.subj === s.id && !h.done);
+              const allHw     = homework.filter(h => h.subj === s.id);
+              const doneHw    = allHw.filter(h => h.done).length;
+              const qz        = quizzes.filter(q => q.subj === s.id);
               const noteCount = notes.filter(n => n.subj === s.id).length;
-              const myGrade = grades[s.id] || null;
-              const hasGrade = !!myGrade;
-              const gpaVal = hasGrade ? (GPA_MAP[myGrade] ?? 0) : null;
-              const sparkPts = gradeSparklinePoints(gradeHistory, s.id, 80, 22);
+              const myGrade   = grades[s.id] || null;
+              const hasGrade  = !!myGrade;
+              const gpaVal    = hasGrade ? (GPA_MAP[myGrade] ?? 0) : null;
+              const sparkPts  = gradeSparklinePoints(gradeHistory, s.id, 160, 32);
               const gradeColor = gpaVal != null
                 ? (gpaVal >= 3.7 ? '#3a8a52' : gpaVal >= 3.0 ? T.accent : gpaVal >= 2.0 ? '#b07020' : '#bf4a30')
                 : T.ink3;
-              const totalWork = hw.length + qz.length;
+              const hwPct = allHw.length > 0 ? (doneHw / allHw.length) * 100 : 0;
 
               return (
                 <div
@@ -4070,83 +4040,91 @@ function SubjectsScreen({ profile, userData, onNav, onRequestSidebar }) {
                   tabIndex={0}
                   onClick={() => onNav?.('subject', s.id)}
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNav?.('subject', s.id); }}}
-                  style={{
-                    display:'grid', gridTemplateColumns:'1fr 120px 80px 56px 64px 80px',
-                    alignItems:'center', padding:'0 20px',
-                    background:T.surface, cursor:'pointer', transition:'background 0.12s',
-                    borderTop: idx > 0 ? `1px solid ${T.bl}` : 'none',
-                  }}
-                  onMouseOver={e => e.currentTarget.style.background = T.bg}
-                  onMouseOut={e => e.currentTarget.style.background = T.surface}
+                  style={{background:T.surface, borderRadius:14, overflow:'hidden', cursor:'pointer', transition:'box-shadow 0.15s, transform 0.15s'}}
+                  onMouseOver={e => { e.currentTarget.style.boxShadow='0 8px 32px -12px rgba(24,21,14,0.16)'; e.currentTarget.style.transform='translateY(-2px)'; }}
+                  onMouseOut={e => { e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='none'; }}
                 >
-                  {/* Subject name */}
-                  <div style={{display:'flex', alignItems:'center', gap:10, padding:'14px 0'}}>
-                    <div style={{width:3, height:34, borderRadius:2, background:s.color, flexShrink:0}} />
-                    <div>
-                      <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:15, color:T.ink, lineHeight:1.2}}>{s.name}</div>
-                      <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginTop:2}}>{s.short}</div>
-                    </div>
-                  </div>
+                  {/* Color header band */}
+                  <div style={{height:5, background:s.color, width:'100%'}} />
 
-                  {/* Progress bar */}
-                  <div style={{padding:'0 8px'}}>
-                    <div style={{height:5, background:T.bl, borderRadius:3, overflow:'hidden'}}>
-                      <div style={{
-                        height:'100%',
-                        width: hasGrade ? `${Math.min((gpaVal / 4) * 100, 100)}%` : '0%',
-                        background: s.color, borderRadius:3, transition:'width 0.3s',
-                      }}/>
-                    </div>
-                    {hasGrade && <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, marginTop:3, textAlign:'center'}}>{((gpaVal/4)*100).toFixed(0)}%</div>}
-                  </div>
-
-                  {/* Sparkline */}
-                  <div style={{display:'flex', justifyContent:'center', alignItems:'center'}}>
-                    {sparkPts
-                      ? <svg width={80} height={22} viewBox="0 0 80 22" style={{display:'block'}}>
-                          <polyline points={sparkPts} fill="none" stroke={s.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      : <div style={{width:40, height:1, background:T.border}} />
-                    }
-                  </div>
-
-                  {/* GPA */}
-                  <div style={{textAlign:'center', fontFamily:T.mono, fontSize:12, color: gpaVal != null ? gradeColor : T.border, fontWeight:600}}>
-                    {gpaVal != null ? gpaVal.toFixed(1) : '—'}
-                  </div>
-
-                  {/* Grade */}
-                  <div style={{textAlign:'center', fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:gradeColor, lineHeight:1}}>
-                    {myGrade || '—'}
-                  </div>
-
-                  {/* Work */}
-                  <div style={{textAlign:'center'}}>
-                    {totalWork > 0
-                      ? <div style={{display:'inline-flex', alignItems:'center', gap:4, background:`${T.accent}12`, borderRadius:6, padding:'3px 8px'}}>
-                          <div style={{fontFamily:T.mono, fontSize:10, color: hw.length > 0 ? '#b07020' : T.ink3, fontWeight:600}}>{hw.length} HW</div>
-                          {qz.length > 0 && <div style={{fontFamily:T.mono, fontSize:10, color:'#4285f4', fontWeight:600}}>{qz.length} QZ</div>}
+                  <div style={{padding:'18px 20px 16px'}}>
+                    {/* Top: abbrev badge + grade */}
+                    <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:14}}>
+                      <div>
+                        <div style={{display:'inline-block', background:`${s.color}18`, border:`1px solid ${s.color}40`, borderRadius:5, padding:'2px 7px', marginBottom:7}}>
+                          <span style={{fontFamily:T.mono, fontSize:9, color:s.color, textTransform:'uppercase', letterSpacing:'0.1em'}}>{s.short}</span>
                         </div>
-                      : <div style={{fontFamily:T.mono, fontSize:10, color:T.border}}>—</div>
-                    }
+                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink, lineHeight:1.2}}>{s.name}</div>
+                      </div>
+                      <div style={{textAlign:'right', flexShrink:0, marginLeft:8}}>
+                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:hasGrade ? 30 : 22, color:gradeColor, lineHeight:0.95}}>{hasGrade ? myGrade : '—'}</div>
+                        {gpaVal != null && <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, marginTop:4}}>{gpaVal.toFixed(1)} pts</div>}
+                      </div>
+                    </div>
+
+                    {/* GPA progress bar */}
+                    <div style={{marginBottom:12}}>
+                      <div style={{height:4, background:T.bl, borderRadius:3, overflow:'hidden'}}>
+                        <div style={{height:'100%', width: hasGrade ? `${Math.min((gpaVal/4)*100,100)}%` : '0%', background:s.color, borderRadius:3, transition:'width 0.4s'}}/>
+                      </div>
+                    </div>
+
+                    {/* Sparkline */}
+                    <div style={{marginBottom:14, height:32}}>
+                      {sparkPts
+                        ? <svg width="100%" height={32} viewBox="0 0 160 32" preserveAspectRatio="none" style={{display:'block'}}>
+                            <polyline points={sparkPts} fill="none" stroke={s.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.8}/>
+                          </svg>
+                        : <div style={{display:'flex', alignItems:'center', height:'100%'}}>
+                            <div style={{width:'100%', height:1, background:T.bl}}/>
+                          </div>
+                      }
+                    </div>
+
+                    {/* Stats footer */}
+                    <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', borderTop:`1px solid ${T.bl}`, paddingTop:12, gap:0}}>
+                      {/* HW */}
+                      <div style={{textAlign:'center', padding:'0 6px'}}>
+                        <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:5}}>Homework</div>
+                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color: hw.length > 0 ? '#b07020' : T.ink, lineHeight:1, marginBottom:4}}>
+                          {hw.length > 0 ? hw.length : doneHw > 0 ? '✓' : '0'}
+                        </div>
+                        {allHw.length > 0 && (
+                          <div style={{height:2, background:T.bl, borderRadius:2, overflow:'hidden'}}>
+                            <div style={{height:'100%', width:`${hwPct}%`, background: hw.length > 0 ? '#b07020' : '#3a8a52', borderRadius:2}}/>
+                          </div>
+                        )}
+                      </div>
+                      {/* Quizzes */}
+                      <div style={{textAlign:'center', padding:'0 6px', borderLeft:`1px solid ${T.bl}`}}>
+                        <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:5}}>Quizzes</div>
+                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color: qz.length > 0 ? '#4285f4' : T.ink, lineHeight:1}}>{qz.length}</div>
+                      </div>
+                      {/* Notes */}
+                      <div style={{textAlign:'center', padding:'0 6px', borderLeft:`1px solid ${T.bl}`}}>
+                        <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:5}}>Notes</div>
+                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink, lineHeight:1}}>{noteCount}</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
             })}
 
-            {/* Add subject row */}
+            {/* Add subject card */}
             {subjects.length < 10 && (
               <button type="button" onClick={() => onRequestSidebar?.('addSubject')}
                 style={{
-                  width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-                  padding:'14px 20px', background:'transparent', border:'none',
-                  borderTop:`1px solid ${T.bl}`, cursor:'pointer', transition:'background 0.12s',
+                  background:'transparent', borderRadius:14, border:`1.5px dashed ${T.border}`,
+                  cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center',
+                  justifyContent:'center', gap:10, minHeight:220,
+                  transition:'border-color 0.15s, background 0.15s',
                 }}
-                onMouseOver={e => { e.currentTarget.style.background = `${T.accent}06`; }}
-                onMouseOut={e => { e.currentTarget.style.background = 'transparent'; }}
+                onMouseOver={e => { e.currentTarget.style.borderColor=T.accent; e.currentTarget.style.background=`${T.accent}06`; }}
+                onMouseOut={e => { e.currentTarget.style.borderColor=T.border; e.currentTarget.style.background='transparent'; }}
               >
-                <div style={{width:18, height:18, borderRadius:5, border:`1px solid ${T.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:T.mono, fontSize:13, color:T.ink3, lineHeight:1}}>+</div>
-                <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, letterSpacing:'0.1em', textTransform:'uppercase'}}>Add subject</div>
+                <div style={{width:34, height:34, borderRadius:9, border:`1px solid ${T.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:T.mono, fontSize:20, color:T.ink3, lineHeight:1}}>+</div>
+                <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, letterSpacing:'0.12em', textTransform:'uppercase'}}>Add Subject</div>
               </button>
             )}
           </div>
