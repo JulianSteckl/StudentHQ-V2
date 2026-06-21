@@ -3243,8 +3243,8 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
               </div>
             )}
 
-            {/* Grade Distribution + Grade Insights stacked */}
-            <div style={{display:'flex', flexDirection:'column', gap:12}}>
+            {/* Grade Distribution + Grade Insights + Study Activity side by side */}
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12}}>
               <div style={{background:T.surface, borderRadius:12, padding:'18px 22px'}}>
                 <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
                   <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52'}}/>
@@ -3415,7 +3415,7 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
 
       {/* Past Courses modal */}
       {showPastModal && (
-        <div style={{position:'fixed',inset:0,zIndex:1200,background:'rgba(24,21,14,0.35)',display:'flex',alignItems:'center',justifyContent:'center'}}
+        <div style={{position:'fixed',inset:0,zIndex:9000,background:'rgba(24,21,14,0.35)',display:'flex',alignItems:'center',justifyContent:'center'}}
           onMouseDown={e => { if (e.target === e.currentTarget) setShowPastModal(false); }}>
           <div style={{background:T.surface,borderRadius:16,padding:'24px 28px',width:520,maxWidth:'calc(100vw - 32px)',maxHeight:'80vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(24,21,14,0.22)'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:18}}>
@@ -3452,13 +3452,13 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
                 <input value={pastForm.name} onChange={e => setPastForm(f=>({...f,name:e.target.value}))}
                   placeholder="e.g. AP Chemistry"
                   onKeyDown={e => e.key==='Enter' && addPastCourse()}
-                  style={{width:'100%',background:T.bg,border:`1px solid ${T.border}`,borderRadius:7,padding:'7px 10px',fontFamily:T.ui,fontSize:12,color:T.ink,outline:'none',boxSizing:'border-box'}}
+                  style={{width:'100%',background:T.bg,border:`1px solid ${T.border}`,borderRadius:7,padding:'7px 10px',fontFamily:T.ui,fontSize:12,color:T.ink,outline:'none',boxSizing:'border-box',height:34}}
                   onFocus={e=>e.target.style.borderColor=T.accent} onBlur={e=>e.target.style.borderColor=T.border}/>
               </div>
               <div>
                 <div style={{fontFamily:T.mono,fontSize:9,color:T.ink3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:4}}>Grade</div>
                 <select value={pastForm.grade} onChange={e=>setPastForm(f=>({...f,grade:e.target.value}))}
-                  style={{width:'100%',background:T.bg,border:`1px solid ${T.border}`,borderRadius:7,padding:'7px 8px',fontFamily:T.mono,fontSize:11,color:T.ink,cursor:'pointer',boxSizing:'border-box'}}>
+                  style={{width:'100%',background:T.bg,border:`1px solid ${T.border}`,borderRadius:7,padding:'7px 10px',fontFamily:T.mono,fontSize:12,color:T.ink,cursor:'pointer',boxSizing:'border-box',appearance:'none',WebkitAppearance:'none',height:34}}>
                   <option value="">—</option>
                   {GRADE_OPTS.map(g=><option key={g} value={g}>{g}</option>)}
                 </select>
@@ -3466,7 +3466,7 @@ function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) 
               <div>
                 <div style={{fontFamily:T.mono,fontSize:9,color:T.ink3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:4}}>Type</div>
                 <select value={pastForm.type} onChange={e=>setPastForm(f=>({...f,type:e.target.value}))}
-                  style={{width:'100%',background:T.bg,border:`1px solid ${T.border}`,borderRadius:7,padding:'7px 8px',fontFamily:T.mono,fontSize:11,color:T.ink,cursor:'pointer',boxSizing:'border-box'}}>
+                  style={{width:'100%',background:T.bg,border:`1px solid ${T.border}`,borderRadius:7,padding:'7px 10px',fontFamily:T.mono,fontSize:12,color:T.ink,cursor:'pointer',boxSizing:'border-box',appearance:'none',WebkitAppearance:'none',height:34}}>
                   <option value="regular">Regular</option>
                   <option value="honors">Honors +0.5</option>
                   <option value="ap">AP / IB +1.0</option>
