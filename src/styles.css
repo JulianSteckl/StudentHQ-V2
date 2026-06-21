@@ -54,8 +54,9 @@ button { cursor: pointer; font-family: inherit; }
 .shq-tools-table { overflow-x:auto; }
 .shq-tools-table > div { min-width:560px; }
 .shq-tools-bottom { display:flex; gap:12px; align-items:stretch; }
-.shq-tools-main { flex:1; min-width:0; display:flex; flex-direction:column; align-self:flex-start; }
-.shq-tools-main-card { flex:1; display:flex; flex-direction:column; }
+.shq-tools-main { flex:1; min-width:0; display:flex; flex-direction:column; }
+.shq-tools-main-card { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.shq-tools-table { flex:1; overflow-x:auto; }
 .shq-tools-side { width:240px; display:flex; flex-direction:column; flex-shrink:0; align-self:stretch; gap:12px; }
 .shq-tools-quick { flex-shrink:0; }
 .shq-tools-activity { flex:1; display:flex; flex-direction:column; min-height:0; }
