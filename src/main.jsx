@@ -2958,295 +2958,393 @@ function ScheduleScreen({ profile, userData, onUpdate, onNav, screenAction, onSc
 
 /* ── 7. Grades ──────────────────────────────────────────── */
 function GradesScreen({ profile, userData, onUpdate, onNav, onRequestSidebar }) {
-  const subjects     = profile?.subjects || [];
-  const homework     = userData?.homework || [];
-  const notes        = userData?.notes    || [];
-  const quizzes      = userData?.quizzes  || [];
-  const grades       = userData?.grades   || {};
+  const subjects   = profile?.subjects || [];
+  const homework   = userData?.homework || [];
+  const grades     = userData?.grades   || {};
   const gradeHistory = userData?.gradeHistory || [];
-  const pastCourses  = userData?.pastCourses  || [];
-  const GRADE_OPTS   = ['A+','A','A−','B+','B','B−','C+','C','C−','D','F'];
-
-  const [showPastModal, setShowPastModal] = useState(false);
-  const [pastForm, setPastForm] = useState({ name:'', grade:'', type:'regular' });
+  const GRADE_OPTS = ['A+','A','A−','B+','B','B−','C+','C','C−','D','F'];
 
   const setGrade = (subjId, g) => {
     const prev = grades[subjId];
     let nextGrades = { ...grades };
     let nextHistory = gradeHistory;
-    if (!g) { delete nextGrades[subjId]; }
-    else { nextGrades[subjId] = g; if (g !== prev) nextHistory = appendGradeHistory(gradeHistory, subjId, g); }
+    if (!g) {
+      delete nextGrades[subjId];
+    } else {
+      nextGrades[subjId] = g;
+      if (g !== prev) nextHistory = appendGradeHistory(gradeHistory, subjId, g);
+    }
     onUpdate && onUpdate({ grades: nextGrades, gradeHistory: nextHistory });
   };
 
-  const addPastCourse = () => {
-    if (!pastForm.name.trim() || !pastForm.grade) return;
-    const entry = { id: 'pc-' + Date.now().toString(36), name: pastForm.name.trim(), grade: pastForm.grade, type: pastForm.type };
-    onUpdate?.({ pastCourses: [...pastCourses, entry] });
-    setPastForm({ name:'', grade:'', type:'regular' });
-  };
-  const removePastCourse = (id) => onUpdate?.({ pastCourses: pastCourses.filter(c => c.id !== id) });
-
   const gpaStr  = calcGPA(subjects, grades);
   const gpaNum  = parseFloat(gpaStr) || 0;
+  const openHw  = homework.filter(h => !h.done);
+
   const graded  = subjects.filter(s => grades[s.id] != null);
   const bestPerf  = graded.length ? graded.reduce((a,b) => (GPA_MAP[grades[b.id]]||0) > (GPA_MAP[grades[a.id]]||0) ? b : a) : null;
-  const needsAttn = graded.length >= 2 ? graded.reduce((a,b) => (GPA_MAP[grades[b.id]]||0) < (GPA_MAP[grades[a.id]]||0) ? b : a) : null;
+  const needsAttn = graded.length >= 2
+    ? graded.reduce((a,b) => (GPA_MAP[grades[b.id]]||0) < (GPA_MAP[grades[a.id]]||0) ? b : a)
+    : null;
   const showNeedsAttn = needsAttn && bestPerf && needsAttn.id !== bestPerf.id;
-
-  const getBonus = (s) => {
-    const n = (s.name || '').toUpperCase();
-    if (/\bAP\b/.test(n) || /\bIB\b/.test(n)) return 1.0;
-    if (/\bHONORS?\b/.test(n) || /\bHON\b/.test(n)) return 0.5;
-    return 0;
-  };
-  const getPastBonus = (type) => type === 'ap' || type === 'ib' ? 1.0 : type === 'honors' ? 0.5 : 0;
-
-  const weightedGpaStr = (() => {
-    const current = graded.map(s => Math.min((GPA_MAP[grades[s.id]] || 0) + getBonus(s), 5.0));
-    const past = pastCourses.filter(c => GPA_MAP[c.grade] != null).map(c => Math.min((GPA_MAP[c.grade] || 0) + getPastBonus(c.type), 5.0));
-    const all = [...current, ...past];
-    if (!all.length) return '—';
-    return (all.reduce((a, b) => a + b, 0) / all.length).toFixed(2);
-  })();
 
   const month = new Date().getMonth();
   const termLabel = month <= 4 ? 'Spring' : month <= 7 ? 'Summer' : 'Fall';
-  const Rg = 28, circg = 2 * Math.PI * Rg;
 
+  const R = 30, circ = 2 * Math.PI * R;
+  const makeSubjectById = makeSubjectBy(subjects);
+
+  const recentUpdates = normalizeGradeHistory(gradeHistory)
+    .slice(0, 5)
+    .map(h => ({ ...h, subj: makeSubjectById(h.subjectId) }))
+    .filter(h => h.subj?.id);
+
+  const insights = buildGradeInsights(subjects, grades);
   const { buckets: gradeMix, total: gradedCount } = gradeDistribution(subjects, grades);
-  const totalOpenHw  = homework.filter(h => !h.done).length;
-  const totalQuizzes = quizzes.length;
-  const totalNotes   = notes.length;
+  const gradeMixColors = { A: '#3a8a52', B: T.accent, C: '#b07020', D: '#bf4a30', F: '#8a3030' };
 
-  const GpaRing = ({ value, max, label, sub, color }) => {
-    const num = parseFloat(value) || 0;
-    const frac = Math.min(num / max, 1);
-    return (
-      <div style={{background:T.surface, borderRadius:14, padding:'18px 22px', display:'flex', alignItems:'center', gap:18, borderBottom:`2px solid ${color}28`, width:320, flexShrink:0}}>
-        <div style={{position:'relative', flexShrink:0, width:72, height:72}}>
-          <svg width={72} height={72} viewBox="-36 -36 72 72" style={{transform:'rotate(-90deg)'}}>
-            <circle r={Rg} fill="none" stroke={T.border} strokeWidth={4}/>
-            <circle r={Rg} fill="none" stroke={color} strokeWidth={4}
-              strokeDasharray={`${frac*circg} ${circg}`} strokeLinecap="round"/>
-          </svg>
-          <div style={{position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'}}>
-            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:T.ink, lineHeight:1}}>{value}</div>
-            <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3}}>/{max.toFixed(1)}</div>
-          </div>
-        </div>
-        <div style={{minWidth:0}}>
-          <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:5}}>{label}</div>
-          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink, lineHeight:1.2, marginBottom:4}}>{gpaStandingLabel(Math.min(num, 4))}</div>
-          <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3}}>{sub}</div>
-        </div>
-      </div>
-    );
+  const headerSub = subjects.length === 0
+    ? 'Add your classes to start tracking grades.'
+    : graded.length === 0
+      ? 'Set grades in the table below — your GPA updates automatically.'
+      : `GPA ${gpaStr} across ${graded.length} of ${subjects.length} ${subjects.length === 1 ? 'class' : 'classes'}.`;
+
+  const scrollToGradeRow = (id) => {
+    document.getElementById(`grade-row-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const row = document.getElementById(`grade-row-${id}`);
+    if (row) {
+      row.style.background = T.accentSoft;
+      setTimeout(() => { row.style.background = T.surface; }, 1200);
+    }
   };
 
   return (
     <div className="screen-enter shq-screen-pad" style={{flex:1, overflowY:'auto'}}>
 
-      {/* Header */}
-      <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:18, flexWrap:'wrap', gap:16}}>
-        <div>
-          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:7}}>{termLabel} Term · {CY}</div>
-          <h1 style={{margin:'0 0 5px', lineHeight:1.1}}>
-            <span style={{fontFamily:T.ui, fontWeight:700, fontSize:29, color:T.ink}}>Academic </span>
-            <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:31, color:T.ink}}>performance.</span>
-          </h1>
-          <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>
-            {subjects.length === 0 ? 'Add your classes to start tracking grades.'
-              : graded.length === 0 ? 'Set grades below — your GPA updates automatically.'
-              : `GPA ${gpaStr} · ${graded.length} of ${subjects.length} ${subjects.length === 1 ? 'class' : 'classes'} graded`}
+        {/* Header */}
+        <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:22, flexWrap:'wrap', gap:16}}>
+          <div>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:7}}>{termLabel} Term · {CY}</div>
+            <h1 style={{margin:'0 0 5px', lineHeight:1.1}}>
+              <span style={{fontFamily:T.ui, fontWeight:700, fontSize:29, color:T.ink}}>Academic </span>
+              <span style={{fontFamily:T.serif, fontStyle:'italic', fontWeight:400, fontSize:31, color:T.ink}}>performance.</span>
+            </h1>
+            <div style={{fontFamily:T.ui, fontSize:12, color:T.ink3}}>{headerSub}</div>
           </div>
-        </div>
-        <div style={{display:'flex', gap:8, flexShrink:0}}>
-          <button type="button" onClick={() => onRequestSidebar?.('addSubject')} style={{padding:'7px 14px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>+ Add Subject</button>
-          <button type="button" onClick={() => setShowPastModal(true)}
-            style={{display:'flex', alignItems:'center', gap:6, padding:'7px 13px', border:`1px solid ${T.border}`, background:T.surface, color:T.ink3, fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8, transition:'border-color 0.12s'}}
-            onMouseOver={e => e.currentTarget.style.borderColor = '#4285f4'}
-            onMouseOut={e => e.currentTarget.style.borderColor = T.border}
-          >
-            Past Courses{pastCourses.length > 0 ? ` (${pastCourses.length})` : ''}
-          </button>
-          {subjects.length > 0 && (
-            <button type="button" onClick={() => exportGradesCsv(profile, userData)}
-              style={{display:'flex', alignItems:'center', gap:6, padding:'7px 13px', border:`1px solid ${T.border}`, background:T.surface, color:T.ink3, fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8, transition:'border-color 0.12s'}}
-              onMouseOver={e => e.currentTarget.style.borderColor = T.accent}
-              onMouseOut={e => e.currentTarget.style.borderColor = T.border}
-            >
-              <svg width="10" height="11" viewBox="0 0 10 11" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"><rect x="1" y="1.5" width="8" height="9" rx="0.8"/><path d="M3 4.5h4M3 6.5h4M3 8.5h2.5"/></svg>
-              Export CSV
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* GPA row — compact */}
-      <div style={{display:'flex', gap:10, marginBottom:12}}>
-        <GpaRing value={gpaStr} max={4} label="Unweighted GPA" sub={`${termLabel} ${CY}${graded.length ? ` · ${graded.length} graded` : ''}`} color={T.accent} />
-        <GpaRing value={weightedGpaStr} max={5} label="Weighted GPA" sub={`Includes ${pastCourses.length} past course${pastCourses.length !== 1 ? 's' : ''} · AP +1.0 · Hon +0.5`} color="#4285f4" />
-      </div>
-
-      {subjects.length === 0 ? (
-        <div style={{background:T.surface, padding:'48px 32px', borderRadius:14, textAlign:'center', maxWidth:480, margin:'0 auto'}}>
-          <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, marginBottom:8}}>No subjects yet.</div>
-          <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink3, lineHeight:1.6, marginBottom:20}}>Add your classes to track letter grades, GPA, and trends.</div>
-          <button type="button" onClick={() => onRequestSidebar?.('addSubject')} style={{padding:'9px 22px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>+ Add your first subject</button>
-        </div>
-      ) : (
-        <>
-          {/* Info strip */}
-          <div style={{display:'flex', gap:10, marginBottom:12, flexWrap:'wrap'}}>
-            {[
-              { label:'Open HW', value: totalOpenHw, color: totalOpenHw > 0 ? '#b07020' : T.ink2 },
-              { label:'Quizzes', value: totalQuizzes, color: T.ink2 },
-              { label:'Notes', value: totalNotes, color: T.ink2 },
-              { label:'Graded', value: `${gradedCount}/${subjects.length}`, color: gradedCount === subjects.length ? '#3a8a52' : T.ink2 },
-              ...(['A','B','C','D','F'].filter(l => gradeMix[l] > 0).map(l => ({
-                label: `${l}s`, value: gradeMix[l],
-                color: l==='A'?'#3a8a52':l==='B'?T.accent:l==='C'?'#b07020':'#bf4a30'
-              }))),
-            ].map(({ label, value, color }) => (
-              <div key={label} style={{background:T.surface, borderRadius:9, padding:'8px 14px', display:'flex', flexDirection:'column', alignItems:'center', gap:2, minWidth:56}}>
-                <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em'}}>{label}</div>
-                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color, lineHeight:1}}>{value}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Subject cards — 4-col, minimal */}
-          <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:8, marginBottom:12}}>
-            {subjects.map(s => {
-              const myGrade  = grades[s.id] || '';
-              const hasGrade = !!myGrade;
-              const gpaVal   = hasGrade ? (GPA_MAP[myGrade] ?? 0) : null;
-              const gradeColor = gpaVal != null
-                ? (gpaVal >= 3.7 ? '#3a8a52' : gpaVal >= 3.0 ? T.accent : gpaVal >= 2.0 ? '#b07020' : '#bf4a30')
-                : T.ink3;
-
-              return (
-                <div key={s.id} id={`grade-row-${s.id}`}
-                  style={{background:T.surface, borderRadius:10, overflow:'hidden', cursor:'pointer', transition:'box-shadow 0.15s, transform 0.12s'}}
-                  onClick={() => onNav?.('subject', s.id)}
-                  onMouseOver={e => { e.currentTarget.style.boxShadow = '0 4px 14px -4px rgba(24,21,14,0.12)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                  onMouseOut={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}
-                >
-                  <div style={{height:3, background:s.color}} />
-                  <div style={{padding:'10px 12px'}}>
-                    {/* Name + grade */}
-                    <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:6, marginBottom:hasGrade ? 7 : 10}}>
-                      <div style={{minWidth:0, flex:1}}>
-                        <div style={{fontFamily:T.mono, fontSize:8.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em', marginBottom:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.short || s.name}</div>
-                        <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink, lineHeight:1.2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.name}</div>
-                      </div>
-                      <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:hasGrade ? 22 : 16, color:gradeColor, lineHeight:1, flexShrink:0}}>{myGrade || '—'}</div>
-                    </div>
-
-                    {/* Grade bar */}
-                    {hasGrade && (
-                      <div style={{height:2, background:T.border, borderRadius:2, overflow:'hidden', marginBottom:8}}>
-                        <div style={{width:`${Math.min((gpaVal/4)*100,100)}%`, height:'100%', background:gradeColor, borderRadius:2}} />
-                      </div>
-                    )}
-
-                    {/* Grade setter */}
-                    <div onClick={e => e.stopPropagation()}>
-                      <select value={myGrade} onChange={e => setGrade(s.id, e.target.value)}
-                        aria-label={`Set grade for ${s.name}`}
-                        style={{width:'100%', background: hasGrade ? T.bl : T.accentSoft, border:`1.5px solid ${hasGrade ? T.border : T.accent}`, padding:'4px 6px', fontFamily:T.mono, fontSize:9, color: hasGrade ? T.ink3 : T.accent, cursor:'pointer', borderRadius:6, appearance:'none', textAlign:'center'}}
-                        onMouseOver={e => { e.currentTarget.style.borderColor = s.color; }}
-                        onMouseOut={e => { e.currentTarget.style.borderColor = hasGrade ? T.border : T.accent; }}
-                      >
-                        <option value="">{hasGrade ? 'Change' : 'Set grade'}</option>
-                        {GRADE_OPTS.map(g => <option key={g} value={g}>{g}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-        </>
-      )}
-
-      {/* Past Courses modal */}
-      {showPastModal && (
-        <div style={{position:'fixed', inset:0, zIndex:1200, background:'rgba(24,21,14,0.35)', display:'flex', alignItems:'center', justifyContent:'center'}}
-          onClick={() => setShowPastModal(false)}>
-          <div style={{background:T.surface, borderRadius:16, padding:'24px 28px', width:480, maxWidth:'calc(100vw - 32px)', maxHeight:'80vh', overflowY:'auto', boxShadow:'0 20px 60px rgba(24,21,14,0.22)'}}
-            onClick={e => e.stopPropagation()}>
-            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18}}>
-              <div>
-                <div style={{fontFamily:T.mono, fontSize:9.5, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:4}}>Weighted GPA</div>
-                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:20, color:T.ink}}>Past Courses</div>
-              </div>
-              <button type="button" onClick={() => setShowPastModal(false)}
-                style={{background:'none', border:`1px solid ${T.border}`, color:T.ink3, fontFamily:T.mono, fontSize:10, padding:'5px 12px', borderRadius:7, cursor:'pointer'}}>Done</button>
-            </div>
-
-            {/* Add form */}
-            <div style={{display:'flex', gap:8, alignItems:'flex-end', marginBottom:16, flexWrap:'wrap'}}>
-              <div style={{flex:'2 1 150px'}}>
-                <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:4}}>Course name</div>
-                <input value={pastForm.name} onChange={e => setPastForm(f => ({...f, name:e.target.value}))}
-                  placeholder="e.g. AP Chemistry"
-                  onKeyDown={e => e.key === 'Enter' && addPastCourse()}
-                  style={{width:'100%', background:T.bg, border:`1px solid ${T.border}`, borderRadius:7, padding:'6px 10px', fontFamily:T.ui, fontSize:12, color:T.ink, outline:'none', boxSizing:'border-box'}}
-                  onFocus={e => e.target.style.borderColor = T.accent} onBlur={e => e.target.style.borderColor = T.border}
-                />
-              </div>
-              <div style={{flex:'0 1 80px'}}>
-                <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:4}}>Grade</div>
-                <select value={pastForm.grade} onChange={e => setPastForm(f => ({...f, grade:e.target.value}))}
-                  style={{width:'100%', background:T.bg, border:`1px solid ${T.border}`, borderRadius:7, padding:'6px 8px', fontFamily:T.mono, fontSize:11, color:T.ink, cursor:'pointer'}}>
-                  <option value="">—</option>
-                  {GRADE_OPTS.map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
-              </div>
-              <div style={{flex:'1 1 100px'}}>
-                <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:4}}>Type</div>
-                <select value={pastForm.type} onChange={e => setPastForm(f => ({...f, type:e.target.value}))}
-                  style={{width:'100%', background:T.bg, border:`1px solid ${T.border}`, borderRadius:7, padding:'6px 8px', fontFamily:T.mono, fontSize:11, color:T.ink, cursor:'pointer'}}>
-                  <option value="regular">Regular</option>
-                  <option value="honors">Honors +0.5</option>
-                  <option value="ap">AP / IB +1.0</option>
-                </select>
-              </div>
-              <button type="button" onClick={addPastCourse} disabled={!pastForm.name.trim() || !pastForm.grade}
-                style={{padding:'6px 14px', border:'none', background: pastForm.name.trim() && pastForm.grade ? T.accent : T.border, color:'#fff', fontFamily:T.mono, fontSize:9.5, letterSpacing:'0.06em', cursor: pastForm.name.trim() && pastForm.grade ? 'pointer' : 'default', borderRadius:7, flexShrink:0}}>
-                Add
+          <div style={{display:'flex', gap:8, flexShrink:0}}>
+            <button type="button" onClick={() => onRequestSidebar?.('addSubject')} style={{
+              display:'flex', alignItems:'center', gap:6, padding:'7px 13px',
+              border:'none', background:T.accent, color:'#fff',
+              fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8,
+            }}>+ Add Subject</button>
+            {subjects.length > 0 && (
+              <button type="button" onClick={() => exportGradesCsv(profile, userData)} style={{
+                display:'flex', alignItems:'center', gap:6, padding:'7px 13px',
+                border:`1px solid ${T.border}`, background:T.surface, color:T.ink3,
+                fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8, transition:'border-color 0.12s',
+              }}
+                onMouseOver={e => e.currentTarget.style.borderColor = T.accent}
+                onMouseOut={e => e.currentTarget.style.borderColor = T.border}
+              >
+                <svg width="10" height="11" viewBox="0 0 10 11" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"><rect x="1" y="1.5" width="8" height="9" rx="0.8"/><path d="M3 4.5h4M3 6.5h4M3 8.5h2.5"/></svg>
+                Export CSV
               </button>
-            </div>
-
-            {/* List */}
-            {pastCourses.length === 0 ? (
-              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3, padding:'16px 0'}}>No past courses yet. Add them above to improve your weighted GPA accuracy.</div>
-            ) : (
-              <div style={{borderTop:`1px solid ${T.bl}`}}>
-                {pastCourses.map((c, i) => {
-                  const gv = GPA_MAP[c.grade] ?? 0;
-                  const weighted = Math.min(gv + getPastBonus(c.type), 5.0);
-                  const col = weighted >= 4.5 ? '#3a8a52' : weighted >= 3.5 ? T.accent : weighted >= 2.5 ? '#b07020' : '#bf4a30';
-                  return (
-                    <div key={c.id} style={{display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom: i < pastCourses.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
-                      <div style={{flex:1, fontFamily:T.ui, fontSize:12.5, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{c.name}</div>
-                      <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.07em', flexShrink:0}}>{c.type === 'ap' ? 'AP/IB' : c.type === 'honors' ? 'Hon' : 'Reg'}</div>
-                      <div style={{fontFamily:T.mono, fontSize:12, color:col, fontWeight:600, flexShrink:0, minWidth:28, textAlign:'center'}}>{c.grade}</div>
-                      <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, flexShrink:0}}>{weighted.toFixed(1)}</div>
-                      <button type="button" onClick={() => removePastCourse(c.id)}
-                        style={{background:'none', border:'none', color:T.ink3, fontSize:16, cursor:'pointer', padding:'0 4px', lineHeight:1, opacity:0.45}}
-                        onMouseOver={e => e.currentTarget.style.opacity = '1'} onMouseOut={e => e.currentTarget.style.opacity = '0.45'}>×</button>
-                    </div>
-                  );
-                })}
-              </div>
             )}
           </div>
         </div>
-      )}
+
+        {/* 4 stat cards */}
+        <div className="shq-grades-stats" style={{marginBottom:12}}>
+
+          {/* GPA ring */}
+          <div style={{background:T.surface, padding:'18px 20px', display:'flex', alignItems:'center', gap:18, borderRadius:12, borderBottom:`2px solid ${T.accent}30`}}>
+            <div style={{position:'relative', flexShrink:0, width:72, height:72}}>
+              <svg width={72} height={72} viewBox="-36 -36 72 72" style={{transform:'rotate(-90deg)'}}>
+                <circle r={R} fill="none" stroke={T.border} strokeWidth={4}/>
+                <circle r={R} fill="none" stroke={T.accent} strokeWidth={4}
+                  strokeDasharray={`${(gpaNum/4)*circ} ${circ}`} strokeLinecap="round"/>
+              </svg>
+              <div style={{position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'}}>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:T.ink, lineHeight:1}}>{gpaStr}</div>
+                <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3}}>/ 4.0</div>
+              </div>
+            </div>
+            <div>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:7}}>GPA This Term</div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:21, color:T.ink, lineHeight:1.15, marginBottom:5}}>{gpaStandingLabel(gpaNum)}</div>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>Unweighted · {termLabel} {CY}{graded.length ? ` · ${graded.length} graded` : ''}</div>
+            </div>
+          </div>
+
+          {/* Best performing */}
+          <div style={{background:T.surface, padding:'18px 20px', borderRadius:12, borderBottom:`2px solid #3a8a5230`}}>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:12}}>Best Performing</div>
+            {bestPerf ? (<>
+              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
+                <div style={{width:8, height:8, borderRadius:3, background:bestPerf.color, flexShrink:0}}/>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, lineHeight:1}}>{bestPerf.short}</div>
+              </div>
+              <div style={{display:'flex', alignItems:'center', gap:8}}>
+                <span style={{fontFamily:T.mono, fontSize:11, color:'#3a8a52', fontWeight:600}}>{grades[bestPerf.id]}</span>
+                <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{(GPA_MAP[grades[bestPerf.id]] ?? 0).toFixed(1)} pts</span>
+              </div>
+            </>) : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.5}}>Log a grade to see.</div>}
+          </div>
+
+          {/* Needs attention */}
+          <div style={{background:T.surface, padding:'18px 20px', borderRadius:12, borderBottom:`2px solid #bf4a3030`}}>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:12}}>Needs Attention</div>
+            {showNeedsAttn ? (<>
+              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
+                <div style={{width:8, height:8, borderRadius:3, background:needsAttn.color, flexShrink:0}}/>
+                <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, lineHeight:1}}>{needsAttn.short}</div>
+              </div>
+              <div style={{display:'flex', alignItems:'center', gap:8}}>
+                <span style={{fontFamily:T.mono, fontSize:11, color:'#bf4a30', fontWeight:600}}>{grades[needsAttn.id]}</span>
+                <span style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{(GPA_MAP[grades[needsAttn.id]] ?? 0).toFixed(1)} pts</span>
+              </div>
+            </>) : <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.5}}>{graded.length < 2 ? 'Log 2+ grades to compare.' : 'All classes on par.'}</div>}
+          </div>
+
+          {/* Open homework */}
+          <div style={{background:T.surface, padding:'18px 20px', borderRadius:12, borderBottom:`2px solid #b0702030`, cursor: openHw.length > 0 ? 'pointer' : 'default'}}
+            onClick={() => openHw.length > 0 && onNav?.('homework')}
+            onMouseOver={e => { if (openHw.length > 0) e.currentTarget.style.background = T.bl; }}
+            onMouseOut={e => e.currentTarget.style.background = T.surface}
+          >
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:12}}>Open Homework</div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:40, color: openHw.length > 0 ? '#b07020' : T.ink, lineHeight:0.9, marginBottom:7}}>{openHw.length}</div>
+            <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>{openHw.length === 1 ? 'assignment due' : 'assignments due'}{openHw.length > 0 ? ' →' : ''}</div>
+          </div>
+        </div>
+
+        {/* Grade mix — shown once at least one grade is logged */}
+        {gradedCount >= 1 && (
+          <div className="shq-grades-mix" style={{marginBottom:12}}>
+            <div style={{background:T.surface, borderRadius:12, padding:'18px 22px'}}>
+              <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:4}}>
+                <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
+                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Overview</div>
+              </div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink, marginBottom:4}}>
+                {gradedCount} of {subjects.length} {subjects.length === 1 ? 'class' : 'classes'} graded
+              </div>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3}}>
+                {subjects.length - gradedCount > 0
+                  ? `${subjects.length - gradedCount} still waiting on a grade`
+                  : 'Every class has a grade logged'}
+              </div>
+            </div>
+            <div style={{background:T.surface, borderRadius:12, padding:'18px 22px'}}>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em', marginBottom:12}}>Grade Mix</div>
+              {['A','B','C','D','F'].map(letter => (
+                <div key={letter} style={{display:'flex', alignItems:'center', gap:10, marginBottom:9}}>
+                  <div style={{width:16, fontFamily:T.mono, fontSize:11, color:T.ink2, fontWeight:500}}>{letter}</div>
+                  <div style={{flex:1, height:8, background:T.bl, borderRadius:4, overflow:'hidden'}}>
+                    <div style={{height:'100%', width:`${gradedCount ? (gradeMix[letter] / gradedCount) * 100 : 0}%`, background:gradeMixColors[letter], borderRadius:4, transition:'width 0.3s'}}/>
+                  </div>
+                  <div style={{width:16, textAlign:'right', fontFamily:T.mono, fontSize:10, color:T.ink3}}>{gradeMix[letter]}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {subjects.length === 0 ? (
+          <div style={{background:T.surface, padding:'48px 32px', borderRadius:12, textAlign:'center', maxWidth:480, margin:'0 auto'}}>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:22, color:T.ink, marginBottom:8}}>No subjects yet.</div>
+            <div style={{fontFamily:T.ui, fontSize:12.5, color:T.ink3, lineHeight:1.6, marginBottom:20}}>Add your classes to track letter grades, GPA, and trends in one place.</div>
+            <button type="button" onClick={() => onRequestSidebar?.('addSubject')} style={{padding:'9px 22px', border:'none', background:T.accent, color:'#fff', fontFamily:T.mono, fontSize:10, letterSpacing:'0.07em', cursor:'pointer', borderRadius:8}}>+ Add your first subject</button>
+          </div>
+        ) : (
+        <div className="shq-grades-table" style={{borderRadius:12, overflow:'hidden'}}>
+        {/* Table header */}
+        <div style={{display:'grid', gridTemplateColumns:'1fr 120px 72px 80px 100px', gap:8, padding:'7px 0 7px 16px', background:T.surface, borderBottom:`1px solid ${T.border}`}}>
+          {['SUBJECT','TREND','GPA','GRADE','SET'].map((h,i) => (
+            <div key={h} style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.11em', textAlign: i>0 ? 'center' : 'left'}}>{h}</div>
+          ))}
+        </div>
+
+        {/* Subject rows */}
+        <div style={{display:'flex', flexDirection:'column', gap:12, padding:'12px 0'}}>
+          {subjects.map(s => {
+            const hw      = homework.filter(h => h.subj === s.id);
+            const openCount = hw.filter(h => !h.done).length;
+            const myGrade = grades[s.id] || '';
+            const hasGrade = !!myGrade;
+            return (
+              <div key={s.id} id={`grade-row-${s.id}`}
+                style={{display:'grid', gridTemplateColumns:'1fr 120px 72px 80px 100px', gap:8, background:T.surface, alignItems:'center', cursor:'pointer', transition:'background 0.15s', borderRadius:8, borderLeft:`3px solid ${s.color}`}}
+                onClick={() => onNav?.('subject', s.id)}
+                onMouseOver={e => { e.currentTarget.style.background = `${s.color}0a`; }}
+                onMouseOut={e => { e.currentTarget.style.background = T.surface; }}
+              >
+                {/* Subject */}
+                <div style={{padding:'14px 14px'}}>
+                  <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:17, color:T.ink, marginBottom:3}}>{s.name}</div>
+                  <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>
+                    {openCount > 0 ? <span style={{color:'#b07020'}}>{openCount} open</span> : `${hw.length} total`}
+                    <span style={{opacity:0.6}}> · {hw.length === 1 ? 'assignment' : 'assignments'}</span>
+                  </div>
+                </div>
+                {/* Sparkline */}
+                <div style={{display:'flex', justifyContent:'center', alignItems:'center', minHeight:18}}>
+                  {(() => {
+                    const pts = gradeSparklinePoints(gradeHistory, s.id);
+                    if (!pts) return <span style={{fontFamily:T.mono, fontSize:10, color:T.border}}>—</span>;
+                    return (
+                      <svg width={108} height={18} viewBox="0 0 108 18" style={{overflow:'visible'}}>
+                        <polyline points={pts} fill="none" stroke={s.color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    );
+                  })()}
+                </div>
+                {/* GPA points */}
+                <div style={{fontFamily:T.mono, fontSize:12, color: hasGrade ? T.ink2 : T.border, textAlign:'center', fontWeight: hasGrade ? 500 : 400}}>{hasGrade ? (GPA_MAP[myGrade] ?? '—').toFixed(1) : '—'}</div>
+                {/* Grade badge */}
+                <div style={{display:'flex', justifyContent:'center'}}>
+                  <div style={{
+                    background: hasGrade ? `${s.color}18` : T.bl,
+                    border: `1.5px solid ${hasGrade ? s.color+'50' : T.border}`,
+                    padding:'4px 11px', borderRadius:6,
+                    fontFamily:T.mono, fontSize:11, color: hasGrade ? s.color : T.ink3, fontWeight:700,
+                    letterSpacing:'0.04em',
+                  }}>{myGrade || '—'}</div>
+                </div>
+                {/* Grade setter */}
+                <div style={{display:'flex', justifyContent:'center'}} onClick={e => e.stopPropagation()}>
+                  <select
+                    value={myGrade}
+                    onChange={e => setGrade(s.id, e.target.value)}
+                    aria-label={`Set grade for ${s.name}`}
+                    style={{
+                      background: hasGrade ? T.surface : T.accentSoft,
+                      border:`1.5px solid ${hasGrade ? T.border : T.accent}`,
+                      padding:'5px 10px', fontFamily:T.mono, fontSize:10,
+                      color: hasGrade ? T.ink3 : T.accent, cursor:'pointer',
+                      appearance:'none', textAlign:'center', width:70, borderRadius:8,
+                      transition:'border-color 0.12s',
+                    }}
+                    onMouseOver={e => { e.currentTarget.style.borderColor = s.color; }}
+                    onMouseOut={e => { e.currentTarget.style.borderColor = hasGrade ? T.border : T.accent; }}
+                  >
+                    <option value="">Set</option>
+                    {GRADE_OPTS.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div style={{display:'flex', justifyContent:'space-between', padding:'7px 16px', background:T.surface, borderTop:`1px solid ${T.border}`}}>
+          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{subjects.length} {subjects.length === 1 ? 'subject' : 'subjects'} · use SET to log grades</div>
+          <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.09em'}}>{graded.length} of {subjects.length} graded</div>
+        </div>
+        </div>
+        )}
+
+        {/* Subject Balance Radar Chart */}
+        {(() => {
+          if (subjects.length < 3) return null;
+          const radarSubjs = subjects.slice(0, 8);
+          const n = radarSubjs.length;
+          const CX = 120, CY2 = 120, RAD = 85;
+          const levels = 4;
+          const angleStep = (2 * Math.PI) / n;
+          const pt = (i, r) => [CX + r * Math.sin(i * angleStep), CY2 - r * Math.cos(i * angleStep)];
+          const gridLines = Array.from({length: levels}, (_, l) => {
+            const r = RAD * (l + 1) / levels;
+            return radarSubjs.map((_, i) => pt(i, r)).map(p => p.join(',')).join(' ');
+          });
+          const dataPoints = radarSubjs.map((s, i) => {
+            const g = grades[s.id] ? (GPA_MAP[grades[s.id]] || 0) : 0;
+            const r = (g / 4) * RAD;
+            return pt(i, Math.max(r, 4));
+          });
+          const dataPath = dataPoints.map(p => p.join(',')).join(' ');
+          return (
+            <div style={{background:T.surface, borderRadius:12, padding:'20px 22px', marginTop:12}}>
+              <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:4}}>
+                <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
+                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Subject Balance</div>
+              </div>
+              <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:18, color:T.ink, marginBottom:12}}>How your grades compare across classes</div>
+              <div style={{display:'flex', justifyContent:'center'}}>
+                <svg width={240} height={240} viewBox="0 0 240 240">
+                  {gridLines.map((pts, l) => (
+                    <polygon key={l} points={pts} fill="none" stroke={T.border} strokeWidth={0.8} opacity={0.6}/>
+                  ))}
+                  {radarSubjs.map((_, i) => {
+                    const [x, y] = pt(i, RAD);
+                    return <line key={i} x1={CX} y1={CY2} x2={x} y2={y} stroke={T.border} strokeWidth={0.5} opacity={0.4}/>;
+                  })}
+                  <polygon points={dataPath} fill={`${T.accent}25`} stroke={T.accent} strokeWidth={1.8} strokeLinejoin="round"/>
+                  {dataPoints.map((p, i) => (
+                    <circle key={i} cx={p[0]} cy={p[1]} r={3} fill={T.accent}/>
+                  ))}
+                  {radarSubjs.map((s, i) => {
+                    const [x, y] = pt(i, RAD + 16);
+                    return (
+                      <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="central"
+                        style={{fontFamily:T.mono, fontSize:10, fill:T.ink3, letterSpacing:'0.05em'}}>
+                        {s.short || s.name.slice(0,8)}
+                      </text>
+                    );
+                  })}
+                </svg>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Insight cards */}
+        {subjects.length > 0 && (
+        <div className="shq-grades-insights" style={{marginTop:12}}>
+          <div style={{background:T.surface, borderRadius:12, padding:'18px 20px', minHeight:140}}>
+            <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:13}}>
+              <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Recent Updates</div>
+            </div>
+            {recentUpdates.length === 0
+              ? <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:13, color:T.ink3}}>Grade changes will appear here as you log them.</div>
+              : recentUpdates.map((item, i) => (
+                <div key={item.id} style={{display:'flex', alignItems:'center', gap:9, padding:'6px 0', borderBottom: i < recentUpdates.length - 1 ? `1px solid ${T.bl}` : 'none'}}>
+                  <div style={{width:5, height:5, borderRadius:1, background:item.subj.color, flexShrink:0}}/>
+                  <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.subj.short}</div>
+                  <div style={{fontFamily:T.mono, fontSize:10, flexShrink:0, color: (GPA_MAP[item.grade]||0) >= 3.7 ? '#3a8a52' : (GPA_MAP[item.grade]||0) >= 3.0 ? T.ink3 : '#bf4a30'}}>{item.grade}</div>
+                  <div style={{fontFamily:T.mono, fontSize:9, color:T.ink3, flexShrink:0}}>{formatToolWhen(item.at)}</div>
+                </div>
+              ))}
+          </div>
+          <div style={{background:T.surface, borderRadius:12, padding:'18px 20px', minHeight:140}}>
+            <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:12}}>
+              <div style={{width:6, height:6, borderRadius:'50%', background:'#3a8a52'}}/>
+              <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>By Subject</div>
+            </div>
+            {subjects.map(s => (
+              <div key={s.id} style={{display:'flex', alignItems:'center', gap:8, padding:'4px 0'}}>
+                <div style={{width:5, height:5, borderRadius:1, background:s.color, flexShrink:0}}/>
+                <div style={{fontFamily:T.ui, fontSize:11.5, color:T.ink2, flex:1}}>{s.short}</div>
+                <div style={{fontFamily:T.mono, fontSize:10, color: grades[s.id] ? T.ink3 : T.accent}}>{grades[s.id] || '—'}</div>
+                <button type="button" aria-label={`Jump to ${s.short}`} onClick={() => scrollToGradeRow(s.id)} style={{fontFamily:T.mono, fontSize:10, color:T.ink3, background:'none', border:'none', padding:0, cursor:'pointer'}}>→</button>
+              </div>
+            ))}
+          </div>
+          <div style={{background:T.surface, borderRadius:12, padding:'18px 20px', minHeight:140}}>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
+              <div style={{display:'flex', alignItems:'center', gap:6}}>
+                <div style={{width:6, height:6, borderRadius:'50%', background:'#4285f4'}}/>
+                <div style={{fontFamily:T.mono, fontSize:10, color:T.ink3, textTransform:'uppercase', letterSpacing:'0.13em'}}>Grade Insights</div>
+              </div>
+            </div>
+            <div style={{fontFamily:T.serif, fontStyle:'italic', fontSize:14, color:T.ink3, lineHeight:1.7}}>
+              {insights || 'Insights appear once you log your first grade.'}
+            </div>
+          </div>
+        </div>
+        )}
     </div>
   );
 }
